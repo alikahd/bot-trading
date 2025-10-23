@@ -1,0 +1,37 @@
+/**
+ * إعدادات السيرفر المركزية
+ * تغيير رابط واحد يؤثر على كل المشروع
+ */
+
+// رابط سيرفر IQ Option
+export const IQ_OPTION_SERVER_URL = 
+  process.env.NODE_ENV === 'production' 
+    ? 'https://iqoption-server.username.repl.co'  // ضع رابط Replit هنا
+    : 'http://localhost:5001';  // للتطوير المحلي
+
+// API endpoints
+export const API_ENDPOINTS = {
+  status: `${IQ_OPTION_SERVER_URL}/api/status`,
+  quotes: `${IQ_OPTION_SERVER_URL}/api/quotes`,
+  quote: (symbol: string) => `${IQ_OPTION_SERVER_URL}/api/quotes/${symbol}`,
+};
+
+// دالة مساعدة للتحقق من توفر السيرفر
+export const checkServerHealth = async (): Promise<boolean> => {
+  try {
+    const response = await fetch(API_ENDPOINTS.status, { 
+      method: 'GET',
+      timeout: 5000 
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('❌ السيرفر غير متاح:', error);
+    return false;
+  }
+};
+
+export default {
+  IQ_OPTION_SERVER_URL,
+  API_ENDPOINTS,
+  checkServerHealth
+};
