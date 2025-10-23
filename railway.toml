@@ -9,3 +9,4 @@ restartPolicyType = "ON_FAILURE"
 
 [env]
 PORT = "5000"
+PYTHONPATH = "/app"
