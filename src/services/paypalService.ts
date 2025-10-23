@@ -20,8 +20,7 @@ export const loadPayPalScript = (locale: string = 'en_US'): Promise<void> => {
     }
 
     const script = document.createElement('script');
-    // استخدام Standard Checkout (يعمل مع جميع حسابات PayPal Business)
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture&locale=${locale}`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture&enable-funding=card&disable-funding=credit,paylater&locale=${locale}`;
     script.async = true;
     
     script.onload = () => {

@@ -18,6 +18,7 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
 }) => {
   const { language } = useLanguage();
   const paypalRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const initializedRef = useRef(false);
@@ -74,11 +75,11 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
         
         console.log('✅ PayPal SDK ready');
 
-        // انتظار حتى يكون الـ ref جاهز (مع retry)
+        // انتظار حتى تكون الـ refs جاهزة (مع retry)
         let retries = 0;
         const maxRetries = 10;
-        while (!paypalRef.current && retries < maxRetries && mounted) {
-          console.log(`⏳ Waiting for PayPal ref... (${retries + 1}/${maxRetries})`);
+        while ((!paypalRef.current || !cardRef.current) && retries < maxRetries && mounted) {
+          console.log(`⏳ Waiting for refs... (${retries + 1}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, 200));
           retries++;
         }
@@ -88,26 +89,30 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
           return;
         }
 
-        // تنظيف الزر القديم
+        // تنظيف الأزرار القديمة
         if (paypalRef.current) {
           paypalRef.current.innerHTML = '';
+        }
+        if (cardRef.current) {
+          cardRef.current.innerHTML = '';
         }
 
         // إنشاء زر PayPal
         console.log('🎨 Creating PayPal button...');
-        console.log('📍 PayPal ref:', !!paypalRef.current);
+        console.log('📍 PayPal ref:', !!paypalRef.current, 'Card ref:', !!cardRef.current);
         
-        if (!paypalRef.current) {
-          console.error('❌ PayPal ref still not ready after waiting');
+        if (!paypalRef.current || !cardRef.current) {
+          console.error('❌ Refs still not ready after waiting');
           if (mounted) {
-            setError('Payment button failed to load. Please refresh the page.');
+            setError('Payment buttons failed to load. Please refresh the page.');
             setLoading(false);
           }
           return;
         }
         
-        console.log('✅ PayPal ref is ready, creating button...');
+        console.log('✅ Refs are ready, creating buttons...');
         window.paypal.Buttons({
+            fundingSource: window.paypal.FUNDING.PAYPAL,
             style: {
               layout: 'vertical',
               color: 'gold',
@@ -139,7 +144,50 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
               onError(err);
             }
           }).render(paypalRef.current);
-        console.log('✅ PayPal button rendered successfully');
+        console.log('✅ PayPal button rendered');
+
+        // إنشاء زر البطاقة
+        console.log('🎨 Creating Card button...');
+        if (cardRef.current && window.paypal.FUNDING.CARD) {
+          window.paypal.Buttons({
+            fundingSource: window.paypal.FUNDING.CARD,
+            style: {
+              layout: 'vertical',
+              color: 'black',
+              shape: 'rect',
+              label: 'pay',
+              height: 50
+            },
+            createOrder: (_data: any, actions: any) => {
+              return actions.order.create({
+                purchase_units: [{
+                  amount: {
+                    value: amount.toFixed(2),
+                    currency_code: 'USD'
+                  },
+                  description: planName
+                }],
+                application_context: {
+                  shipping_preference: 'NO_SHIPPING',
+                  user_action: 'PAY_NOW'
+                }
+              });
+            },
+            onApprove: async (_data: any, actions: any) => {
+              const details = await actions.order.capture();
+              onSuccess(details);
+            },
+            onError: (err: any) => {
+              console.error('❌ Card payment error:', err);
+              onError(err);
+            }
+          }).render(cardRef.current);
+        console.log('✅ Card button rendered');
+        } else {
+          console.warn('⚠️ Card button not available');
+        }
+
+        console.log('✅ All buttons initialized successfully');
         
         // تعيين initialized flag
         initializedRef.current = true;
@@ -164,14 +212,17 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
       initializedRef.current = false;
       console.log('🧹 Cleanup: reset initialized flag (language changed or unmount)');
       
-      // تنظيف الزر القديم
+      // تنظيف الأزرار القديمة
       if (paypalRef.current) {
         paypalRef.current.innerHTML = '';
+      }
+      if (cardRef.current) {
+        cardRef.current.innerHTML = '';
       }
     };
   }, [language]);
 
-  console.log('🎬 Render state:', { loading, error, hasPaypalRef: !!paypalRef.current });
+  console.log('🎬 Render state:', { loading, error, hasPaypalRef: !!paypalRef.current, hasCardRef: !!cardRef.current });
 
   if (error) {
     return (
@@ -201,11 +252,19 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
       {/* زر PayPal */}
       <div>
         <p className="text-white text-sm font-medium mb-2">
-          {t('💙 الدفع عبر PayPal', '💙 Pay with PayPal', '💙 Payer avec PayPal')}
+          {t('💙 الدفع بحساب PayPal', '💙 Pay with PayPal', '💙 Payer avec PayPal')}
         </p>
         <div ref={paypalRef}></div>
+      </div>
+
+      {/* زر البطاقة */}
+      <div>
+        <p className="text-white text-sm font-medium mb-2">
+          {t('💳 الدفع بالبطاقة البنكية', '💳 Pay with Debit or Credit Card', '💳 Payer par carte bancaire')}
+        </p>
+        <div ref={cardRef}></div>
         <p className="text-gray-400 text-xs mt-2 text-center">
-          {t('يدعم PayPal والبطاقات البنكية', 'Supports PayPal & Credit Cards', 'Prend en charge PayPal et les cartes bancaires')}
+          {t('سيتم معالجة الدفع بشكل آمن عبر PayPal', 'Payment will be processed securely via PayPal', 'Le paiement sera traité en toute sécurité via PayPal')}
         </p>
       </div>
 
