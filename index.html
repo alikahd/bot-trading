@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <!-- تعطيل الـ Cache -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <link rel="icon" type="image/png" href="/images/icon.png" />
+    <link rel="apple-touch-icon" href="/images/icon.png" />
+    <link rel="shortcut icon" href="/images/icon.png" />
+    <script>
+      // اختيار manifest حسب لغة التطبيق المحفوظة
+      function updateManifest() {
+        const currentLang = localStorage.getItem('selectedLanguage') || 'ar';
+        const manifestPath = currentLang === 'ar' ? '/manifest.json' : 
+                            currentLang === 'en' ? '/manifest-en.json' : '/manifest-fr.json';
+        
+        // إزالة manifest القديم
+        const oldLink = document.querySelector('link[rel="manifest"]');
+        if (oldLink) {
+          oldLink.remove();
+        }
+        
+        // إضافة manifest الجديد
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestPath;
+        document.head.appendChild(manifestLink);
+        
+        // تحديث اتجاه النص في HTML
+        updateTextDirection(currentLang);
+      }
+      
+      // تحديث اتجاه النص
+      function updateTextDirection(lang) {
+        const htmlElement = document.documentElement;
+        const bodyElement = document.body;
+        
+        if (lang === 'ar') {
+          // العربية - من اليمين لليسار
+          htmlElement.setAttribute('dir', 'rtl');
+          htmlElement.setAttribute('lang', 'ar');
+          if (bodyElement) {
+            bodyElement.style.direction = 'rtl';
+            bodyElement.style.textAlign = 'right';
+          }
+        } else {
+          // الإنجليزية والفرنسية - من اليسار لليمين
+          htmlElement.setAttribute('dir', 'ltr');
+          htmlElement.setAttribute('lang', lang);
+          if (bodyElement) {
+            bodyElement.style.direction = 'ltr';
+            bodyElement.style.textAlign = 'left';
+          }
+        }
+        
+        // تحديث CSS variables للاتجاه
+        document.documentElement.style.setProperty('--text-direction', lang === 'ar' ? 'rtl' : 'ltr');
+        document.documentElement.style.setProperty('--text-align-start', lang === 'ar' ? 'right' : 'left');
+        document.documentElement.style.setProperty('--text-align-end', lang === 'ar' ? 'left' : 'right');
+        
+        console.log(`🌐 تم تحديث اتجاه النص إلى: ${lang === 'ar' ? 'RTL' : 'LTR'}`);
+      }
+      
+      // تحديث manifest عند تحميل الصفحة
+      updateManifest();
+      
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'selectedLanguage') {
+          updateManifest();
+        }
+      });
+      
+      // تحديث manifest عند تغيير اللغة داخل التطبيق
+      window.updateAppManifest = updateManifest;
+      
+      // تسجيل نجاح التثبيت
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('🎉 تم تثبيت التطبيق بنجاح!');
+      });
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <meta name="theme-color" content="#1c357c" />
+    <!-- PWA Meta Tags محسنة للهاتف -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BooTrading" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="BooTrading" />
+    
+    <!-- منع التكبير التلقائي في iOS -->
+    <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
+    
+    <!-- Windows Tiles -->
+    <meta name="msapplication-TileColor" content="#1c357c" />
+    <meta name="msapplication-TileImage" content="/images/icon.png" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Additional PWA Meta Tags -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-orientations" content="portrait" />
+    
+    <!-- iOS Splash Screens -->
+    <link rel="apple-touch-startup-image" href="/images/logo.png" />
+    
+    <!-- Additional Icons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/icon.svg" />
+    <link rel="mask-icon" href="/images/icon.svg" color="#3b82f6" />
+    <title>Bot Trading - منصة التداول الآلي المتطورة</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- تحميل مسبوق للوغو -->
+    <link rel="preload" href="/images/logo.png" as="image" type="image/png">
+    <style>
+      * {
+        font-family: 'Cairo', sans-serif;
+      }
+      
+      /* شاشة التحميل الأولية */
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(to bottom right, #0f172a, #1e3a8a, #0f172a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.2s ease-out;
+      }
+      
+      #initial-loader::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+        animation: pulse 3s ease-in-out infinite;
+      }
+      
+      #initial-loader.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .loader-content {
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+      
+      .loader-logo {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 20px;
+        opacity: 1 !important;
+        display: block;
+        filter: drop-shadow(0 10px 30px rgba(59, 130, 246, 0.5));
+        object-fit: contain;
+        animation: none !important;
+      }
+      
+      .loader-spinner {
+        width: 40px;
+        height: 40px;
+        margin: 20px auto;
+        border: 3px solid rgba(59, 130, 246, 0.3);
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      .loader-text {
+        color: #e2e8f0;
+        font-size: 18px;
+        margin-top: 15px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+        animation: fadeInOut 2s ease-in-out infinite;
+      }
+      
+      @keyframes fadeInOut {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(0.95); }
+      }
+      
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+      }
+      
+      /* إصلاحات CSS للهاتف المحمول */
+      .keyboard-open {
+        height: 50vh;
+        overflow-y: auto;
+      }
+      
+      .mobile-device input, .mobile-device select, .mobile-device textarea {
+        font-size: 16px !important;
+        -webkit-appearance: none;
+        appearance: none;
+        border-radius: 0;
+      }
+      
+      /* تحسينات إضافية للهاتف المحمول */
+      @media (max-width: 768px) {
+        body {
+          -webkit-text-size-adjust: 100%;
+          -webkit-tap-highlight-color: transparent;
+        }
+        
+        input, select, textarea, button {
+          -webkit-appearance: none;
+          appearance: none;
+          -webkit-border-radius: 0;
+          border-radius: 8px;
+        }
+        
+        /* منع التكبير عند focus */
+        input[type="text"], input[type="email"], input[type="password"], 
+        input[type="number"], input[type="tel"], textarea, select {
+          font-size: 16px !important;
+          transform: translateZ(0);
+          -webkit-user-select: text;
+          user-select: text;
+        }
+        
+        /* منع الكتابة بأحرف كبيرة تلقائياً للبريد واسم المستخدم */
+        input[type="email"], input[placeholder*="البريد"], 
+        input[placeholder*="اسم المستخدم"], input[placeholder*="Username"] {
+          text-transform: none !important;
+        }
+      }
+      
+      /* إخفاء أيقونة Tawk.to */
+      .tawk-min-container,
+      #tawk-bubble-container,
+      div[id*="tawk-bubble"],
+      .tawk-chat-widget,
+      iframe[src*="tawk.to"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+    </style>
+    
+  </head>
+  <body>
+    <!-- شاشة التحميل الأولية -->
+    <div id="initial-loader">
+      <!-- خلفية متحركة -->
+      <div style="position: absolute; inset: 0; opacity: 0.15; overflow: hidden;">
+        <div style="position: absolute; top: 20%; left: 10%; width: 300px; height: 300px; background: #a855f7; border-radius: 50%; filter: blur(80px); animation: float 6s ease-in-out infinite;"></div>
+        <div style="position: absolute; top: 60%; right: 15%; width: 250px; height: 250px; background: #06b6d4; border-radius: 50%; filter: blur(80px); animation: float 8s ease-in-out infinite; animation-delay: 2s;"></div>
+        <div style="position: absolute; bottom: 20%; left: 40%; width: 200px; height: 200px; background: #ec4899; border-radius: 50%; filter: blur(80px); animation: float 7s ease-in-out infinite; animation-delay: 4s;"></div>
+      </div>
+      
+      <div class="loader-content">
+        <div class="loader-spinner"></div>
+        <p class="loader-text" id="loading-text">Loading...</p>
+      </div>
+      
+      <script>
+        // تطبيق الترجمة على نص التحميل
+        (function() {
+          const lang = localStorage.getItem('selectedLanguage') || 'ar';
+          const loadingText = document.getElementById('loading-text');
+          const loaderContent = document.querySelector('.loader-content');
+          
+          if (loadingText) {
+            if (lang === 'ar') {
+              loadingText.textContent = 'جاري التحميل...';
+              if (loaderContent) loaderContent.style.direction = 'rtl';
+            } else if (lang === 'en') {
+              loadingText.textContent = 'Loading...';
+              if (loaderContent) loaderContent.style.direction = 'ltr';
+            } else if (lang === 'fr') {
+              loadingText.textContent = 'Chargement...';
+              if (loaderContent) loaderContent.style.direction = 'ltr';
+            }
+          }
+          
+          // إذا كان هناك cache للمصادقة، نخفي شاشة التحميل بسرعة
+          const authCache = localStorage.getItem('auth_state_cache');
+          if (authCache) {
+            setTimeout(function() {
+              const loader = document.getElementById('initial-loader');
+              if (loader) {
+                loader.classList.add('hidden');
+                setTimeout(function() {
+                  loader.remove();
+                }, 200);
+              }
+            }, 300);
+          }
+        })();
+      </script>
+    </div>
+    
+    <div id="root"></div>
+    
+    <script>
+      // إخفاء شاشة التحميل عند تحميل التطبيق
+      window.addEventListener('DOMContentLoaded', function() {
+        // إخفاء فوراً عند تحميل DOM
+        const loader = document.getElementById('initial-loader');
+        if (loader) {
+          loader.classList.add('hidden');
+          setTimeout(function() {
+            loader.remove();
+          }, 200);
+        }
+      });
+      
+      // إخفاء شاشة التحميل عند تحميل React
+      window.hideInitialLoader = function() {
+        const loader = document.getElementById('initial-loader');
+        if (loader) {
+          loader.classList.add('hidden');
+          setTimeout(function() {
+            loader.remove();
+          }, 300);
+        }
+      };
+    </script>
+    
+    <!-- إصلاحات الهاتف المحمول -->
+    <script src="/mobile-fix.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار جلب الاشتراكات</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        pre {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .card h3 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 اختبار جلب الاشتراكات والمدفوعات</h1>
+        
+        <div style="text-align: center;">
+            <button onclick="testSubscriptions()">اختبار جلب الاشتراكات</button>
+            <button onclick="testPayments()">اختبار جلب المدفوعات</button>
+            <button onclick="testBoth()">اختبار الاثنين معاً</button>
+        </div>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script type="module">
+        const SUPABASE_URL = 'https://xtxnzqvdlhfxqvwqkqxr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0eG56cXZkbGhmeHF2d3FrcXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg3NTIzNDksImV4cCI6MjA0NDMyODM0OX0.Ql_Hk_Lx-VpJdIzTMzZXPYrXmNAcnWVOKzQGWJGYVBY';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        window.testSubscriptions = async function() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<div class="loading"></div> جاري جلب الاشتراكات...';
+            
+            try {
+                console.log('🔍 بدء جلب الاشتراكات...');
+                
+                const { data, error } = await supabaseClient
+                    .from('subscriptions')
+                    .select(`
+                        *,
+                        users:user_id (
+                            id,
+                            username,
+                            email,
+                            full_name
+                        ),
+                        subscription_plans:plan_id (
+                            name,
+                            name_ar,
+                            duration_months,
+                            price
+                        )
+                    `)
+                    .order('created_at', { ascending: false });
+
+                console.log('📊 النتيجة:', { data, error });
+
+                if (error) {
+                    throw error;
+                }
+
+                result.innerHTML = `
+                    <div class="success">✅ تم جلب ${data.length} اشتراك بنجاح!</div>
+                    ${data.map(sub => `
+                        <div class="card">
+                            <h3>📋 ${sub.subscription_plans?.name_ar || 'غير محدد'}</h3>
+                            <p><strong>المستخدم:</strong> ${sub.users?.full_name || sub.users?.username || 'غير محدد'}</p>
+                            <p><strong>البريد:</strong> ${sub.users?.email || 'غير محدد'}</p>
+                            <p><strong>الحالة:</strong> ${sub.status}</p>
+                            <p><strong>المبلغ:</strong> $${sub.amount_paid}</p>
+                            <p><strong>تاريخ البداية:</strong> ${new Date(sub.start_date).toLocaleDateString('ar')}</p>
+                            <p><strong>تاريخ النهاية:</strong> ${new Date(sub.end_date).toLocaleDateString('ar')}</p>
+                        </div>
+                    `).join('')}
+                    <h3>📄 البيانات الخام:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                result.innerHTML = `
+                    <div class="error">❌ خطأ في جلب الاشتراكات</div>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+            }
+        };
+
+        window.testPayments = async function() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<div class="loading"></div> جاري جلب المدفوعات...';
+            
+            try {
+                console.log('🔍 بدء جلب المدفوعات...');
+                
+                const { data, error } = await supabaseClient
+                    .from('payments')
+                    .select(`
+                        *,
+                        users:user_id (
+                            id,
+                            username,
+                            email,
+                            full_name
+                        ),
+                        subscription_plans:plan_id (
+                            name,
+                            name_ar,
+                            price,
+                            duration_months
+                        )
+                    `)
+                    .order('created_at', { ascending: false });
+
+                console.log('📊 النتيجة:', { data, error });
+
+                if (error) {
+                    throw error;
+                }
+
+                result.innerHTML = `
+                    <div class="success">✅ تم جلب ${data.length} دفعة بنجاح!</div>
+                    ${data.map(payment => `
+                        <div class="card">
+                            <h3>💰 دفعة ${payment.payment_method}</h3>
+                            <p><strong>المستخدم:</strong> ${payment.users?.full_name || payment.users?.username || 'غير محدد'}</p>
+                            <p><strong>البريد:</strong> ${payment.users?.email || 'غير محدد'}</p>
+                            <p><strong>المبلغ:</strong> $${payment.amount}</p>
+                            <p><strong>الحالة:</strong> ${payment.status}</p>
+                            <p><strong>التاريخ:</strong> ${new Date(payment.created_at).toLocaleDateString('ar')}</p>
+                        </div>
+                    `).join('')}
+                    <h3>📄 البيانات الخام:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                result.innerHTML = `
+                    <div class="error">❌ خطأ في جلب المدفوعات</div>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+            }
+        };
+
+        window.testBoth = async function() {
+            await testSubscriptions();
+            setTimeout(async () => {
+                const currentResult = document.getElementById('result').innerHTML;
+                document.getElementById('result').innerHTML = currentResult + '<hr><h2>المدفوعات:</h2>';
+                await testPayments();
+            }, 1000);
+        };
+
+        // اختبار تلقائي عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            testBoth();
+        });
+    </script>
+</body>
+</html>

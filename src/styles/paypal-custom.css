@@ -1,0 +1,24 @@
+/* تخصيص ألوان PayPal للوضع الداكن */
+
+/* محاولة تغيير لون النصوص في PayPal */
+.paypal-button-container,
+.paypal-button,
+.card-button {
+  color-scheme: dark !important;
+}
+
+/* تخصيص الأزرار */
+.paypal-button iframe,
+.card-button iframe {
+  filter: brightness(1.1) !important;
+}
+
+/* ملاحظة مهمة:
+   النصوص داخل نافذة PayPal المنبثقة يتم التحكم بها من PayPal نفسه
+   ولا يمكن تغييرها بسبب قيود الأمان (Same-Origin Policy)
+   
+   الحل البديل:
+   1. استخدام PayPal في الوضع الداكن (إذا كان متاحاً)
+   2. تحسين التباين في صفحتك
+   3. إضافة تعليمات واضحة للمستخدمين
+*/

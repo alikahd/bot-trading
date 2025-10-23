@@ -1,0 +1,14 @@
+services:
+  # Python Backend Server
+  - type: web
+    name: iqoption-server
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python iqoption_unofficial_server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: IQ_EMAIL
+        sync: false
+      - key: IQ_PASSWORD
+        sync: false

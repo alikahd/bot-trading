@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار الدردشة المباشرة</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .status {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+        .info { border-left: 4px solid #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار الدردشة المباشرة</h1>
+        <p>هذه الصفحة لاختبار عمل نظام الدردشة المباشرة مع Tawk.to</p>
+        
+        <div id="status" class="status info">
+            <h3>📡 حالة التحميل</h3>
+            <p id="statusText">جاري تحميل نظام الدردشة...</p>
+        </div>
+
+        <div class="status">
+            <h3>📋 معلومات الإعداد</h3>
+            <p><strong>Property ID:</strong> <span id="propertyId">68d7390284c419194f0db574</span></p>
+            <p><strong>Widget ID:</strong> <span id="widgetId">1j64bdcu7</span></p>
+            <p><strong>الرابط:</strong> <span id="scriptUrl">جاري التحميل...</span></p>
+        </div>
+
+        <div class="status">
+            <h3>🔍 التحقق من التحميل</h3>
+            <p>إذا كان كل شيء يعمل بشكل صحيح، يجب أن ترى زر الدردشة في أسفل يمين الصفحة.</p>
+            <button onclick="checkTawkStatus()" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                فحص حالة Tawk.to
+            </button>
+        </div>
+
+        <div id="debugInfo" class="status" style="text-align: left; font-family: monospace; font-size: 12px;">
+            <h3>🐛 معلومات التشخيص</h3>
+            <div id="debugContent">جاري التحميل...</div>
+        </div>
+    </div>
+
+    <script>
+        // إعدادات Tawk.to
+        const PROPERTY_ID = '68d7390284c419194f0db574';
+        const WIDGET_ID = '1j64bdcu7';
+        
+        // تحديث معلومات الإعداد
+        document.getElementById('propertyId').textContent = PROPERTY_ID;
+        document.getElementById('widgetId').textContent = WIDGET_ID;
+        document.getElementById('scriptUrl').textContent = `https://embed.tawk.to/${PROPERTY_ID}/${WIDGET_ID}`;
+
+        // تحميل Tawk.to
+        var Tawk_API = Tawk_API || {};
+        var Tawk_LoadStart = new Date();
+        
+        // إضافة معالجات الأحداث
+        Tawk_API.onLoad = function() {
+            console.log('✅ Tawk.to loaded successfully');
+            updateStatus('success', '✅ تم تحميل نظام الدردشة بنجاح!');
+            
+            // تعيين معلومات المستخدم
+            Tawk_API.setAttributes({
+                'name': 'مختبر النظام',
+                'email': 'test@example.com'
+            });
+        };
+
+        Tawk_API.onStatusChange = function(status) {
+            console.log('📊 Tawk.to status changed:', status);
+            updateDebugInfo();
+        };
+
+        // تحميل السكريبت
+        (function() {
+            var s1 = document.createElement("script");
+            var s0 = document.getElementsByTagName("script")[0];
+            s1.async = true;
+            s1.src = `https://embed.tawk.to/${PROPERTY_ID}/${WIDGET_ID}`;
+            s1.charset = 'UTF-8';
+            s1.setAttribute('crossorigin', '*');
+            
+            s1.onload = function() {
+                console.log('📦 Tawk.to script loaded');
+                updateStatus('info', '📦 تم تحميل السكريبت، جاري تهيئة الويدجت...');
+            };
+            
+            s1.onerror = function() {
+                console.error('❌ Failed to load Tawk.to script');
+                updateStatus('error', '❌ فشل في تحميل نظام الدردشة. تحقق من الإعدادات.');
+            };
+            
+            s0.parentNode.insertBefore(s1, s0);
+        })();
+
+        // دوال مساعدة
+        function updateStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            
+            statusDiv.className = `status ${type}`;
+            statusText.textContent = message;
+        }
+
+        function updateDebugInfo() {
+            const debugContent = document.getElementById('debugContent');
+            const info = {
+                'Tawk_API exists': typeof Tawk_API !== 'undefined',
+                'Widget loaded': typeof Tawk_API.onLoad !== 'undefined',
+                'Current status': Tawk_API.getStatus ? Tawk_API.getStatus() : 'غير متاح',
+                'Is online': Tawk_API.isVisitorEngaged ? Tawk_API.isVisitorEngaged() : 'غير متاح',
+                'Widget visible': document.querySelector('#tawkchat-minified-container') ? 'نعم' : 'لا'
+            };
+            
+            debugContent.innerHTML = Object.entries(info)
+                .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
+                .join('<br>');
+        }
+
+        function checkTawkStatus() {
+            updateDebugInfo();
+            
+            if (typeof Tawk_API !== 'undefined') {
+                alert('✅ Tawk.to محمل ويعمل بشكل صحيح!');
+            } else {
+                alert('❌ Tawk.to غير محمل. تحقق من الإعدادات.');
+            }
+        }
+
+        // تحديث معلومات التشخيص كل 3 ثوان
+        setInterval(updateDebugInfo, 3000);
+        
+        // تحديث أولي بعد ثانيتين
+        setTimeout(updateDebugInfo, 2000);
+    </script>
+</body>
+</html>
