@@ -4,6 +4,8 @@
  * محرك التحليل الفني المبسط - يجلب البيانات مباشرة من IQ Option Server
  */
 
+import { API_ENDPOINTS } from '../config/serverConfig';
+
 interface CandleData {
   timestamp: number;
   open: number;
@@ -337,7 +339,7 @@ export class AdvancedAnalysisEngine {
       console.log(`🔍 تحليل ${symbol} من IQ Option Server...`);
 
       // جلب السعر الحالي مباشرة من الخادم
-      const response = await fetch(`http://localhost:5001/api/quotes/${symbol}`);
+      const response = await fetch(API_ENDPOINTS.quote(symbol));
       if (!response.ok) {
         console.warn(`⚠️ لا يمكن جلب بيانات ${symbol}`);
         return null;

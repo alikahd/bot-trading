@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { Wifi, WifiOff, Activity, DollarSign, TrendingUp } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { IQOptionQuote } from '../services/iqOptionTypes';
+import { API_ENDPOINTS } from '../config/serverConfig';
 
 export const IQOptionStatus: React.FC = () => {
   const { language } = useLanguage();
@@ -21,7 +22,7 @@ export const IQOptionStatus: React.FC = () => {
     const fetchRealData = async () => {
       try {
         console.log('📊 جلب بيانات IQ Option من الخادم...');
-        const response = await fetch('http://localhost:5001/api/quotes');
+        const response = await fetch(API_ENDPOINTS.quotes);
         
         if (response.ok) {
           const data = await response.json();

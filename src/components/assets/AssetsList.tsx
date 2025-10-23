@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { Asset } from '../../types/trading';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { API_ENDPOINTS } from '../../config/serverConfig';
 
 interface AssetsListProps {
   assets?: Asset[];
@@ -78,7 +79,7 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
     
     try {
       // جلب البيانات مباشرة من الخادم
-      const response = await fetch('http://localhost:5001/api/quotes');
+      const response = await fetch(API_ENDPOINTS.quotes);
       
       if (!response.ok) {
         console.error('❌ فشل الاتصال بالخادم');
