@@ -1,1 +1,1 @@
-web: python iqoption_unofficial_server.py
+web: python3 iqoption_unofficial_server.py

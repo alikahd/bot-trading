@@ -2,7 +2,7 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "python iqoption_unofficial_server.py"
+startCommand = "python3 iqoption_unofficial_server.py"
 healthcheckPath = "/api/status"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
