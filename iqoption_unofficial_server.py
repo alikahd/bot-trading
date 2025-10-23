@@ -14,6 +14,7 @@ from flask_cors import CORS
 import logging
 import time
 import threading
+import os
 
 # محاولة استيراد المكتبة غير الرسمية
 try:
@@ -256,7 +257,10 @@ if __name__ == '__main__':
         update_thread = threading.Thread(target=update_iqoption_prices, daemon=True)
         update_thread.start()
     
-    logger.info("🌐 الخادم يعمل على http://localhost:5001")
+    # الحصول على المنفذ من متغير البيئة أو استخدام 5000 كافتراضي
+    port = int(os.environ.get('PORT', 5000))
+    
+    logger.info(f"🌐 الخادم يعمل على http://0.0.0.0:{port}")
     logger.info("=" * 50)
     
-    app.run(host='0.0.0.0', port=5001, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
