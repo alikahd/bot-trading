@@ -19,6 +19,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# إعدادات خاصة للبيئة السحابية
+IS_CLOUD = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PORT')
+CLOUD_BATCH_SIZE = 3 if IS_CLOUD else 5
+CLOUD_DELAY = 0.8 if IS_CLOUD else 0.3
+CLOUD_BATCH_DELAY = 3 if IS_CLOUD else 1
+
+if IS_CLOUD:
+    logger.info("🌩️ تم اكتشاف البيئة السحابية - استخدام إعدادات محسنة")
+
 # إخفاء رسائل DEBUG من مكتبة iqoptionapi
 logging.getLogger('iqoptionapi').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -246,42 +255,48 @@ def get_iqoption_price(symbol):
     return None
 
 def update_iqoption_prices():
-    """تحديث الأسعار من IQ Option"""
+    """تحديث الأسعار من IQ Option مع تحسينات للبيئة السحابية"""
     global prices_cache, last_update_time, connection_status
     
-    # محاولة الاتصال
-    max_attempts = 3
-    for attempt in range(max_attempts):
-        if connect_to_iqoption():
-            break
-        logger.warning(f"⚠️ محاولة الاتصال {attempt + 1}/{max_attempts} فشلت")
-        time.sleep(5)
-    
-    if connection_status != "connected":
-        logger.error("❌ فشل الاتصال بـ IQ Option بعد عدة محاولات!")
-        return
-    
     consecutive_failures = 0
-    max_failures = 5
+    max_failures = 5  # زيادة عدد المحاولات
+    reconnect_attempts = 0
+    max_reconnect_attempts = 3
     
     while True:
         try:
-            updated_count = 0
-            
-            # التحقق من حالة الاتصال
+            # محاولة الاتصال إذا لم نكن متصلين
             if connection_status != "connected":
-                logger.warning("⚠️ فقدان الاتصال، محاولة إعادة الاتصال...")
-                if not connect_to_iqoption():
-                    time.sleep(30)
+                if reconnect_attempts >= max_reconnect_attempts:
+                    logger.error("❌ تم الوصول للحد الأقصى من محاولات الاتصال، توقف مؤقت...")
+                    time.sleep(300)  # توقف 5 دقائق
+                    reconnect_attempts = 0
                     continue
-            
-            # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
-            symbols_list = list(CURRENCY_SYMBOLS.keys())
-            batch_size = 10  # معالجة 10 أزواج في كل دفعة
-            
-            for i in range(0, len(symbols_list), batch_size):
-                batch = symbols_list[i:i + batch_size]
                 
+                logger.info(f"🔄 محاولة الاتصال ({reconnect_attempts + 1}/{max_reconnect_attempts})...")
+                if not connect_to_iqoption():
+                    reconnect_attempts += 1
+                    wait_time = min(30 * reconnect_attempts, 120)  # تأخير متزايد
+                    logger.error(f"❌ فشل الاتصال، إعادة المحاولة خلال {wait_time} ثانية...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    reconnect_attempts = 0  # إعادة تعيين عند نجاح الاتصال
+            
+            # تقسيم الرموز إلى مجموعات حسب البيئة
+            symbols_list = list(CURRENCY_SYMBOLS.keys())
+            updated_count = 0
+            batch_size = CLOUD_BATCH_SIZE
+            total_batches = (len(symbols_list) + batch_size - 1) // batch_size
+            
+            logger.info(f"🔄 بدء تحديث {len(symbols_list)} رمز في {total_batches} مجموعة...")
+            
+            # معالجة الرموز في مجموعات صغيرة
+            for batch_num, i in enumerate(range(0, len(symbols_list), batch_size)):
+                batch = symbols_list[i:i + batch_size]
+                logger.debug(f"📦 معالجة المجموعة {batch_num + 1}/{total_batches}: {batch}")
+                
+                batch_success = 0
                 for symbol in batch:
                     try:
                         price = get_iqoption_price(symbol)
@@ -301,49 +316,59 @@ def update_iqoption_prices():
                                 'ask': price * 1.00001,
                                 'timestamp': time.time(),
                                 'symbol': symbol,
-                                'source': 'iqoption_universal',
+                                'source': 'iqoption_cloud',
                                 'is_real': True,
-                                'provider': f'IQ Option ({IQ_Option.__module__})',
+                                'provider': f'IQ Option Cloud ({IQ_Option.__module__})',
                                 'change': change,
                                 'changePercent': change_percent
                             }
                             updated_count += 1
+                            batch_success += 1
                             consecutive_failures = 0
                         
-                        time.sleep(0.3)  # تأخير أقل بين الطلبات
+                        # تأخير حسب البيئة
+                        time.sleep(CLOUD_DELAY)
                         
                     except Exception as e:
-                        pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
+                        logger.debug(f"⚠️ خطأ في جلب {symbol}: {e}")
+                        # لا نتوقف، نكمل مع الرمز التالي
                 
-                # استراحة قصيرة بين المجموعات
+                # تقرير تقدم المجموعة
+                if batch_success > 0:
+                    logger.info(f"✅ المجموعة {batch_num + 1}: تم تحديث {batch_success}/{len(batch)} رمز")
+                
+                # استراحة بين المجموعات حسب البيئة
                 if i + batch_size < len(symbols_list):
-                    time.sleep(1)
+                    time.sleep(CLOUD_BATCH_DELAY)
             
             last_update_time = time.time()
             
             if updated_count > 0:
-                logger.info(f"✅ تم تحديث {updated_count} سعر من IQ Option")
+                success_rate = (updated_count / len(symbols_list)) * 100
+                logger.info(f"✅ تم تحديث {updated_count}/{len(symbols_list)} سعر ({success_rate:.1f}%)")
+                consecutive_failures = 0
             else:
                 consecutive_failures += 1
                 logger.warning(f"⚠️ لم يتم تحديث أي أسعار ({consecutive_failures}/{max_failures})")
             
-            # إعادة الاتصال إذا فشل عدة مرات
-            if consecutive_failures >= max_failures:
-                logger.warning("⚠️ فشل متكرر، محاولة إعادة الاتصال...")
+            # إعادة الاتصال إذا فشل عدة مرات أو معدل النجاح منخفض
+            if consecutive_failures >= max_failures or (updated_count > 0 and updated_count < len(symbols_list) * 0.3):
+                logger.warning("⚠️ أداء ضعيف أو فشل متكرر، إعادة الاتصال...")
                 connection_status = "disconnected"
                 consecutive_failures = 0
-                time.sleep(10)
+                time.sleep(15)
                 continue
             
-            time.sleep(5 if updated_count > 0 else 15)
+            # تأخير أطول للبيئة السحابية
+            sleep_time = 10 if updated_count > len(symbols_list) * 0.7 else 20
+            logger.info(f"😴 استراحة لمدة {sleep_time} ثانية...")
+            time.sleep(sleep_time)
             
-        except KeyboardInterrupt:
-            logger.info("⏹️ تم إيقاف التحديث")
-            break
         except Exception as e:
-            logger.error(f"❌ خطأ عام في التحديث: {e}")
+            logger.error(f"❌ خطأ في حلقة التحديث: {e}")
+            connection_status = "error"
             consecutive_failures += 1
-            time.sleep(10)
+            time.sleep(30)  # تأخير أطول عند الخطأ
 
 # =======================
 # API Endpoints
@@ -351,15 +376,23 @@ def update_iqoption_prices():
 
 @app.route('/api/status')
 def get_status():
-    """حالة الخادم"""
+    """حالة الخادم مع معلومات البيئة"""
     return jsonify({
         'connection': connection_status,
         'provider': 'iqoption_universal',
-        'library': IQ_Option.__module__ if IQ_Option else None,
         'cached_prices': len(prices_cache),
+        'total_symbols': len(CURRENCY_SYMBOLS),
+        'coverage_percentage': (len(prices_cache) / len(CURRENCY_SYMBOLS)) * 100 if CURRENCY_SYMBOLS else 0,
         'last_update': last_update_time,
         'server_time': time.time(),
-        'library_available': IQ_AVAILABLE
+        'library': IQ_Option.__module__ if IQ_Option else None,
+        'library_available': IQ_AVAILABLE,
+        'environment': {
+            'is_cloud': bool(IS_CLOUD),
+            'batch_size': CLOUD_BATCH_SIZE,
+            'delay': CLOUD_DELAY,
+            'batch_delay': CLOUD_BATCH_DELAY
+        }
     })
 
 @app.route('/api/quotes')
