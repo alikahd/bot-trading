@@ -267,6 +267,7 @@ def update_iqoption_prices():
     max_failures = 5  # زيادة عدد المحاولات
     reconnect_attempts = 0
     max_reconnect_attempts = 3
+    error_count_in_batch = 0  # عداد الأخطاء في المجموعة الحالية
     
     while True:
         try:
@@ -317,9 +318,15 @@ def update_iqoption_prices():
                 logger.debug(f"📦 معالجة المجموعة {batch_num + 1}/{total_batches}: {batch}")
                 
                 batch_success = 0
+                error_count_in_batch = 0  # إعادة تعيين عداد الأخطاء لكل مجموعة
                 for symbol in batch:
                     try:
                         price = get_iqoption_price(symbol)
+                        
+                        # فحص إضافي لحالة الاتصال بعد كل محاولة
+                        if connection_status == "disconnected":
+                            logger.warning(f"🔄 تم اكتشاف انقطاع الاتصال أثناء معالجة {symbol}")
+                            break  # اخرج من المجموعة الحالية لإعادة الاتصال
                         
                         if price and price > 0:
                             # حساب التغيير إذا كان هناك سعر سابق
@@ -350,12 +357,25 @@ def update_iqoption_prices():
                         time.sleep(CLOUD_DELAY)
                         
                     except Exception as e:
+                        error_count_in_batch += 1
                         logger.debug(f"⚠️ خطأ في جلب {symbol}: {e}")
-                        # لا نتوقف، نكمل مع الرمز التالي
+                        
+                        # إذا كان هناك أكثر من 3 أخطاء في المجموعة، اعتبر الاتصال منقطع
+                        if error_count_in_batch >= 3:
+                            logger.warning(f"🔄 كثرة الأخطاء في المجموعة ({error_count_in_batch}), إجبار إعادة الاتصال...")
+                            connection_status = "disconnected"
+                            break
                 
                 # تقرير تقدم المجموعة
                 if batch_success > 0:
                     logger.info(f"✅ المجموعة {batch_num + 1}: تم تحديث {batch_success}/{len(batch)} رمز")
+                elif error_count_in_batch > 0:
+                    logger.warning(f"⚠️ المجموعة {batch_num + 1}: {error_count_in_batch} أخطاء من {len(batch)} رمز")
+                
+                # إذا انقطع الاتصال، اخرج من الحلقة لإعادة الاتصال
+                if connection_status == "disconnected":
+                    logger.warning("🔄 خروج من معالجة المجموعات لإعادة الاتصال...")
+                    break
                 
                 # استراحة بين المجموعات حسب البيئة
                 if i + batch_size < len(symbols_list):
