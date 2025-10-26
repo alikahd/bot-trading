@@ -1,12 +1,8 @@
+#!/usr/bin/env python3
 """
-⚠️ IQ Option Unofficial API Server
-===================================
-تحذير: هذا يستخدم API غير رسمي وقد يتوقف في أي وقت!
-
-المتطلبات:
-pip install iqoptionapi
-
-ملاحظة: تحتاج حساب IQ Option حقيقي للاتصال
+خادم IQ Option عالمي - يدعم مكتبات مختلفة
+===============================================
+يحاول استخدام أي مكتبة IQ Option متوفرة تلقائياً
 """
 
 from flask import Flask, jsonify
@@ -16,47 +12,132 @@ import time
 import threading
 import os
 
-# محاولة استيراد المكتبة غير الرسمية
-try:
-    from iqoptionapi.stable_api import IQ_Option
-    IQ_AVAILABLE = True
-except ImportError:
-    IQ_AVAILABLE = False
-    print("⚠️ مكتبة iqoptionapi غير مثبتة!")
-    print("📦 لتثبيتها: pip install iqoptionapi")
-
 # إعداد السجلات
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.INFO,  # عودة إلى INFO لتقليل الرسائل
     format='%(levelname)s:%(name)s:%(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# إخفاء رسائل DEBUG من مكتبة iqoptionapi
+logging.getLogger('iqoptionapi').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 app = Flask(__name__)
 CORS(app)
 
 # =======================
+# اكتشاف المكتبة المتوفرة
+# =======================
+
+IQ_AVAILABLE = False
+IQ_Option = None
+iq_api = None
+
+def detect_iq_library():
+    """اكتشاف مكتبة IQ Option المتوفرة"""
+    global IQ_AVAILABLE, IQ_Option
+    
+    # تجربة المكتبات المختلفة
+    libraries_to_try = [
+        ("iqoptionapi.stable_api", "IQ_Option"),
+        ("iqoptionapi", "IQ_Option"), 
+        ("iq_option_api", "IQ_Option"),
+        ("iqoption", "IQ_Option")
+    ]
+    
+    for module_name, class_name in libraries_to_try:
+        try:
+            module = __import__(module_name, fromlist=[class_name])
+            IQ_Option = getattr(module, class_name)
+            IQ_AVAILABLE = True
+            logger.info(f"✅ تم العثور على مكتبة: {module_name}.{class_name}")
+            return True
+        except ImportError:
+            logger.debug(f"⚠️ لم يتم العثور على: {module_name}")
+        except AttributeError:
+            logger.debug(f"⚠️ لا توجد فئة {class_name} في {module_name}")
+    
+    logger.error("❌ لم يتم العثور على أي مكتبة IQ Option!")
+    return False
+
+# اكتشاف المكتبة عند التشغيل
+detect_iq_library()
+
+# =======================
 # إعدادات IQ Option
 # =======================
 
-# ⚠️ ضع بيانات حسابك هنا (استخدم حساب تجريبي!)
-IQ_EMAIL = "qarali131@gmail.com"  # غير هذا!
-IQ_PASSWORD = "Azert@0208"         # غير هذا!
+IQ_EMAIL = "qarali131@gmail.com"
+IQ_PASSWORD = "Azert@0208"
 
 # متغيرات عامة
-iq_api = None
 prices_cache = {}
 connection_status = "disconnected"
 last_update_time = 0
 
-# رموز IQ Option
-IQ_SYMBOLS = {
-    'EURUSD_otc': 'EURUSD-OTC',
-    'GBPUSD_otc': 'GBPUSD-OTC',
-    'USDJPY_otc': 'USDJPY-OTC',
-    'AUDUSD_otc': 'AUDUSD-OTC',
-    'USDCAD_otc': 'USDCAD-OTC',
-    'USDCHF_otc': 'USDCHF-OTC',
+# رموز العملات - جميع الأزواج المتوفرة
+CURRENCY_SYMBOLS = {
+    # الأزواج الرئيسية (Major Pairs)
+    'EURUSD_otc': ['EURUSD-OTC', 'EURUSD', 'EUR/USD'],
+    'GBPUSD_otc': ['GBPUSD-OTC', 'GBPUSD', 'GBP/USD'],
+    'USDJPY_otc': ['USDJPY-OTC', 'USDJPY', 'USD/JPY'],
+    'AUDUSD_otc': ['AUDUSD-OTC', 'AUDUSD', 'AUD/USD'],
+    'USDCAD_otc': ['USDCAD-OTC', 'USDCAD', 'USD/CAD'],
+    'USDCHF_otc': ['USDCHF-OTC', 'USDCHF', 'USD/CHF'],
+    'NZDUSD_otc': ['NZDUSD-OTC', 'NZDUSD', 'NZD/USD'],
+    
+    # الأزواج المتقاطعة (Cross Pairs)
+    'EURGBP_otc': ['EURGBP-OTC', 'EURGBP', 'EUR/GBP'],
+    'EURJPY_otc': ['EURJPY-OTC', 'EURJPY', 'EUR/JPY'],
+    'EURCHF_otc': ['EURCHF-OTC', 'EURCHF', 'EUR/CHF'],
+    'EURAUD_otc': ['EURAUD-OTC', 'EURAUD', 'EUR/AUD'],
+    'EURCAD_otc': ['EURCAD-OTC', 'EURCAD', 'EUR/CAD'],
+    'EURNZD_otc': ['EURNZD-OTC', 'EURNZD', 'EUR/NZD'],
+    
+    'GBPJPY_otc': ['GBPJPY-OTC', 'GBPJPY', 'GBP/JPY'],
+    'GBPCHF_otc': ['GBPCHF-OTC', 'GBPCHF', 'GBP/CHF'],
+    'GBPAUD_otc': ['GBPAUD-OTC', 'GBPAUD', 'GBP/AUD'],
+    'GBPCAD_otc': ['GBPCAD-OTC', 'GBPCAD', 'GBP/CAD'],
+    'GBPNZD_otc': ['GBPNZD-OTC', 'GBPNZD', 'GBP/NZD'],
+    
+    'AUDJPY_otc': ['AUDJPY-OTC', 'AUDJPY', 'AUD/JPY'],
+    'AUDCHF_otc': ['AUDCHF-OTC', 'AUDCHF', 'AUD/CHF'],
+    'AUDCAD_otc': ['AUDCAD-OTC', 'AUDCAD', 'AUD/CAD'],
+    'AUDNZD_otc': ['AUDNZD-OTC', 'AUDNZD', 'AUD/NZD'],
+    
+    'NZDJPY_otc': ['NZDJPY-OTC', 'NZDJPY', 'NZD/JPY'],
+    'NZDCHF_otc': ['NZDCHF-OTC', 'NZDCHF', 'NZD/CHF'],
+    'NZDCAD_otc': ['NZDCAD-OTC', 'NZDCAD', 'NZD/CAD'],
+    
+    'CADJPY_otc': ['CADJPY-OTC', 'CADJPY', 'CAD/JPY'],
+    'CADCHF_otc': ['CADCHF-OTC', 'CADCHF', 'CAD/CHF'],
+    
+    'CHFJPY_otc': ['CHFJPY-OTC', 'CHFJPY', 'CHF/JPY'],
+    
+    # العملات الناشئة والغريبة (Exotic Pairs)
+    'USDRUB_otc': ['USDRUB-OTC', 'USDRUB', 'USD/RUB'],
+    'USDTRY_otc': ['USDTRY-OTC', 'USDTRY', 'USD/TRY'],
+    'USDZAR_otc': ['USDZAR-OTC', 'USDZAR', 'USD/ZAR'],
+    'USDMXN_otc': ['USDMXN-OTC', 'USDMXN', 'USD/MXN'],
+    'USDBRL_otc': ['USDBRL-OTC', 'USDBRL', 'USD/BRL'],
+    'USDSGD_otc': ['USDSGD-OTC', 'USDSGD', 'USD/SGD'],
+    'USDHKD_otc': ['USDHKD-OTC', 'USDHKD', 'USD/HKD'],
+    'USDKRW_otc': ['USDKRW-OTC', 'USDKRW', 'USD/KRW'],
+    'USDINR_otc': ['USDINR-OTC', 'USDINR', 'USD/INR'],
+    'USDCNH_otc': ['USDCNH-OTC', 'USDCNH', 'USD/CNH'],
+    
+    # أزواج النفط والذهب
+    'XAUUSD_otc': ['XAUUSD-OTC', 'XAUUSD', 'XAU/USD', 'GOLD'],
+    'XAGUSD_otc': ['XAGUSD-OTC', 'XAGUSD', 'XAG/USD', 'SILVER'],
+    'USOIL_otc': ['USOIL-OTC', 'USOIL', 'OIL', 'CRUDE'],
+    'UKOIL_otc': ['UKOIL-OTC', 'UKOIL', 'BRENT'],
+    
+    # العملات المشفرة الرئيسية
+    'BTCUSD_otc': ['BTCUSD-OTC', 'BTCUSD', 'BTC/USD', 'BITCOIN'],
+    'ETHUSD_otc': ['ETHUSD-OTC', 'ETHUSD', 'ETH/USD', 'ETHEREUM'],
+    'LTCUSD_otc': ['LTCUSD-OTC', 'LTCUSD', 'LTC/USD', 'LITECOIN'],
+    'XRPUSD_otc': ['XRPUSD-OTC', 'XRPUSD', 'XRP/USD', 'RIPPLE'],
 }
 
 # =======================
@@ -67,8 +148,8 @@ def connect_to_iqoption():
     """الاتصال بـ IQ Option"""
     global iq_api, connection_status
     
-    if not IQ_AVAILABLE:
-        logger.error("❌ مكتبة iqoptionapi غير متوفرة!")
+    if not IQ_AVAILABLE or not IQ_Option:
+        logger.error("❌ مكتبة IQ Option غير متوفرة!")
         connection_status = "library_missing"
         return False
     
@@ -76,13 +157,26 @@ def connect_to_iqoption():
         logger.info("🔌 محاولة الاتصال بـ IQ Option...")
         
         iq_api = IQ_Option(IQ_EMAIL, IQ_PASSWORD)
+        
+        # محاولة إضافة timeout إذا كان متوفراً
+        if hasattr(iq_api, 'set_session_timeout'):
+            try:
+                iq_api.set_session_timeout(30)
+            except:
+                pass
+        
         check, reason = iq_api.connect()
         
         if check:
             logger.info("✅ تم الاتصال بـ IQ Option بنجاح!")
             
-            # التبديل للحساب التجريبي (آمن للاختبار)
-            iq_api.change_balance("PRACTICE")
+            # التبديل للحساب التجريبي
+            try:
+                if hasattr(iq_api, 'change_balance'):
+                    iq_api.change_balance("PRACTICE")
+                    logger.info("✅ تم التبديل للحساب التجريبي")
+            except Exception as e:
+                logger.warning(f"⚠️ تحذير: فشل التبديل للحساب التجريبي: {e}")
             
             connection_status = "connected"
             return True
@@ -96,98 +190,159 @@ def connect_to_iqoption():
         connection_status = "error"
         return False
 
+def get_price_safe(symbol, iq_symbol):
+    """جلب السعر بطريقة آمنة"""
+    
+    # الطريقة 1: get_candles (الأكثر موثوقية)
+    try:
+        if hasattr(iq_api, 'get_candles'):
+            end_time = int(time.time())
+            result = iq_api.get_candles(iq_symbol, 60, 1, end_time)
+            if result and len(result) > 0:
+                price = result[0]['close']
+                logger.info(f"📊 {symbol}: ${price} من get_candles ({iq_symbol})")
+                return float(price)
+    except Exception as e:
+        pass
+    
+    # الطريقة 2: get_realtime_candles
+    try:
+        if hasattr(iq_api, 'get_realtime_candles'):
+            # تشغيل stream أولاً
+            if hasattr(iq_api, 'start_candles_stream'):
+                iq_api.start_candles_stream(iq_symbol, 60, 1)
+                time.sleep(1)  # انتظار قصير
+            
+            result = iq_api.get_realtime_candles(iq_symbol, 60)
+            if result and len(result) > 0:
+                latest = list(result.values())[-1]
+                price = latest['close']
+                logger.info(f"📊 {symbol}: ${price} من get_realtime_candles ({iq_symbol})")
+                return float(price)
+    except Exception as e:
+        pass
+    
+    return None
+
 def get_iqoption_price(symbol):
-    """جلب السعر من IQ Option"""
+    """جلب السعر من IQ Option مع دعم رموز متعددة"""
     global iq_api
     
     if not iq_api or connection_status != "connected":
         return None
     
-    try:
-        # تحويل الرمز لتنسيق IQ Option
-        iq_symbol = IQ_SYMBOLS.get(symbol, symbol)
-        
-        # جلب السعر الحالي باستخدام طرق مختلفة
+    # جرب جميع الرموز المتاحة للعملة
+    symbols_to_try = CURRENCY_SYMBOLS.get(symbol, [symbol])
+    
+    for iq_symbol in symbols_to_try:
         try:
-            # الطريقة 1: get_candles (الأكثر موثوقية)
-            candles = iq_api.get_candles(iq_symbol, 60, 1, time.time())
-            if candles and len(candles) > 0:
-                current_price = candles[0]['close']
-                logger.info(f"📊 {symbol}: ${current_price} من IQ Option (candles)")
-                return float(current_price)
-        except Exception as e1:
-            logger.debug(f"⚠️ فشل get_candles لـ {symbol}: {e1}")
-        
-        try:
-            # الطريقة 2: get_realtime_candles
-            price_data = iq_api.get_realtime_candles(iq_symbol, 60)
-            if price_data and len(price_data) > 0:
-                latest = list(price_data.values())[-1]
-                current_price = latest['close']
-                logger.info(f"📊 {symbol}: ${current_price} من IQ Option (realtime)")
-                return float(current_price)
-        except Exception as e2:
-            logger.debug(f"⚠️ فشل get_realtime_candles لـ {symbol}: {e2}")
-        
-        try:
-            # الطريقة 3: get_digital_current_profit (للحصول على السعر الحالي)
-            all_assets = iq_api.get_all_open_time()
-            if 'binary' in all_assets and iq_symbol in all_assets['binary']:
-                # السوق مفتوح، جلب السعر
-                logger.info(f"📊 {symbol}: السوق مفتوح، جلب السعر...")
-                # استخدام API مختلف
-                return None  # سنعود لهذا لاحقاً
-        except Exception as e3:
-            logger.debug(f"⚠️ فشل get_all_open_time لـ {symbol}: {e3}")
-            
-    except Exception as e:
-        logger.error(f"❌ خطأ عام في جلب سعر {symbol}: {e}")
+            price = get_price_safe(symbol, iq_symbol)
+            if price and price > 0:
+                logger.info(f"✅ {symbol}: ${price} من IQ Option ({iq_symbol})")
+                return price
+        except Exception as e:
+            continue
     
     return None
 
 def update_iqoption_prices():
     """تحديث الأسعار من IQ Option"""
-    global prices_cache, last_update_time
+    global prices_cache, last_update_time, connection_status
     
     # محاولة الاتصال
-    if not connect_to_iqoption():
-        logger.error("❌ فشل الاتصال بـ IQ Option!")
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        if connect_to_iqoption():
+            break
+        logger.warning(f"⚠️ محاولة الاتصال {attempt + 1}/{max_attempts} فشلت")
+        time.sleep(5)
+    
+    if connection_status != "connected":
+        logger.error("❌ فشل الاتصال بـ IQ Option بعد عدة محاولات!")
         return
+    
+    consecutive_failures = 0
+    max_failures = 5
     
     while True:
         try:
             updated_count = 0
             
-            for symbol in IQ_SYMBOLS.keys():
-                price = get_iqoption_price(symbol)
+            # التحقق من حالة الاتصال
+            if connection_status != "connected":
+                logger.warning("⚠️ فقدان الاتصال، محاولة إعادة الاتصال...")
+                if not connect_to_iqoption():
+                    time.sleep(30)
+                    continue
+            
+            # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
+            symbols_list = list(CURRENCY_SYMBOLS.keys())
+            batch_size = 10  # معالجة 10 أزواج في كل دفعة
+            
+            for i in range(0, len(symbols_list), batch_size):
+                batch = symbols_list[i:i + batch_size]
                 
-                if price:
-                    prices_cache[symbol] = {
-                        'price': price,
-                        'bid': price * 0.99999,
-                        'ask': price * 1.00001,
-                        'timestamp': time.time(),
-                        'symbol': symbol,
-                        'source': 'iqoption_real',  # تأكيد أنها بيانات حقيقية
-                        'is_real': True,  # علامة البيانات الحقيقية
-                        'provider': 'IQ Option Official',
-                        'change': 0,
-                        'changePercent': 0
-                    }
-                    updated_count += 1
-                    logger.info(f"✅ {symbol}: ${price} (IQ Option حقيقي)")
+                for symbol in batch:
+                    try:
+                        price = get_iqoption_price(symbol)
+                        
+                        if price and price > 0:
+                            # حساب التغيير إذا كان هناك سعر سابق
+                            change = 0
+                            change_percent = 0
+                            if symbol in prices_cache:
+                                old_price = prices_cache[symbol]['price']
+                                change = price - old_price
+                                change_percent = (change / old_price) * 100 if old_price > 0 else 0
+                            
+                            prices_cache[symbol] = {
+                                'price': price,
+                                'bid': price * 0.99999,
+                                'ask': price * 1.00001,
+                                'timestamp': time.time(),
+                                'symbol': symbol,
+                                'source': 'iqoption_universal',
+                                'is_real': True,
+                                'provider': f'IQ Option ({IQ_Option.__module__})',
+                                'change': change,
+                                'changePercent': change_percent
+                            }
+                            updated_count += 1
+                            consecutive_failures = 0
+                        
+                        time.sleep(0.3)  # تأخير أقل بين الطلبات
+                        
+                    except Exception as e:
+                        pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
                 
-                time.sleep(0.5)  # تأخير بين الطلبات
+                # استراحة قصيرة بين المجموعات
+                if i + batch_size < len(symbols_list):
+                    time.sleep(1)
             
             last_update_time = time.time()
             
             if updated_count > 0:
                 logger.info(f"✅ تم تحديث {updated_count} سعر من IQ Option")
+            else:
+                consecutive_failures += 1
+                logger.warning(f"⚠️ لم يتم تحديث أي أسعار ({consecutive_failures}/{max_failures})")
             
-            time.sleep(5)  # تحديث كل 5 ثوان
+            # إعادة الاتصال إذا فشل عدة مرات
+            if consecutive_failures >= max_failures:
+                logger.warning("⚠️ فشل متكرر، محاولة إعادة الاتصال...")
+                connection_status = "disconnected"
+                consecutive_failures = 0
+                time.sleep(10)
+                continue
             
+            time.sleep(5 if updated_count > 0 else 15)
+            
+        except KeyboardInterrupt:
+            logger.info("⏹️ تم إيقاف التحديث")
+            break
         except Exception as e:
-            logger.error(f"❌ خطأ في التحديث: {e}")
+            logger.error(f"❌ خطأ عام في التحديث: {e}")
+            consecutive_failures += 1
             time.sleep(10)
 
 # =======================
@@ -199,11 +354,11 @@ def get_status():
     """حالة الخادم"""
     return jsonify({
         'connection': connection_status,
-        'provider': 'iqoption_unofficial',
+        'provider': 'iqoption_universal',
+        'library': IQ_Option.__module__ if IQ_Option else None,
         'cached_prices': len(prices_cache),
         'last_update': last_update_time,
         'server_time': time.time(),
-        'warning': 'Using unofficial API - may stop working anytime!',
         'library_available': IQ_AVAILABLE
     })
 
@@ -220,18 +375,38 @@ def get_quote(symbol):
     else:
         return jsonify({'error': f'Quote for {symbol} not available'}), 404
 
+@app.route('/api/symbols')
+def get_symbols():
+    """جلب قائمة جميع الرموز المتوفرة"""
+    symbols_info = {}
+    for symbol, alternatives in CURRENCY_SYMBOLS.items():
+        symbols_info[symbol] = {
+            'symbol': symbol,
+            'alternatives': alternatives,
+            'available': symbol in prices_cache,
+            'last_price': prices_cache[symbol]['price'] if symbol in prices_cache else None,
+            'last_update': prices_cache[symbol]['timestamp'] if symbol in prices_cache else None
+        }
+    
+    return jsonify({
+        'total_symbols': len(CURRENCY_SYMBOLS),
+        'available_prices': len(prices_cache),
+        'symbols': symbols_info
+    })
+
 @app.route('/')
 def home():
     """الصفحة الرئيسية"""
     return jsonify({
-        'server': 'IQ Option Unofficial API Server',
+        'server': 'IQ Option Universal API Server',
         'status': connection_status,
-        'warning': '⚠️ This uses unofficial API and may violate IQ Option ToS',
+        'library': IQ_Option.__module__ if IQ_Option else None,
         'library_available': IQ_AVAILABLE,
         'endpoints': {
             '/api/status': 'Server status',
             '/api/quotes': 'All quotes',
-            '/api/quotes/<symbol>': 'Specific quote'
+            '/api/quotes/<symbol>': 'Specific quote',
+            '/api/symbols': 'List all available symbols'
         }
     })
 
@@ -241,17 +416,15 @@ def home():
 
 if __name__ == '__main__':
     logger.info("=" * 50)
-    logger.info("⚠️  IQ Option Unofficial API Server")
+    logger.info("🌐 خادم IQ Option العالمي")
     logger.info("=" * 50)
     
     if not IQ_AVAILABLE:
-        logger.error("❌ مكتبة iqoptionapi غير مثبتة!")
-        logger.info("📦 لتثبيتها: pip install iqoptionapi")
-        logger.info("⚠️ تحذير: هذه مكتبة غير رسمية وقد تخالف شروط IQ Option!")
+        logger.error("❌ لا توجد مكتبة IQ Option متوفرة!")
+        logger.info("📦 جرب تشغيل: python test_iq_libraries.py")
     else:
-        logger.info("✅ مكتبة iqoptionapi متوفرة")
+        logger.info(f"✅ مكتبة متوفرة: {IQ_Option.__module__}")
         logger.info(f"📧 البريد: {IQ_EMAIL}")
-        logger.info("⚠️ تأكد من تغيير البريد وكلمة المرور في الكود!")
         
         # بدء تحديث الأسعار في خيط منفصل
         update_thread = threading.Thread(target=update_iqoption_prices, daemon=True)
