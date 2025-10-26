@@ -19,17 +19,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# إعدادات خاصة للبيئة السحابية
-IS_CLOUD = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PORT')
-CLOUD_BATCH_SIZE = 2 if IS_CLOUD else 5  # تقليل أكثر للسحابة
-CLOUD_DELAY = 1.5 if IS_CLOUD else 0.3   # تأخير أطول
-CLOUD_BATCH_DELAY = 5 if IS_CLOUD else 1  # استراحة أطول بين المجموعات
-CLOUD_CYCLE_DELAY = 15 if IS_CLOUD else 5  # تأخير أطول بين الدورات
-
-if IS_CLOUD:
-    logger.info("🌩️ تم اكتشاف البيئة السحابية - استخدام إعدادات محسنة جداً")
-    logger.info(f"📊 إعدادات السحابة: batch={CLOUD_BATCH_SIZE}, delay={CLOUD_DELAY}s, batch_delay={CLOUD_BATCH_DELAY}s")
-
 # إخفاء رسائل DEBUG من مكتبة iqoptionapi
 logging.getLogger('iqoptionapi').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -202,39 +191,36 @@ def connect_to_iqoption():
         return False
 
 def get_price_safe(symbol, iq_symbol):
-    """جلب السعر بطريقة آمنة مع معالجة الأخطاء وإعادة الاتصال"""
-    global iq_api, connection_status
+    """جلب السعر بطريقة آمنة"""
     
-    if not iq_api:
-        return None
-    
-    methods = [
-        ('get_candles', lambda s: iq_api.get_candles(s, 60, 1, time.time())),
-        ('get_realtime_candles', lambda s: iq_api.get_realtime_candles(s, 60))
-    ]
-    
-    for method_name, method_func in methods:
-        try:
-            result = method_func(iq_symbol)
+    # الطريقة 1: get_candles (الأكثر موثوقية)
+    try:
+        if hasattr(iq_api, 'get_candles'):
+            end_time = int(time.time())
+            result = iq_api.get_candles(iq_symbol, 60, 1, end_time)
             if result and len(result) > 0:
-                if method_name == 'get_candles':
-                    price = result[0]['close']
-                    logger.info(f"📊 {symbol}: ${price} من get_candles ({iq_symbol})")
-                    return float(price)
-                elif method_name == 'get_realtime_candles':
-                    latest = list(result.values())[-1]
-                    price = latest['close']
-                    logger.info(f"📊 {symbol}: ${price} من get_realtime_candles ({iq_symbol})")
-                    return float(price)
-        except Exception as e:
-            error_msg = str(e).lower()
-            # إذا كان الخطأ يتطلب إعادة اتصال
-            if 'reconnect' in error_msg or 'connection' in error_msg or 'closed' in error_msg:
-                logger.warning(f"🔄 اكتشاف انقطاع الاتصال في {symbol}, تعيين حالة إعادة الاتصال...")
-                connection_status = "disconnected"
-                return None
-            logger.debug(f"⚠️ {method_name} فشل لـ {symbol}: {e}")
-            continue
+                price = result[0]['close']
+                logger.info(f"📊 {symbol}: ${price} من get_candles ({iq_symbol})")
+                return float(price)
+    except Exception as e:
+        pass
+    
+    # الطريقة 2: get_realtime_candles
+    try:
+        if hasattr(iq_api, 'get_realtime_candles'):
+            # تشغيل stream أولاً
+            if hasattr(iq_api, 'start_candles_stream'):
+                iq_api.start_candles_stream(iq_symbol, 60, 1)
+                time.sleep(1)  # انتظار قصير
+            
+            result = iq_api.get_realtime_candles(iq_symbol, 60)
+            if result and len(result) > 0:
+                latest = list(result.values())[-1]
+                price = latest['close']
+                logger.info(f"📊 {symbol}: ${price} من get_realtime_candles ({iq_symbol})")
+                return float(price)
+    except Exception as e:
+        pass
     
     return None
 
@@ -260,73 +246,45 @@ def get_iqoption_price(symbol):
     return None
 
 def update_iqoption_prices():
-    """تحديث الأسعار من IQ Option مع تحسينات للبيئة السحابية"""
+    """تحديث الأسعار من IQ Option"""
     global prices_cache, last_update_time, connection_status
     
+    # محاولة الاتصال
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        if connect_to_iqoption():
+            break
+        logger.warning(f"⚠️ محاولة الاتصال {attempt + 1}/{max_attempts} فشلت")
+        time.sleep(5)
+    
+    if connection_status != "connected":
+        logger.error("❌ فشل الاتصال بـ IQ Option بعد عدة محاولات!")
+        return
+    
     consecutive_failures = 0
-    max_failures = 5  # زيادة عدد المحاولات
-    reconnect_attempts = 0
-    max_reconnect_attempts = 3
-    error_count_in_batch = 0  # عداد الأخطاء في المجموعة الحالية
+    max_failures = 5
     
     while True:
         try:
-            # محاولة الاتصال إذا لم نكن متصلين
-            if connection_status != "connected":
-                if reconnect_attempts >= max_reconnect_attempts:
-                    logger.error("❌ تم الوصول للحد الأقصى من محاولات الاتصال، توقف مؤقت...")
-                    time.sleep(300)  # توقف 5 دقائق
-                    reconnect_attempts = 0
-                    continue
-                
-                logger.info(f"🔄 محاولة الاتصال ({reconnect_attempts + 1}/{max_reconnect_attempts})...")
-                if not connect_to_iqoption():
-                    reconnect_attempts += 1
-                    wait_time = min(30 * reconnect_attempts, 120)  # تأخير متزايد
-                    logger.error(f"❌ فشل الاتصال، إعادة المحاولة خلال {wait_time} ثانية...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    reconnect_attempts = 0  # إعادة تعيين عند نجاح الاتصال
-            
-            # ترتيب الرموز حسب الأولوية (الرموز المهمة أولاً)
-            priority_symbols = [
-                'EURUSD_otc', 'GBPUSD_otc', 'USDJPY_otc', 'AUDUSD_otc', 
-                'USDCAD_otc', 'USDCHF_otc', 'EURGBP_otc', 'EURJPY_otc'
-            ]
-            
-            # ترتيب: الرموز المهمة أولاً، ثم الباقي
-            symbols_list = []
-            for symbol in priority_symbols:
-                if symbol in CURRENCY_SYMBOLS:
-                    symbols_list.append(symbol)
-            
-            # إضافة باقي الرموز
-            for symbol in CURRENCY_SYMBOLS.keys():
-                if symbol not in symbols_list:
-                    symbols_list.append(symbol)
-            
             updated_count = 0
-            batch_size = CLOUD_BATCH_SIZE
-            total_batches = (len(symbols_list) + batch_size - 1) // batch_size
             
-            logger.info(f"🔄 بدء تحديث {len(symbols_list)} رمز في {total_batches} مجموعة...")
+            # التحقق من حالة الاتصال
+            if connection_status != "connected":
+                logger.warning("⚠️ فقدان الاتصال، محاولة إعادة الاتصال...")
+                if not connect_to_iqoption():
+                    time.sleep(30)
+                    continue
             
-            # معالجة الرموز في مجموعات صغيرة
-            for batch_num, i in enumerate(range(0, len(symbols_list), batch_size)):
+            # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
+            symbols_list = list(CURRENCY_SYMBOLS.keys())
+            batch_size = 10  # معالجة 10 أزواج في كل دفعة
+            
+            for i in range(0, len(symbols_list), batch_size):
                 batch = symbols_list[i:i + batch_size]
-                logger.debug(f"📦 معالجة المجموعة {batch_num + 1}/{total_batches}: {batch}")
                 
-                batch_success = 0
-                error_count_in_batch = 0  # إعادة تعيين عداد الأخطاء لكل مجموعة
                 for symbol in batch:
                     try:
                         price = get_iqoption_price(symbol)
-                        
-                        # فحص إضافي لحالة الاتصال بعد كل محاولة
-                        if connection_status == "disconnected":
-                            logger.warning(f"🔄 تم اكتشاف انقطاع الاتصال أثناء معالجة {symbol}")
-                            break  # اخرج من المجموعة الحالية لإعادة الاتصال
                         
                         if price and price > 0:
                             # حساب التغيير إذا كان هناك سعر سابق
@@ -343,82 +301,49 @@ def update_iqoption_prices():
                                 'ask': price * 1.00001,
                                 'timestamp': time.time(),
                                 'symbol': symbol,
-                                'source': 'iqoption_cloud',
+                                'source': 'iqoption_universal',
                                 'is_real': True,
-                                'provider': f'IQ Option Cloud ({IQ_Option.__module__})',
+                                'provider': f'IQ Option ({IQ_Option.__module__})',
                                 'change': change,
                                 'changePercent': change_percent
                             }
                             updated_count += 1
-                            batch_success += 1
                             consecutive_failures = 0
                         
-                        # تأخير حسب البيئة
-                        time.sleep(CLOUD_DELAY)
+                        time.sleep(0.3)  # تأخير أقل بين الطلبات
                         
                     except Exception as e:
-                        error_count_in_batch += 1
-                        logger.debug(f"⚠️ خطأ في جلب {symbol}: {e}")
-                        
-                        # إذا كان هناك أكثر من 3 أخطاء في المجموعة، اعتبر الاتصال منقطع
-                        if error_count_in_batch >= 3:
-                            logger.warning(f"🔄 كثرة الأخطاء في المجموعة ({error_count_in_batch}), إجبار إعادة الاتصال...")
-                            connection_status = "disconnected"
-                            break
+                        pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
                 
-                # تقرير تقدم المجموعة
-                if batch_success > 0:
-                    logger.info(f"✅ المجموعة {batch_num + 1}: تم تحديث {batch_success}/{len(batch)} رمز")
-                elif error_count_in_batch > 0:
-                    logger.warning(f"⚠️ المجموعة {batch_num + 1}: {error_count_in_batch} أخطاء من {len(batch)} رمز")
-                
-                # إذا انقطع الاتصال، اخرج من الحلقة لإعادة الاتصال
-                if connection_status == "disconnected":
-                    logger.warning("🔄 خروج من معالجة المجموعات لإعادة الاتصال...")
-                    break
-                
-                # استراحة بين المجموعات حسب البيئة
+                # استراحة قصيرة بين المجموعات
                 if i + batch_size < len(symbols_list):
-                    time.sleep(CLOUD_BATCH_DELAY)
+                    time.sleep(1)
             
             last_update_time = time.time()
             
             if updated_count > 0:
-                success_rate = (updated_count / len(symbols_list)) * 100
-                logger.info(f"✅ تم تحديث {updated_count}/{len(symbols_list)} سعر ({success_rate:.1f}%)")
-                consecutive_failures = 0
+                logger.info(f"✅ تم تحديث {updated_count} سعر من IQ Option")
             else:
                 consecutive_failures += 1
                 logger.warning(f"⚠️ لم يتم تحديث أي أسعار ({consecutive_failures}/{max_failures})")
             
-            # إعادة الاتصال إذا فشل عدة مرات أو معدل النجاح منخفض
-            if consecutive_failures >= max_failures or (updated_count > 0 and updated_count < len(symbols_list) * 0.3):
-                logger.warning("⚠️ أداء ضعيف أو فشل متكرر، إعادة الاتصال...")
+            # إعادة الاتصال إذا فشل عدة مرات
+            if consecutive_failures >= max_failures:
+                logger.warning("⚠️ فشل متكرر، محاولة إعادة الاتصال...")
                 connection_status = "disconnected"
                 consecutive_failures = 0
-                time.sleep(15)
+                time.sleep(10)
                 continue
             
-            # تأخير متكيف حسب الأداء والبيئة
-            if IS_CLOUD:
-                # في البيئة السحابية: تأخير أطول وتكيف حسب معدل النجاح
-                if updated_count > len(symbols_list) * 0.8:
-                    sleep_time = CLOUD_CYCLE_DELAY  # أداء جيد
-                elif updated_count > len(symbols_list) * 0.5:
-                    sleep_time = CLOUD_CYCLE_DELAY * 1.5  # أداء متوسط
-                else:
-                    sleep_time = CLOUD_CYCLE_DELAY * 2  # أداء ضعيف
-            else:
-                sleep_time = 5 if updated_count > len(symbols_list) * 0.7 else 10
+            time.sleep(5 if updated_count > 0 else 15)
             
-            logger.info(f"😴 استراحة لمدة {sleep_time:.1f} ثانية... (أداء: {updated_count}/{len(symbols_list)})")
-            time.sleep(sleep_time)
-            
+        except KeyboardInterrupt:
+            logger.info("⏹️ تم إيقاف التحديث")
+            break
         except Exception as e:
-            logger.error(f"❌ خطأ في حلقة التحديث: {e}")
-            connection_status = "error"
+            logger.error(f"❌ خطأ عام في التحديث: {e}")
             consecutive_failures += 1
-            time.sleep(30)  # تأخير أطول عند الخطأ
+            time.sleep(10)
 
 # =======================
 # API Endpoints
@@ -426,23 +351,15 @@ def update_iqoption_prices():
 
 @app.route('/api/status')
 def get_status():
-    """حالة الخادم مع معلومات البيئة"""
+    """حالة الخادم"""
     return jsonify({
         'connection': connection_status,
         'provider': 'iqoption_universal',
+        'library': IQ_Option.__module__ if IQ_Option else None,
         'cached_prices': len(prices_cache),
-        'total_symbols': len(CURRENCY_SYMBOLS),
-        'coverage_percentage': (len(prices_cache) / len(CURRENCY_SYMBOLS)) * 100 if CURRENCY_SYMBOLS else 0,
         'last_update': last_update_time,
         'server_time': time.time(),
-        'library': IQ_Option.__module__ if IQ_Option else None,
-        'library_available': IQ_AVAILABLE,
-        'environment': {
-            'is_cloud': bool(IS_CLOUD),
-            'batch_size': CLOUD_BATCH_SIZE,
-            'delay': CLOUD_DELAY,
-            'batch_delay': CLOUD_BATCH_DELAY
-        }
+        'library_available': IQ_AVAILABLE
     })
 
 @app.route('/api/quotes')
@@ -477,53 +394,6 @@ def get_symbols():
         'symbols': symbols_info
     })
 
-@app.route('/api/debug')
-def get_debug_info():
-    """معلومات تشخيصية مفصلة"""
-    # تجميع إحصائيات الأسعار
-    fresh_prices = 0
-    old_prices = 0
-    current_time = time.time()
-    
-    for symbol, data in prices_cache.items():
-        age = current_time - data.get('timestamp', 0)
-        if age < 300:  # أقل من 5 دقائق
-            fresh_prices += 1
-        else:
-            old_prices += 1
-    
-    # قائمة الرموز المفقودة
-    missing_symbols = [symbol for symbol in CURRENCY_SYMBOLS.keys() if symbol not in prices_cache]
-    
-    return jsonify({
-        'connection_status': connection_status,
-        'environment': {
-            'is_cloud': bool(IS_CLOUD),
-            'railway_env': os.environ.get('RAILWAY_ENVIRONMENT'),
-            'port_env': os.environ.get('PORT'),
-            'batch_size': CLOUD_BATCH_SIZE,
-            'delay': CLOUD_DELAY,
-            'batch_delay': CLOUD_BATCH_DELAY,
-            'cycle_delay': CLOUD_CYCLE_DELAY
-        },
-        'statistics': {
-            'total_symbols': len(CURRENCY_SYMBOLS),
-            'cached_prices': len(prices_cache),
-            'fresh_prices': fresh_prices,
-            'old_prices': old_prices,
-            'missing_count': len(missing_symbols),
-            'coverage_percentage': (len(prices_cache) / len(CURRENCY_SYMBOLS)) * 100 if CURRENCY_SYMBOLS else 0,
-            'fresh_percentage': (fresh_prices / len(prices_cache)) * 100 if prices_cache else 0
-        },
-        'missing_symbols': missing_symbols[:10],  # أول 10 رموز مفقودة
-        'last_update': last_update_time,
-        'server_time': current_time,
-        'library_info': {
-            'available': IQ_AVAILABLE,
-            'module': IQ_Option.__module__ if IQ_Option else None
-        }
-    })
-
 @app.route('/')
 def home():
     """الصفحة الرئيسية"""
@@ -536,8 +406,7 @@ def home():
             '/api/status': 'Server status',
             '/api/quotes': 'All quotes',
             '/api/quotes/<symbol>': 'Specific quote',
-            '/api/symbols': 'List all available symbols',
-            '/api/debug': 'Detailed diagnostic information'
+            '/api/symbols': 'List all available symbols'
         }
     })
 
