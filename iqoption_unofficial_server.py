@@ -11,7 +11,6 @@ import logging
 import time
 import threading
 import os
-import random
 
 # إعداد السجلات
 logging.basicConfig(
@@ -69,9 +68,8 @@ detect_iq_library()
 # إعدادات IQ Option
 # =======================
 
-# قراءة بيانات الدخول من متغيرات البيئة (أكثر أماناً)
-IQ_EMAIL = os.environ.get('IQ_EMAIL', 'qarali131@gmail.com')
-IQ_PASSWORD = os.environ.get('IQ_PASSWORD', 'Azert@0208')
+IQ_EMAIL = "qarali131@gmail.com"
+IQ_PASSWORD = "Azert@0208"
 
 # متغيرات عامة
 prices_cache = {}
@@ -81,7 +79,6 @@ ENABLE_WS = os.environ.get('ENABLE_IQ_WS', 'false').lower() == 'true'
 # ضبط معدل الطلبات وحجم الدُفعات عبر متغيرات البيئة
 RATE_LIMIT_SECONDS = float(os.environ.get('IQ_RATE_LIMIT_SECONDS', '0.6'))  # افتراضي 0.6 ثانية بين الطلبات
 BATCH_SIZE = int(os.environ.get('IQ_BATCH_SIZE', '6'))  # افتراضي 6 رموز لكل دفعة
-SYMBOL_OFFSET = 0
 
 # رموز العملات - جميع الأزواج المتوفرة
 CURRENCY_SYMBOLS = {
@@ -185,14 +182,6 @@ def connect_to_iqoption():
             except Exception as e:
                 logger.warning(f"⚠️ تحذير: فشل التبديل للحساب التجريبي: {e}")
             
-            # استدعاء تمهيدي لتحميل حالة السوق إن توفرت، وإتاحة مهلة لاستقرار الجلسة
-            try:
-                if hasattr(iq_api, 'get_all_open_time'):
-                    _ = iq_api.get_all_open_time()
-            except Exception:
-                pass
-            time.sleep(1.0)
-
             connection_status = "connected"
             return True
         else:
@@ -205,35 +194,9 @@ def connect_to_iqoption():
         connection_status = "error"
         return False
 
-def ensure_connected():
-    """التحقق من سلامة الاتصال وإعادة الاتصال عند الحاجة"""
-    global iq_api, connection_status
-    try:
-        # إذا كانت المكتبة توفر check_connect استخدمها
-        if iq_api and hasattr(iq_api, 'check_connect'):
-            try:
-                ok = iq_api.check_connect()
-                if not ok:
-                    logger.warning("⚠️ check_connect أعاد False - إعادة الاتصال...")
-                    return connect_to_iqoption()
-            except Exception:
-                # في حال فشل check_connect نحاول إعادة الاتصال
-                return connect_to_iqoption()
-        # إذا علمياً الحالة ليست متصلة حاول إعادة الاتصال
-        if connection_status != "connected":
-            return connect_to_iqoption()
-        return True
-    except Exception:
-        return connect_to_iqoption()
-
 def get_price_safe(symbol, iq_symbol):
     """جلب السعر بطريقة آمنة"""
-    # تأكد من الاتصال قبل الطلب
-    try:
-        ensure_connected()
-    except Exception:
-        pass
-
+    
     # الطريقة 1: get_candles (الأكثر موثوقية)
     try:
         if hasattr(iq_api, 'get_candles'):
@@ -243,22 +206,8 @@ def get_price_safe(symbol, iq_symbol):
                 price = result[0]['close']
                 logger.info(f"📊 {symbol}: ${price} من get_candles ({iq_symbol})")
                 return float(price)
-            else:
-                # اعتبر النتيجة الفارغة فشلاً لتحفيز إعادة الاتصال
-                raise Exception("empty candles, need reconnect")
     except Exception as e:
-        # محاولة إصلاح الاتصال ثم إعادة المحاولة لمرة واحدة
-        try:
-            ensure_connected()
-            if hasattr(iq_api, 'get_candles'):
-                end_time = int(time.time())
-                result = iq_api.get_candles(iq_symbol, 60, 1, end_time)
-                if result and len(result) > 0:
-                    price = result[0]['close']
-                    logger.info(f"📊 {symbol}: ${price} من get_candles بعد إعادة الاتصال ({iq_symbol})")
-                    return float(price)
-        except Exception:
-            pass
+        pass
     
     # الطريقة 2: get_realtime_candles
     try:
@@ -309,7 +258,7 @@ def get_iqoption_price(symbol):
 
 def update_iqoption_prices():
     """تحديث الأسعار من IQ Option"""
-    global prices_cache, last_update_time, connection_status, SYMBOL_OFFSET
+    global prices_cache, last_update_time, connection_status
     
     # محاولة الاتصال
     max_attempts = 3
@@ -340,21 +289,12 @@ def update_iqoption_prices():
             # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
             symbols_list = list(CURRENCY_SYMBOLS.keys())
             batch_size = BATCH_SIZE  # حجم الدُفعة قابل للضبط
-            if len(symbols_list) == 0:
-                time.sleep(5)
-                continue
-            # تدوير قائمة الرموز لتجنب البدء دائماً من نفس الأزواج
-            SYMBOL_OFFSET = SYMBOL_OFFSET % len(symbols_list)
-            rotated = symbols_list[SYMBOL_OFFSET:] + symbols_list[:SYMBOL_OFFSET]
             
-            for i in range(0, len(rotated), batch_size):
-                batch = rotated[i:i + batch_size]
+            for i in range(0, len(symbols_list), batch_size):
+                batch = symbols_list[i:i + batch_size]
                 
-                exceptions_in_row = 0
                 for symbol in batch:
                     try:
-                        # تأكد من سلامة الاتصال قبل كل استعلام
-                        ensure_connected()
                         price = get_iqoption_price(symbol)
                         
                         if price and price > 0:
@@ -382,40 +322,15 @@ def update_iqoption_prices():
                             # تحديث وقت آخر تحديث عند كل نجاح
                             last_update_time = time.time()
                             consecutive_failures = 0
-                            exceptions_in_row = 0
-                        else:
-                            exceptions_in_row += 1
-                            # تأخير تدريجي عند الفشل المتكرر
-                            backoff_delay = min(exceptions_in_row * 2, 30)  # حتى 30 ثانية
-                            logger.warning(f"⚠️ نتيجة فارغة ({exceptions_in_row}) - انتظار {backoff_delay}s")
-                            time.sleep(backoff_delay)
-                            
-                            if exceptions_in_row >= 3:
-                                logger.warning("⚠️ نتائج فارغة متتالية - إعادة الاتصال...")
-                                connection_status = "disconnected"
-                                connect_to_iqoption()
-                                exceptions_in_row = 0
-                                time.sleep(5)
                         
-                        # احترام معدل الطلبات مع تشتت بسيط لتفادي أنماط الحظر
-                        time.sleep(RATE_LIMIT_SECONDS + random.uniform(0, 1.0))
+                        time.sleep(RATE_LIMIT_SECONDS)  # احترام معدل الطلبات لتفادي الحظر
                         
                     except Exception as e:
-                        exceptions_in_row += 1
-                        # إذا تكرر الخطأ عدة مرات متتالية داخل الدفعة، أعد الاتصال سريعاً
-                        if exceptions_in_row >= 5:
-                            logger.warning("⚠️ أخطاء متتالية في get_candles - إعادة الاتصال...")
-                            connection_status = "disconnected"
-                            connect_to_iqoption()
-                            exceptions_in_row = 0
-                            time.sleep(2)
+                        pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
                 
                 # استراحة قصيرة بين المجموعات
-                if i + batch_size < len(rotated):
+                if i + batch_size < len(symbols_list):
                     time.sleep(max(1.0, RATE_LIMIT_SECONDS))
-            
-            # تقدم في الإزاحة للدفعة القادمة (خارج الحلقات الداخلية)
-            SYMBOL_OFFSET = (SYMBOL_OFFSET + batch_size) % len(symbols_list)
             
             last_update_time = time.time()
             
@@ -458,10 +373,7 @@ def get_status():
         'last_update': last_update_time,
         'server_time': time.time(),
         'library_available': IQ_AVAILABLE,
-        'ws_enabled': ENABLE_WS,
-        'rate_limit_seconds': RATE_LIMIT_SECONDS,
-        'batch_size': BATCH_SIZE,
-        'symbol_offset': SYMBOL_OFFSET
+        'ws_enabled': ENABLE_WS
     })
 
 @app.route('/api/quotes')
@@ -535,14 +447,7 @@ if __name__ == '__main__':
     # الحصول على المنفذ من متغير البيئة أو استخدام 5000 كافتراضي
     port = int(os.environ.get('PORT', 5000))
     
-    # تسجيل معلومات البيئة للتشخيص
-    logger.info(f"📊 إعدادات البيئة:")
-    logger.info(f"   - ENABLE_IQ_WS: {ENABLE_WS}")
-    logger.info(f"   - IQ_RATE_LIMIT_SECONDS: {RATE_LIMIT_SECONDS}")
-    logger.info(f"   - IQ_BATCH_SIZE: {BATCH_SIZE}")
-    
     logger.info(f"🌐 الخادم يعمل على http://0.0.0.0:{port}")
     logger.info("=" * 50)
     
     app.run(host='0.0.0.0', port=port, debug=False)
-
