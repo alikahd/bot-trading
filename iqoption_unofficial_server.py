@@ -277,17 +277,18 @@ def update_iqoption_prices():
             
             # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
             symbols_list = list(CURRENCY_SYMBOLS.keys())
-            batch_size = 10  # معالجة 10 أزواج في كل دفعة
             
-            for i in range(0, len(symbols_list), batch_size):
-                batch = symbols_list[i:i + batch_size]
-                
-                for symbol in batch:
+            # التحقق من بيئة الإنتاج
+            is_production = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER')
+            
+            if is_production:
+                # في الإنتاج: معالجة تسلسلية بطيئة لتجنب الحظر
+                logger.info("🌐 وضع الإنتاج: معالجة تسلسلية مع تأخير 2 ثانية")
+                for symbol in symbols_list:
                     try:
                         price = get_iqoption_price(symbol)
                         
                         if price and price > 0:
-                            # حساب التغيير إذا كان هناك سعر سابق
                             change = 0
                             change_percent = 0
                             if symbol in prices_cache:
@@ -310,14 +311,51 @@ def update_iqoption_prices():
                             updated_count += 1
                             consecutive_failures = 0
                         
-                        time.sleep(0.3)  # تأخير أقل بين الطلبات
-                        
+                        time.sleep(2)  # تأخير 2 ثانية بين كل طلب لتجنب الحظر
                     except Exception as e:
-                        pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
+                        logger.debug(f"خطأ في جلب {symbol}: {e}")
+                        continue
+            else:
+                # محلياً: معالجة متوازية سريعة
+                logger.info("💻 وضع محلي: معالجة متوازية (6 خيوط)")
                 
-                # استراحة قصيرة بين المجموعات
-                if i + batch_size < len(symbols_list):
-                    time.sleep(1)
+                def fetch_single_price(symbol):
+                    try:
+                        price = get_iqoption_price(symbol)
+                        if price and price > 0:
+                            change = 0
+                            change_percent = 0
+                            if symbol in prices_cache:
+                                old_price = prices_cache[symbol]['price']
+                                change = price - old_price
+                                change_percent = (change / old_price) * 100 if old_price > 0 else 0
+                            
+                            return (symbol, {
+                                'price': price,
+                                'bid': price * 0.99999,
+                                'ask': price * 1.00001,
+                                'timestamp': time.time(),
+                                'symbol': symbol,
+                                'source': 'iqoption_universal',
+                                'is_real': True,
+                                'provider': f'IQ Option ({IQ_Option.__module__})',
+                                'change': change,
+                                'changePercent': change_percent
+                            })
+                    except Exception:
+                        pass
+                    return None
+                
+                with ThreadPoolExecutor(max_workers=6) as executor:
+                    futures = {executor.submit(fetch_single_price, symbol): symbol for symbol in symbols_list}
+                    
+                    for future in as_completed(futures):
+                        result = future.result()
+                        if result:
+                            symbol, data = result
+                            prices_cache[symbol] = data
+                            updated_count += 1
+                            consecutive_failures = 0
             
             last_update_time = time.time()
             
