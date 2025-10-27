@@ -97,7 +97,8 @@ export const Navigation: React.FC<NavigationProps> = ({
     <nav className={cn(
       designSystem.colors.background.card,
       'rounded-xl p-2 xs:p-2.5 sm:p-4 md:p-5 lg:p-6 shadow-2xl w-full max-w-full overflow-hidden'
-    )}>
+    )}
+    style={{ direction: 'rtl' }}>
       
       {/* أزرار التنقل الحديثة والأنيقة */}
       <div className="flex flex-nowrap justify-center items-stretch gap-1 xs:gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 w-full">

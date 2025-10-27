@@ -90,7 +90,7 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
       // تحويل الإشارات إلى تنسيق التوصيات - عرض المزيد من التوصيات
       const recs: CurrencyRecommendation[] = signals.slice(0, 6).map((signal) => ({
         symbol: signal.symbol,
-        name: signal.symbol.replace('_otc', ' OTC'),
+        name: signal.symbol.replace('_otc', ''), // إزالة _otc - سيظهر badge منفصل
         score: Math.round(signal.confidence),
         confidence: Math.round(signal.confidence),
         expectedWinRate: Math.round(signal.expected_success_rate),
@@ -329,7 +329,9 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
                     )}
                     {index < 3 && <Award className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 flex-shrink-0" />}
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-400 truncate">{recommendation.name}</span>
+                  <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-400 truncate">
+                    {recommendation.name.replace(' OTC', '').replace('OTC', '')}
+                  </span>
                 </div>
                 
                 <div className={`px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border text-xs sm:text-sm font-bold flex-shrink-0 ml-2 ${getScoreBackground(recommendation.score)}`}>

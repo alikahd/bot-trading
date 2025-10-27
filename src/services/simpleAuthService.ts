@@ -271,20 +271,29 @@ class SimpleAuthService {
           console.log('⏳ الدفع قيد المراجعة → payment_pending');
           redirectTo = 'payment_pending';
         }
-        // 4. إذا كان الاشتراك نشط والمستخدم نشط → دخول مباشر
-        else if ((data.status === 'active' && data.subscription_status === 'active' && data.is_active) || isAdmin) {
-          console.log('✅ المستخدم نشط → دخول مباشر');
-          redirectTo = null; // لا توجيه، دخول مباشر
+        // 4. إذا كان المستخدم مشترك ونشط → دخول مباشر للوحة التحكم
+        else if (isAdmin || 
+                 data.status === 'active' || 
+                 data.subscription_status === 'active' || 
+                 (data.is_active && data.status !== 'pending_subscription')) {
+          console.log('✅ المستخدم نشط → دخول مباشر للوحة التحكم');
+          redirectTo = null; // دخول مباشر
           
           // مسح أي بيانات اشتراك قديمة من localStorage
           localStorage.removeItem('show_subscription_page');
           localStorage.removeItem('subscription_step');
           localStorage.removeItem('selected_plan');
         }
-        // 5. إذا كان يحتاج اشتراك (البريد مفعل لكن لا يوجد اشتراك نشط)
-        else if (data.status === 'pending_subscription' || data.subscription_status !== 'active') {
+        // 5. فقط المستخدمين الذين يحتاجون فعلاً للاشتراك
+        else if (data.status === 'pending_subscription' || 
+                 (data.subscription_status !== 'active' && data.status !== 'active' && !data.is_active)) {
           console.log('📦 يحتاج اشتراك → subscription');
           redirectTo = 'subscription';
+        }
+        // 6. حالة احتياطية للمستخدمين الذين لا يتطابقون مع الشروط
+        else {
+          console.log('🔄 حالة احتياطية → دخول مباشر للوحة التحكم');
+          redirectTo = null; // دخول مباشر
         }
         
         console.log('✅ redirectTo النهائي:', redirectTo);
@@ -316,7 +325,7 @@ class SimpleAuthService {
   }
 
   // تسجيل الدخول مع التحقق من الاشتراك
-  async login(credentials: { username: string; password: string }): Promise<boolean> {
+  async login(credentials: { username: string; password: string }): Promise<{ success: boolean; error?: string; errorType?: string }> {
     try {
       // Login attempt
       
@@ -353,7 +362,7 @@ class SimpleAuthService {
 
         if (userError || !userData) {
           console.error('❌ البريد الإلكتروني غير موجود');
-          return false;
+          return { success: false, error: 'البريد الإلكتروني غير موجود', errorType: 'email_not_found' };
         }
         
         // ملاحظة: تم إزالة التحقق من email_verified والاشتراك هنا
@@ -370,7 +379,7 @@ class SimpleAuthService {
 
         if (userError || !userData) {
           console.error('❌ اسم المستخدم غير موجود');
-          return false;
+          return { success: false, error: 'اسم المستخدم غير موجود', errorType: 'username_not_found' };
         }
         
         userEmail = userData.email;
@@ -431,12 +440,16 @@ class SimpleAuthService {
           window.dispatchEvent(new CustomEvent('email-not-verified', { 
             detail: { email: userEmail } 
           }));
-          return false;
+          return { success: false, error: 'البريد الإلكتروني غير مفعل. يرجى التحقق من بريدك الإلكتروني وتفعيل الحساب.', errorType: 'email_not_verified' };
+        }
+        
+        // معالجة خاصة لخطأ كلمة المرور الخاطئة
+        if (authError?.message?.includes('Invalid login credentials')) {
+          return { success: false, error: 'كلمة المرور غير صحيحة', errorType: 'invalid_password' };
         }
         
         // معالجة خاصة للأخطاء الشائعة في الهاتف
-        if (authError?.message?.includes('Invalid login credentials') || 
-            authError?.message?.includes('Network request failed') ||
+        if (authError?.message?.includes('Network request failed') ||
             authError?.status === 0) {
           // Retry auth
           
@@ -462,42 +475,61 @@ class SimpleAuthService {
               
               if (finalError || !finalData.user) {
                 console.error('❌ فشل نهائي في المصادقة:', finalError?.message);
-                return false;
+                if (finalError?.message?.includes('Invalid login credentials')) {
+                  return { success: false, error: 'كلمة المرور غير صحيحة', errorType: 'invalid_password' };
+                }
+                return { success: false, error: 'فشل في الاتصال. يرجى المحاولة مرة أخرى.', errorType: 'network_error' };
               }
               
               // Third attempt success
-              return true;
+              return { success: true };
             }
             
             // Retry success
-            return true;
+            return { success: true };
           } catch (retryError) {
             console.error('❌ خطأ في إعادة المحاولة:', retryError);
-            return false;
+            return { success: false, error: 'فشل في الاتصال. يرجى المحاولة مرة أخرى.', errorType: 'network_error' };
           }
         }
         
-        return false;
+        return { success: false, error: 'فشل في تسجيل الدخول. يرجى التحقق من البيانات والمحاولة مرة أخرى.', errorType: 'general_error' };
       }
 
       // Login successful
       // سيتم تحميل بيانات المستخدم تلقائياً عبر onAuthStateChange
-      return true;
+      
+      // انتظار قصير للتأكد من تحميل بيانات المستخدم
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      return { success: true };
 
     } catch (error) {
       console.error('❌ خطأ عام في تسجيل الدخول:', error);
-      return false;
+      return { success: false, error: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.', errorType: 'unexpected_error' };
     }
   }
 
   // تسجيل الخروج
   async logout(): Promise<void> {
     try {
-      // Logout started
+      console.log('🚪 بدء عملية تسجيل الخروج...');
       
-      // مسح جلسة Supabase بشكل كامل
-      await supabase.auth.signOut({ scope: 'local' });
-      // Session cleared
+      // تحديث الحالة أولاً لإظهار حالة التحميل
+      this.updateAuthState({ isAuthenticated: false, user: null, isLoading: true });
+      
+      // مسح جلسة Supabase بشكل كامل مع timeout
+      const logoutPromise = supabase.auth.signOut({ scope: 'global' });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Logout timeout')), 5000)
+      );
+      
+      try {
+        await Promise.race([logoutPromise, timeoutPromise]);
+        console.log('✅ تم تسجيل الخروج من Supabase');
+      } catch (logoutError) {
+        console.warn('⚠️ خطأ في تسجيل الخروج من Supabase، سيتم المتابعة:', logoutError);
+      }
       
       // مسح جميع مفاتيح Supabase من localStorage
       const supabaseKeys = Object.keys(localStorage).filter(key => 
@@ -506,30 +538,64 @@ class SimpleAuthService {
         key.includes('auth')
       );
       supabaseKeys.forEach(key => {
-        localStorage.removeItem(key);
-        // Key removed
+        try {
+          localStorage.removeItem(key);
+          console.log('🗑️ تم حذف مفتاح:', key);
+        } catch (e) {
+          console.warn('⚠️ فشل في حذف مفتاح:', key, e);
+        }
       });
       
       // حذف الحالة المخزنة
       localStorage.removeItem('auth_state_cache');
       
-      // مسح جميع بيانات localStorage
-      localStorage.clear();
-      // localStorage cleared
+      // مسح بيانات التطبيق الأخرى
+      const appKeys = [
+        'show_subscription_page',
+        'subscription_step', 
+        'selected_plan',
+        'user_info',
+        'active_tab',
+        'show_data_source_panel',
+        'show_real_data_panel'
+      ];
+      appKeys.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          console.warn('⚠️ فشل في حذف مفتاح التطبيق:', key, e);
+        }
+      });
       
-      // مسح sessionStorage أيضاً
-      sessionStorage.clear();
-      // sessionStorage cleared
+      // مسح sessionStorage
+      try {
+        sessionStorage.clear();
+        console.log('✅ تم مسح sessionStorage');
+      } catch (e) {
+        console.warn('⚠️ فشل في مسح sessionStorage:', e);
+      }
       
-      // تحديث الحالة
+      // تحديث الحالة النهائية
       this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
-      // Auth state updated
+      console.log('✅ تم تحديث حالة المصادقة');
+      
+      // انتظار قصير للتأكد من تطبيق التغييرات
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('✅ تم تسجيل الخروج بنجاح');
       
     } catch (error) {
-      // Logout error
+      console.error('❌ خطأ في تسجيل الخروج:', error);
+      
       // حتى لو حدث خطأ، نمسح البيانات المحلية
-      localStorage.clear();
-      sessionStorage.clear();
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (clearError) {
+        console.error('❌ فشل في مسح البيانات المحلية:', clearError);
+      }
+      
+      // تحديث الحالة في جميع الأحوال
       this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
     }
   }

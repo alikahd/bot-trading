@@ -233,6 +233,45 @@ function App() {
     };
   }, [navigate]);
 
+  // معالجة التوجيه التلقائي بعد تسجيل الدخول
+  useEffect(() => {
+    if (isAuthenticated && user && !isLoading) {
+      console.log('🔄 معالجة التوجيه التلقائي للمستخدم:', user.email, 'redirectTo:', user.redirectTo);
+      
+      // إخفاء صفحات المصادقة
+      setShowLoginPage(false);
+      setShowRegisterPage(false);
+      setShowPasswordResetPage(false);
+      setShowEmailVerificationFromLogin(false);
+      
+      // التوجيه حسب حالة المستخدم
+      if (user.redirectTo === 'email_verification') {
+        console.log('📧 توجيه لتفعيل البريد الإلكتروني');
+        setUnverifiedEmail(user.email);
+        setShowEmailVerificationFromLogin(true);
+      } else if (user.redirectTo === 'subscription') {
+        console.log('📦 توجيه لصفحة الاشتراك');
+        setShowSubscriptionPage(true);
+        setSubscriptionStep('plans');
+        window.history.replaceState({ authenticated: true }, '', '/subscription');
+      } else if (user.redirectTo === 'payment_pending') {
+        console.log('⏳ توجيه لصفحة انتظار المراجعة');
+        setShowSubscriptionPage(true);
+        setSubscriptionStep('review');
+        window.history.replaceState({ authenticated: true }, '', '/payment/review');
+      } else if (user.redirectTo === 'blocked') {
+        console.log('🚫 المستخدم محظور');
+        alert('تم حظر حسابك. يرجى التواصل مع الدعم.');
+        handleLogout();
+      } else if (!user.redirectTo) {
+        console.log('✅ مستخدم نشط - دخول للوحة التحكم');
+        setShowSubscriptionPage(false);
+        setActiveTab('recommendations');
+        window.history.replaceState({ authenticated: true }, '', '/dashboard');
+      }
+    }
+  }, [isAuthenticated, user, isLoading]);
+
   // حالة التطبيق مع استعادة من localStorage
   const [showDataSourcePanel, setShowDataSourcePanel] = useState(() => 
     loadFromStorage(STORAGE_KEYS.SHOW_DATA_SOURCE_PANEL, false)
@@ -284,12 +323,16 @@ function App() {
                    subscriptionStep === 'success' ? '/payment/success' :
                    subscriptionStep === 'pending' ? '/payment/pending' :
                    subscriptionStep === 'review' ? '/payment/review' : '/subscription';
+      
       window.history.pushState({}, '', path);
       window.dispatchEvent(new CustomEvent('app-navigate', { detail: { path } }));
     } else if (isAuthenticated) {
-      // العودة للصفحة الرئيسية
-      window.history.pushState({}, '', '/');
-      window.dispatchEvent(new CustomEvent('app-navigate', { detail: { path: '/' } }));
+      // إذا كان مسجل دخول وليس في صفحة اشتراك، العودة للوحة التحكم
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/dashboard' && !currentPath.startsWith('/subscription') && !currentPath.startsWith('/payment')) {
+        window.history.pushState({}, '', '/dashboard');
+        window.dispatchEvent(new CustomEvent('app-navigate', { detail: { path: '/dashboard' } }));
+      }
     }
   }, [showSubscriptionPage, subscriptionStep, isAuthenticated]);
   
@@ -321,14 +364,14 @@ function App() {
       const currentPath = window.location.pathname;
       const forbiddenPaths = ['/', '/login', '/register'];
       
-      // إذا كنا في صفحة محظورة، نستبدلها بصفحة آمنة
+      // إذا كنا في صفحة محظورة، نستبدلها بلوحة التحكم
       if (forbiddenPaths.includes(currentPath)) {
         window.history.replaceState(
           { authenticated: true, safe: true }, 
           '', 
-          '/subscription'
+          '/dashboard'
         );
-        console.log('🔒 تم استبدال الصفحة المحظورة بصفحة آمنة');
+        console.log('🔒 تم استبدال الصفحة المحظورة بلوحة التحكم');
       }
     }
   }, [isAuthenticated]);
@@ -358,7 +401,22 @@ function App() {
       }
       
       // تحديث الحالة بناءً على URL - التنقل الطبيعي
-      if (path === '/subscription/manage') {
+      if (path === '/dashboard') {
+        // صفحة لوحة التحكم - فقط للمستخدمين المشتركين
+        if (isAuthenticated && user && (user.status === 'active' || user.subscription_status === 'active' || user.email === 'hichamkhad00@gmail.com')) {
+          setShowSubscriptionPage(false);
+          setShowLoginPage(false);
+          setShowRegisterPage(false);
+          setShowPasswordResetPage(false);
+          setActiveTab('recommendations');
+        } else {
+          // المستخدم غير مشترك - إعادة توجيه لصفحة الاشتراك
+          console.log('⚠️ محاولة الوصول للوحة التحكم بدون اشتراك - إعادة توجيه');
+          window.history.replaceState({ authenticated: true }, '', '/subscription');
+          setShowSubscriptionPage(true);
+          setSubscriptionStep('plans');
+        }
+      } else if (path === '/subscription/manage') {
         // صفحة المدفوعات والاشتراكات - فقط للمستخدمين الذين لديهم اشتراك
         // منع الوصول للمستخدمين الجدد الذين لم يدفعوا بعد
         if (user && (user.status === 'active' || user.subscription_status === 'active')) {
@@ -499,18 +557,37 @@ function App() {
     
     try {
       const result = await login(credentials);
-      if (!result) {
-        setAuthError('فشل في تسجيل الدخول');
+      if (!result.success) {
+        // عرض رسالة خطأ محددة حسب نوع الخطأ
+        if (result.errorType === 'email_not_found') {
+          setAuthError('البريد الإلكتروني غير موجود. يرجى التحقق من البريد أو إنشاء حساب جديد.');
+        } else if (result.errorType === 'username_not_found') {
+          setAuthError('اسم المستخدم غير موجود. يرجى التحقق من اسم المستخدم أو إنشاء حساب جديد.');
+        } else if (result.errorType === 'invalid_password') {
+          setAuthError('كلمة المرور غير صحيحة. يرجى التحقق من كلمة المرور والمحاولة مرة أخرى.');
+        } else if (result.errorType === 'email_not_verified') {
+          setAuthError('البريد الإلكتروني غير مفعل. يرجى التحقق من بريدك الإلكتروني وتفعيل الحساب.');
+        } else {
+          setAuthError(result.error || 'فشل في تسجيل الدخول');
+        }
         return false;
       }
       
-      // مسح التاريخ السابق وإنشاء نقطة بداية جديدة بعد تسجيل الدخول
-      console.log('✅ تسجيل دخول ناجح - مسح التاريخ السابق');
-      window.history.replaceState({ page: 'subscription', authenticated: true }, '', '/subscription');
+      // تسجيل دخول ناجح - انتظار تحميل بيانات المستخدم
+      console.log('✅ تسجيل دخول ناجح - انتظار تحميل البيانات...');
+      
+      // انتظار قصير لتحميل بيانات المستخدم
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // إخفاء صفحة تسجيل الدخول
+      setShowLoginPage(false);
+      
+      // سيتم التوجيه تلقائياً حسب حالة المستخدم (redirectTo) من خلال useEffect
       
       return true;
     } catch (error) {
-      setAuthError('حدث خطأ أثناء تسجيل الدخول');
+      console.error('خطأ في تسجيل الدخول:', error);
+      setAuthError('حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.');
       return false;
     } finally {
       setIsLoginLoading(false);
@@ -634,6 +711,15 @@ function App() {
       window.history.pushState({ page: 'subscription' }, '', '/subscription');
     }
     window.dispatchEvent(new CustomEvent('app-navigate', { detail: { path: '/subscription' } }));
+  };
+
+  const handleBackToDashboard = () => {
+    setShowSubscriptionPage(false);
+    setActiveTab('recommendations'); // العودة للتبويب الافتراضي
+    
+    // تحديث URL للعودة للوحة التحكم
+    window.history.pushState({ authenticated: true }, '', '/dashboard');
+    window.dispatchEvent(new CustomEvent('app-navigate', { detail: { path: '/dashboard' } }));
   };
 
   // دوال معالجة تدفق الاشتراك
@@ -802,6 +888,7 @@ function App() {
             handleSelectPlan={handleSelectPlan}
             handlePaymentComplete={handlePaymentComplete}
             handleBackToLogin={handleBackToLogin}
+            handleBackToDashboard={handleBackToDashboard}
             activeTab={activeTab}
             setActiveTab={(tab) => setActiveTab(tab as 'signals' | 'recommendations' | 'precise' | 'admin' | 'subscription')}
             assets={assets}
@@ -870,6 +957,7 @@ interface AppContentProps {
   handleSelectPlan: (plan: any) => void;
   handlePaymentComplete: (paymentMethod?: string, status?: string, paymentData?: any) => void;
   handleBackToLogin: () => void;
+  handleBackToDashboard: () => void;
   activeTab: string;
   setActiveTab: (tab: 'signals' | 'recommendations' | 'precise' | 'admin' | 'subscription') => void;
   assets: any[];
@@ -923,6 +1011,7 @@ const AppContent: React.FC<AppContentProps> = ({
   handleSelectPlan,
   handlePaymentComplete,
   handleBackToLogin,
+  handleBackToDashboard,
   activeTab,
   setActiveTab,
   assets,
@@ -969,7 +1058,7 @@ const AppContent: React.FC<AppContentProps> = ({
                               user.status !== 'active' && 
                               user.subscription_status !== 'active';
     
-    if (needsSubscription || (showSubscriptionPage && user.status !== 'active')) {
+    if (needsSubscription || showSubscriptionPage) {
       console.log('📍 في صفحة الاشتراك - subscriptionStep:', subscriptionStep);
       
       if (!showSubscriptionPage && needsSubscription) {
@@ -1042,6 +1131,11 @@ const AppContent: React.FC<AppContentProps> = ({
             <SubscriptionPage 
               onSelectPlan={handleSelectPlan}
               onBackToLogin={handleBackToLogin}
+              onBackToDashboard={handleBackToDashboard}
+              hasActiveSubscription={
+                (user?.subscription_status === 'active' || user?.status === 'active') ||
+                user?.email === 'hichamkhad00@gmail.com'
+              }
             />
           );
       }
@@ -1081,7 +1175,15 @@ const AppContent: React.FC<AppContentProps> = ({
 
   // إذا كان المستخدم مسجل الدخول لكن اشتراكه منتهي فعلياً، عرض صفحة الحجب
   // ملاحظة: إذا كان الاشتراك ينتهي قريباً فقط (isExpiringSoon)، نعرض بانر تحذير فقط وليس حجب كامل
-  if (isAuthenticated && !subscriptionLoading && subscriptionStatus.isExpired && user?.role !== 'admin') {
+  // لا نعرض صفحة الحظر إذا كان هناك خطأ في الاتصال أو جاري التحميل
+  const isConnectionError = subscriptionStatus.timeUntilExpiry?.includes('خطأ في الاتصال') || 
+                           subscriptionStatus.timeUntilExpiry?.includes('يرجى المحاولة لاحقاً') ||
+                           subscriptionStatus.timeUntilExpiry?.includes('يعمل مؤقتاً') ||
+                           subscriptionStatus.timeUntilExpiry?.includes('جاري تحميل') ||
+                           subscriptionStatus.subscription?.plan_name?.includes('جاري التحميل');
+  
+  // فقط نعرض نافذة الحظر إذا كان الاشتراك منتهي فعلاً وليس بسبب خطأ اتصال
+  if (isAuthenticated && !subscriptionLoading && subscriptionStatus.isExpired && !isConnectionError && user?.role !== 'admin') {
     return (
       <SubscriptionBlockedPage
         subscriptionStatus={subscriptionStatus}
@@ -1175,6 +1277,11 @@ const AppContent: React.FC<AppContentProps> = ({
             <SubscriptionPage 
               onSelectPlan={handleSelectPlan}
               onBackToLogin={handleBackToLogin}
+              onBackToDashboard={handleBackToDashboard}
+              hasActiveSubscription={
+                (user?.subscription_status === 'active' || user?.status === 'active') ||
+                user?.email === 'hichamkhad00@gmail.com'
+              }
             />
           );
         
@@ -1232,6 +1339,11 @@ const AppContent: React.FC<AppContentProps> = ({
             <SubscriptionPage 
               onSelectPlan={handleSelectPlan}
               onBackToLogin={handleBackToLogin}
+              onBackToDashboard={handleBackToDashboard}
+              hasActiveSubscription={
+                (user?.subscription_status === 'active' || user?.status === 'active') ||
+                user?.email === 'hichamkhad00@gmail.com'
+              }
             />
           );
       }
@@ -1310,6 +1422,11 @@ const AppContent: React.FC<AppContentProps> = ({
         <SubscriptionPage 
           onSelectPlan={handleSelectPlan}
           onBackToLogin={handleBackToLogin}
+          onBackToDashboard={handleBackToDashboard}
+          hasActiveSubscription={
+            (user?.subscription_status === 'active' || user?.status === 'active') ||
+            user?.email === 'hichamkhad00@gmail.com'
+          }
         />
       );
     }
@@ -1359,7 +1476,7 @@ const AppContent: React.FC<AppContentProps> = ({
           )}
 
           {/* التخطيط المتجاوب المحسن */}
-          <div className={`grid grid-cols-1 lg:grid-cols-12 gap-2 ${(['assistant','recommendations','admin','subscription','payments'].includes(activeTab as any) ? 'px-0' : 'px-1')}`}>
+          <div className={`grid grid-cols-1 lg:grid-cols-12 gap-2 ${(['assistant','recommendations','admin','subscription','payments'].includes(activeTab as any) ? 'px-0' : 'px-1')}`} style={{ direction: 'rtl' }}>
             {/* الشريط الجانبي الأيسر - الأصول والإعدادات (مخفي في لوحة التحكم) */}
             {activeTab !== 'admin' && (
               <div className="order-2 lg:order-none lg:col-span-6 space-y-2 sm:space-y-3">

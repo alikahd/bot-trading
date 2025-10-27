@@ -6,7 +6,7 @@
 // رابط سيرفر IQ Option
 export const IQ_OPTION_SERVER_URL = 
   process.env.NODE_ENV === 'production' 
-    ? 'https://iqoption-bot-server.onrender.com'  // رابط Render
+    ? 'https://bot-trading-production-6630.up.railway.app'  // رابط Railway
     : 'http://localhost:5000';  // للتطوير المحلي
 
 // API endpoints

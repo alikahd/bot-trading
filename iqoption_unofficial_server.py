@@ -75,10 +75,6 @@ IQ_PASSWORD = "Azert@0208"
 prices_cache = {}
 connection_status = "disconnected"
 last_update_time = 0
-ENABLE_WS = os.environ.get('ENABLE_IQ_WS', 'false').lower() == 'true'
-# ضبط معدل الطلبات وحجم الدُفعات عبر متغيرات البيئة
-RATE_LIMIT_SECONDS = float(os.environ.get('IQ_RATE_LIMIT_SECONDS', '0.6'))  # افتراضي 0.6 ثانية بين الطلبات
-BATCH_SIZE = int(os.environ.get('IQ_BATCH_SIZE', '6'))  # افتراضي 6 رموز لكل دفعة
 
 # رموز العملات - جميع الأزواج المتوفرة
 CURRENCY_SYMBOLS = {
@@ -194,22 +190,6 @@ def connect_to_iqoption():
         connection_status = "error"
         return False
 
-def check_symbol_availability(iq_symbol):
-    """التحقق من توفر الرمز على IQ Option"""
-    try:
-        if hasattr(iq_api, 'get_all_open_time'):
-            open_times = iq_api.get_all_open_time()
-            if open_times and isinstance(open_times, dict):
-                # البحث عن الرمز في القائمة
-                for key, value in open_times.items():
-                    if iq_symbol.upper() in str(key).upper():
-                        # التحقق من أن السوق مفتوح
-                        if isinstance(value, dict) and value.get('open', False):
-                            return True
-    except Exception:
-        pass
-    return None  # غير متأكد، سنحاول على أي حال
-
 def get_price_safe(symbol, iq_symbol):
     """جلب السعر بطريقة آمنة"""
     
@@ -227,18 +207,11 @@ def get_price_safe(symbol, iq_symbol):
     
     # الطريقة 2: get_realtime_candles
     try:
-        if ENABLE_WS and hasattr(iq_api, 'get_realtime_candles'):
-            # تشغيل stream مع مهلة أمان لتجنب التعليق على بيئات PaaS
+        if hasattr(iq_api, 'get_realtime_candles'):
+            # تشغيل stream أولاً
             if hasattr(iq_api, 'start_candles_stream'):
-                def _start_stream():
-                    try:
-                        iq_api.start_candles_stream(iq_symbol, 60, 1)
-                    except Exception:
-                        pass
-                t = threading.Thread(target=_start_stream, daemon=True)
-                t.start()
-                t.join(timeout=2)  # مهلة قصيرة
-                time.sleep(1)  # انتظار قصير لاستلام أول شمعة
+                iq_api.start_candles_stream(iq_symbol, 60, 1)
+                time.sleep(1)  # انتظار قصير
             
             result = iq_api.get_realtime_candles(iq_symbol, 60)
             if result and len(result) > 0:
@@ -252,46 +225,24 @@ def get_price_safe(symbol, iq_symbol):
     return None
 
 def get_iqoption_price(symbol):
-    """جلب السعر من IQ Option مع دعم رموز متعددة واختيار ذكي"""
+    """جلب السعر من IQ Option مع دعم رموز متعددة"""
     global iq_api
     
     if not iq_api or connection_status != "connected":
         return None
     
-    # الحصول على الرموز البديلة
-    alternative_symbols = CURRENCY_SYMBOLS.get(symbol, [])
-    if not alternative_symbols:
-        return None
+    # جرب جميع الرموز المتاحة للعملة
+    symbols_to_try = CURRENCY_SYMBOLS.get(symbol, [symbol])
     
-    # استراتيجية ذكية: جرب الرموز بالترتيب الأمثل
-    # 1. جرب الرمز العادي أولاً (بدون OTC)
-    # 2. ثم جرب OTC
-    # 3. ثم جرب الصيغ الأخرى
-    
-    # ترتيب الرموز: العادي أولاً، ثم OTC، ثم الباقي
-    regular_symbols = [s for s in alternative_symbols if 'OTC' not in s.upper()]
-    otc_symbols = [s for s in alternative_symbols if 'OTC' in s.upper()]
-    ordered_symbols = regular_symbols + otc_symbols
-    
-    # محاولة كل رمز مع التحقق من التوفر
-    for iq_symbol in ordered_symbols:
-        # التحقق من توفر الرمز (اختياري - لا يوقف المحاولة)
-        is_available = check_symbol_availability(iq_symbol)
-        if is_available == False:  # فقط إذا كان متأكد أنه غير متوفر
-            logger.debug(f"⏭️ تخطي {iq_symbol} - السوق مغلق")
+    for iq_symbol in symbols_to_try:
+        try:
+            price = get_price_safe(symbol, iq_symbol)
+            if price and price > 0:
+                logger.info(f"✅ {symbol}: ${price} من IQ Option ({iq_symbol})")
+                return price
+        except Exception as e:
             continue
-        
-        # محاولة جلب السعر
-        price = get_price_safe(symbol, iq_symbol)
-        if price:
-            symbol_type = "OTC" if "OTC" in iq_symbol.upper() else "عادي"
-            logger.info(f"✅ {symbol}: ${price} من IQ Option ({iq_symbol}) [{symbol_type}]")
-            return price
-        
-        # تأخير قصير بين المحاولات
-        time.sleep(0.3)
     
-    logger.warning(f"❌ فشل جلب سعر {symbol} من جميع الرموز البديلة")
     return None
 
 def update_iqoption_prices():
@@ -326,13 +277,10 @@ def update_iqoption_prices():
             
             # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
             symbols_list = list(CURRENCY_SYMBOLS.keys())
-            batch_size = BATCH_SIZE  # حجم الدُفعة قابل للضبط
-            
-            logger.info(f"🔄 بدء تحديث {len(symbols_list)} زوج عملة...")
+            batch_size = 10  # معالجة 10 أزواج في كل دفعة
             
             for i in range(0, len(symbols_list), batch_size):
                 batch = symbols_list[i:i + batch_size]
-                logger.info(f"📦 معالجة الدفعة {i//batch_size + 1}/{(len(symbols_list)-1)//batch_size + 1}")
                 
                 for symbol in batch:
                     try:
@@ -360,18 +308,16 @@ def update_iqoption_prices():
                                 'changePercent': change_percent
                             }
                             updated_count += 1
-                            # تحديث وقت آخر تحديث عند كل نجاح
-                            last_update_time = time.time()
                             consecutive_failures = 0
                         
-                        time.sleep(RATE_LIMIT_SECONDS)  # احترام معدل الطلبات لتفادي الحظر
+                        time.sleep(0.3)  # تأخير أقل بين الطلبات
                         
                     except Exception as e:
                         pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
                 
                 # استراحة قصيرة بين المجموعات
                 if i + batch_size < len(symbols_list):
-                    time.sleep(max(1.0, RATE_LIMIT_SECONDS))
+                    time.sleep(1)
             
             last_update_time = time.time()
             
@@ -413,8 +359,7 @@ def get_status():
         'cached_prices': len(prices_cache),
         'last_update': last_update_time,
         'server_time': time.time(),
-        'library_available': IQ_AVAILABLE,
-        'ws_enabled': ENABLE_WS
+        'library_available': IQ_AVAILABLE
     })
 
 @app.route('/api/quotes')

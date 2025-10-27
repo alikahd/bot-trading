@@ -45,8 +45,12 @@ export const useSubscriptionStatus = (userId?: string) => {
       `;
       const userResult = await executeRealQuery(userQuery);
       
+      if (userResult.error) {
+        throw new Error(`خطأ في جلب بيانات المستخدم: ${userResult.error}`);
+      }
+      
       if (!userResult.data || userResult.data.length === 0) {
-        throw new Error('المستخدم غير موجود');
+        throw new Error('المستخدم غير موجود في قاعدة البيانات');
       }
 
       const userData = userResult.data[0];
@@ -81,6 +85,10 @@ export const useSubscriptionStatus = (userId?: string) => {
       `;
       const subscriptionResult = await executeRealQuery(subscriptionQuery);
       
+      if (subscriptionResult.error) {
+        throw new Error(`خطأ في جلب بيانات الاشتراك: ${subscriptionResult.error}`);
+      }
+      
       if (!subscriptionResult.data || subscriptionResult.data.length === 0) {
         setStatus({
           isActive: false,
@@ -110,23 +118,34 @@ export const useSubscriptionStatus = (userId?: string) => {
           plan_name: activeSubscription.plan_name_ar || activeSubscription.plan_name
         },
         isExpired: timeData.expired,
-        isExpiringSoon: timeData.days <= 7 && !timeData.expired,
+        isExpiringSoon: timeData.days <= 7 && timeData.days >= 0 && !timeData.expired, // يظهر التنبيه عند 7 أيام أو أقل فقط
         timeUntilExpiry: timeData.expired ? 'منتهي' : `${timeData.days} يوم و ${timeData.hours} ساعة`
       });
 
     } catch (err) {
       console.error('Error checking subscription status:', err);
       setError('فشل في التحقق من حالة الاشتراك');
+      
+      // عند فشل جلب البيانات، نعتبر المستخدم نشط مؤقتاً
+      // مع إعادة المحاولة التلقائية
+      console.log('⚠️ فشل جلب البيانات، سيتم إعادة المحاولة خلال 10 ثوان');
+      
       setStatus({
-        isActive: false,
-        daysRemaining: 0,
+        isActive: true, // ✅ نشط مؤقتاً 
+        daysRemaining: 365, // سنة كاملة لتجنب التنبيهات
         hoursRemaining: 0,
         minutesRemaining: 0,
-        subscription: null,
-        isExpired: true,
+        subscription: { status: 'active', plan_name: 'جاري التحميل...' },
+        isExpired: false,
         isExpiringSoon: false,
-        timeUntilExpiry: 'خطأ في التحقق'
+        timeUntilExpiry: 'جاري تحميل البيانات...'
       });
+      
+      // إعادة المحاولة بعد 10 ثوان
+      setTimeout(() => {
+        console.log('🔄 إعادة محاولة جلب البيانات...');
+        checkSubscriptionStatus();
+      }, 10000);
     } finally {
       setLoading(false);
     }

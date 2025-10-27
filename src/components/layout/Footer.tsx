@@ -29,7 +29,7 @@ const globalNavigate = (page: 'terms' | 'contact' | 'about') => {
 };
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
-  const { t, dir } = useLanguage();
+  const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
   const isProcessingRef = useRef(false);
   
@@ -98,7 +98,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
     <footer className={cn(
       designSystem.colors.background.card,
       'relative overflow-hidden'
-    )} dir={dir}>
+    )} dir="rtl">
       {/* تأثير الانتقال العلوي المحسن */}
       <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-transparent via-slate-800/30 to-slate-900/60" />
       
@@ -140,8 +140,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 key={index}
                 onClick={link.action}
                 className={cn(
-                  'btn-sm text-sm xs:text-base sm:text-lg md:text-xl font-semibold transition-all duration-500 transform hover:scale-105 active:scale-95',
-                  'relative group px-4 xs:px-5 sm:px-6 md:px-7 py-3 xs:py-3.5 sm:py-4 rounded-lg sm:rounded-xl',
+                  'btn-sm text-sm xs:text-base sm:text-base md:text-lg lg:text-base font-semibold transition-all duration-500 transform hover:scale-105 active:scale-95',
+                  'relative group px-4 xs:px-5 sm:px-6 md:px-5 lg:px-4 py-3 xs:py-3.5 sm:py-4 md:py-3 lg:py-2.5 rounded-lg sm:rounded-xl',
                   'cursor-pointer touch-manipulation select-none text-center whitespace-nowrap',
                   designSystem.colors.text.secondary,
                   'bg-slate-800/40 hover:bg-gradient-to-r hover:from-blue-500/30 hover:to-purple-500/30',

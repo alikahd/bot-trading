@@ -86,7 +86,7 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
       const recs: BinaryOptionRecommendation[] = signals.slice(0, 5).map((signal) => ({
         id: `${signal.symbol}-${Date.now()}`,
         symbol: signal.symbol,
-        symbolName: signal.symbol.replace('_otc', ' OTC'),
+        symbolName: signal.symbol.replace('_otc', ''), // إزالة _otc - سيظهر badge منفصل
         direction: signal.direction,
         confidence: Math.round(signal.confidence),
         timeframe: `${signal.timeframe}m`,
@@ -510,7 +510,9 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
                         <span className="px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold bg-purple-600/80 text-white rounded">OTC</span>
                       )}
                     </div>
-                    <p className="text-[10px] sm:text-xs text-gray-400">{translateSymbolName(rec.symbolName)}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-400">
+                      {translateSymbolName(rec.symbolName.replace(' OTC', '').replace('OTC', ''))}
+                    </p>
                   </div>
                 </div>
                 

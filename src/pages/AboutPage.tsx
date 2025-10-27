@@ -2,6 +2,8 @@ import React from 'react';
 import { ArrowLeft, Users, Target, Award, TrendingUp, Shield, Zap, Globe, Heart, Star } from 'lucide-react';
 import { cn, designSystem } from '../styles/designSystem';
 import { Card } from '../components/ui/Card';
+import { LanguageSelector } from '../components/ui/LanguageSelector';
+import { LoginButton } from '../components/ui/LoginButton';
 import { Footer } from '../components/layout/Footer';
 import { Header } from '../components/layout/Header';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -24,7 +26,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
   user = null,
   onLogout
 }) => {
-  const { language, setLanguage, t, dir } = useLanguage();
+  const { language, t, dir } = useLanguage();
   
   const features = [
     {
@@ -140,35 +142,24 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             <div className="px-3 sm:px-6 lg:px-8 xl:px-10 py-6 sm:py-6 md:py-5">
               <div className="max-w-7xl mx-auto">
                 <div className="flex md:hidden items-center justify-between gap-2">
-                  <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg blur-sm opacity-40 group-hover:opacity-70 animate-pulse transition-opacity duration-300"></div>
-                    <button 
-                      onClick={() => {
-                        console.log('AboutPage: Mobile Login button clicked');
-                        onNavigateToLogin && onNavigateToLogin();
-                      }}
-                      className="relative overflow-hidden px-2.5 text-xs font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-500 hover:via-purple-500 hover:to-indigo-500 text-white rounded-md shadow-xl hover:shadow-2xl hover:shadow-blue-500/50 border border-blue-400/30 hover:border-blue-300/60 backdrop-blur-lg transition-all duration-500 transform hover:scale-105 active:scale-95 flex items-center justify-center" style={{height: '20px', lineHeight: '1', minHeight: '20px'}}>
-                      <span className="relative z-10 flex items-center gap-1.5">
-                        {language === 'ar' ? 'دخول' : 'Login'}
-                      </span>
-                    </button>
-                  </div>
-                  <select value={language} onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'fr')} className="bg-transparent hover:bg-white/5 backdrop-blur-sm border border-white/20 hover:border-white/40 rounded-md px-2 py-0.5 text-white text-[10px] font-medium focus:outline-none focus:ring-1 focus:ring-white/30 transition-all duration-300 cursor-pointer text-center">
-                    <option value="ar" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>AR</option>
-                    <option value="en" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>EN</option>
-                    <option value="fr" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>FR</option>
-                  </select>
+                  <LoginButton 
+                    onClick={() => {
+                      console.log('AboutPage: Mobile Login button clicked');
+                      onNavigateToLogin && onNavigateToLogin();
+                    }}
+                    variant="mobile"
+                  />
+                  <LanguageSelector variant="mobile" />
                 </div>
                 <div className="hidden md:flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <button 
+                    <LoginButton 
                       onClick={() => {
                         console.log('AboutPage: Desktop Login button clicked');
                         onNavigateToLogin && onNavigateToLogin();
                       }}
-                      className="relative group px-5 py-2.5 text-sm font-semibold text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg">
-                      <span className="relative z-10">{language === 'ar' ? 'تسجيل الدخول' : language === 'en' ? 'Login' : 'Connexion'}</span>
-                    </button>
+                      variant="desktop"
+                    />
                     <div className="relative group">
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg blur opacity-40 group-hover:opacity-70 transition duration-300 animate-pulse"></div>
                       <button 
@@ -182,11 +173,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center">
-                    <select value={language} onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'fr')} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 backdrop-blur-sm border border-blue-400/40 hover:border-blue-300/60 rounded-lg px-4 py-2 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-300 cursor-pointer min-w-[110px] text-center shadow-lg hover:shadow-xl">
-                      <option value="ar" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>العربية</option>
-                      <option value="en" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>English</option>
-                      <option value="fr" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>Français</option>
-                    </select>
+                    <LanguageSelector variant="landing" />
                   </div>
                 </div>
               </div>

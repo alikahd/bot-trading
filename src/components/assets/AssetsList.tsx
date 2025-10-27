@@ -24,10 +24,8 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
     return 2; // افتراضي
   };
   
-  // الاشتراك في البيانات المباشرة الفورية - فقط إذا كان البوت مفعل
+  // الاشتراك في البيانات المباشرة الفورية - يعمل دائماً (حتى لو كان البوت متوقف)
   useEffect(() => {
-    if (!isActive) return;
-
     console.log('🚀 الاشتراك في البيانات المباشرة الفورية - AssetsList');
     
     // الاشتراك في خدمة البيانات المباشرة
@@ -37,7 +35,7 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
       // تحويل البيانات إلى تنسيق Asset
       const loadedAssets: Asset[] = Object.values(realTimeQuotes).map((quote: RealTimeQuote) => ({
         symbol: quote.symbol,
-        name: quote.symbol.replace('_otc', ' OTC'),
+        name: quote.symbol.replace('_otc', ''), // إزالة _otc من الاسم - سيظهر badge منفصل
         price: quote.price,
         change: quote.change,
         changePercent: quote.changePercent,
@@ -51,7 +49,7 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
       console.log('🔕 إلغاء الاشتراك - AssetsList');
       unsubscribe();
     };
-  }, [isActive]);
+  }, []); // إزالة isActive من dependencies - يعمل دائماً
 
   // تم استبدال الكود القديم بخدمة البيانات المباشرة الفورية
 
@@ -168,17 +166,22 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
                 >
                   <div className="flex-1 min-w-0 pr-2">
                     <div className="flex items-center gap-2">
-                      <div className="font-medium text-white dark:text-white text-gray-900 text-xs md:text-sm lg:text-base truncate tracking-tight">{asset.name}</div>
+                      <div className="font-medium text-white dark:text-white text-gray-900 text-xs md:text-sm lg:text-base truncate tracking-tight">
+                        {asset.name.replace(' OTC', '').replace('OTC', '').replace('_otc', '')}
+                      </div>
                       {asset.symbol.includes('_otc') && (
                         <span className="px-1.5 py-0.5 text-[9px] font-bold bg-purple-600/80 text-white rounded">OTC</span>
                       )}
                     </div>
                     <div className="text-[11px] md:text-xs text-gray-400 dark:text-gray-400 text-gray-600">
-                      {asset.symbol.length === 6 
-                        ? `${asset.symbol.slice(0, 3)}/${asset.symbol.slice(3)}` 
-                        : asset.symbol.length === 7
-                        ? `${asset.symbol.slice(0, 3)}/${asset.symbol.slice(3)}`
-                        : asset.symbol}
+                      {(() => {
+                        const cleanSymbol = asset.symbol.replace('_otc', '');
+                        return cleanSymbol.length === 6 
+                          ? `${cleanSymbol.slice(0, 3)}/${cleanSymbol.slice(3)}` 
+                          : cleanSymbol.length === 7
+                          ? `${cleanSymbol.slice(0, 3)}/${cleanSymbol.slice(3)}`
+                          : cleanSymbol;
+                      })()}
                     </div>
                   </div>
                   <div className="text-right">
@@ -213,17 +216,22 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="font-medium text-white dark:text-white text-gray-900 text-xs truncate">{asset.name}</div>
+                        <div className="font-medium text-white dark:text-white text-gray-900 text-xs truncate">
+                          {asset.name.replace(' OTC', '').replace('OTC', '').replace('_otc', '')}
+                        </div>
                         {asset.symbol.includes('_otc') && (
                           <span className="px-1 py-0.5 text-[8px] font-bold bg-purple-600/80 text-white rounded flex-shrink-0">OTC</span>
                         )}
                       </div>
                       <div className="text-xs text-gray-400 dark:text-gray-400 text-gray-600">
-                        {asset.symbol.length === 6 
-                          ? `${asset.symbol.slice(0, 3)}/${asset.symbol.slice(3)}` 
-                          : asset.symbol.length === 7
-                          ? `${asset.symbol.slice(0, 3)}/${asset.symbol.slice(3)}`
-                          : asset.symbol}
+                        {(() => {
+                          const cleanSymbol = asset.symbol.replace('_otc', '');
+                          return cleanSymbol.length === 6 
+                            ? `${cleanSymbol.slice(0, 3)}/${cleanSymbol.slice(3)}` 
+                            : cleanSymbol.length === 7
+                            ? `${cleanSymbol.slice(0, 3)}/${cleanSymbol.slice(3)}`
+                            : cleanSymbol;
+                        })()}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">

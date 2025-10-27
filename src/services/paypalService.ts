@@ -1,5 +1,5 @@
 // خدمة PayPal - بسيطة وفعالة
-const PAYPAL_CLIENT_ID = 'AU1sWKh9MM-0g0L6RFy8fV1ly_6eNfLCm5az1Ua6s4k_7qb8YIhCy58gWJdhvROmPmmDWbBdozHjeVXV';
+const PAYPAL_CLIENT_ID = 'AW-Cj16q_BRyJhBJWvtAYC_kNCtlDMQHEoiBvTO4Qi6q6jnfuFtOP3FJALXuoeisQhDc8pajVCr2crqG';
 
 export const loadPayPalScript = (locale: string = 'en_US'): Promise<void> => {
   return new Promise((resolve, reject) => {

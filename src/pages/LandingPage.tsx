@@ -6,14 +6,16 @@ import {
   TrendingUp, 
   Star, 
   ArrowRight, 
-  CheckCircle,
-  Sparkles
+  Sparkles,
+  Check
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { LanguageSelector } from '../components/ui/LanguageSelector';
 import { cn } from '../styles/designSystem';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Footer } from '../components/layout/Footer';
+import { supabase } from '../config/supabaseClient';
 
 interface LandingPageProps {
   onNavigateToLogin: () => void;
@@ -26,8 +28,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onNavigateToRegister,
   onNavigate
 }) => {
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [plans, setPlans] = useState<any[]>([]);
 
   // تبديل الشهادات تلقائياً
   useEffect(() => {
@@ -68,48 +71,98 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     }
   ];
 
-  const plans = [
-    {
-      id: '98c199b7-1a73-4ab6-8b32-160beff3c167',
-      name: language === 'ar' ? 'الباقة الشهرية' : 'Monthly Plan',
-      price: '$29.99',
-      period: language === 'ar' ? '/شهر' : '/month',
-      duration: language === 'ar' ? 'شهر واحد' : '1 Month',
-      features: language === 'ar' 
-        ? ['إشارات فورية', 'التحليل الفني', 'إدارة المخاطر', 'دعم 24/7']
-        : ['Real-time signals', 'Technical analysis', 'Risk management', '24/7 support'],
-      popular: false,
-      gradient: 'from-blue-500 to-cyan-500'
-    },
-    {
-      id: '8783fe43-e784-401a-9644-33bd8b81d18c',
-      name: language === 'ar' ? 'الباقة السنوية' : 'Annual Plan',
-      price: '$287.99',
-      originalPrice: '$359.88',
-      period: language === 'ar' ? '/سنة' : '/year',
-      duration: language === 'ar' ? '12 شهر' : '12 Months',
-      discount: '20%',
-      features: language === 'ar'
-        ? ['كل ميزات الشهرية', 'دعم أولوية', 'استراتيجيات متقدمة', 'وصول API']
-        : ['All Monthly features', 'Priority support', 'Advanced strategies', 'API access'],
-      popular: true,
-      gradient: 'from-purple-500 to-pink-500'
-    },
-    {
-      id: 'e8c4d506-9dbd-4412-8c7c-504e989653c3',
-      name: language === 'ar' ? 'باقة 3 سنوات' : '3-Year Plan',
-      price: '$647.99',
-      originalPrice: '$1079.64',
-      period: language === 'ar' ? '/3 سنوات' : '/3 years',
-      duration: language === 'ar' ? '36 شهر' : '36 Months',
-      discount: '40%',
-      features: language === 'ar'
-        ? ['كل ميزات السنوية', 'مستشار شخصي', 'مجتمع VIP', 'تكوينات مخصصة']
-        : ['All Annual features', 'Personal advisor', 'VIP community', 'Custom configurations'],
-      popular: false,
-      gradient: 'from-orange-500 to-red-500'
-    }
-  ];
+  // جلب الباقات من قاعدة البيانات
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('subscription_plans')
+          .select('*')
+          .order('price', { ascending: true });
+
+        if (error) {
+          console.error('خطأ في جلب الباقات:', error);
+          // استخدام البيانات الافتراضية في حالة الخطأ
+          setPlans([
+            {
+              id: '98c199b7-1a73-4ab6-8b32-160beff3c167',
+              name: 'Monthly Plan',
+              name_ar: 'الباقة الشهرية',
+              price: 29.99,
+              original_price: 35.28,
+              discount: 15,
+              duration_months: 1,
+              features: ['Real-time signals', 'Technical analysis', 'Risk management', '24/7 support'],
+              features_ar: ['إشارات فورية', 'التحليل الفني', 'إدارة المخاطر', 'دعم 24/7'],
+              popular: false,
+              gradient: 'from-blue-500 to-cyan-500'
+            },
+            {
+              id: '8783fe43-e784-401a-9644-33bd8b81d18c',
+              name: 'Annual Plan',
+              name_ar: 'الباقة السنوية',
+              price: 287.99,
+              original_price: 359.99,
+              discount: 20,
+              duration_months: 12,
+              features: ['All Monthly features', 'Priority support', 'Advanced strategies', 'API access'],
+              features_ar: ['كل ميزات الشهرية', 'دعم أولوية', 'استراتيجيات متقدمة', 'وصول API'],
+              popular: true,
+              gradient: 'from-purple-500 to-pink-500'
+            },
+            {
+              id: 'e8c4d506-9dbd-4412-8c7c-504e989653c3',
+              name: '3-Year Plan',
+              name_ar: 'باقة 3 سنوات',
+              price: 647.99,
+              original_price: 1079.82,
+              discount: 40,
+              duration_months: 36,
+              features: ['All Annual features', 'Personal advisor', 'VIP community', 'Custom configurations'],
+              features_ar: ['كل ميزات السنوية', 'مستشار شخصي', 'مجتمع VIP', 'تكوينات مخصصة'],
+              popular: false,
+              gradient: 'from-orange-500 to-red-500'
+            }
+          ]);
+        } else {
+          // تحويل البيانات من قاعدة البيانات مع إضافة الخصومات والتمييز
+          const formattedPlans = data.map(plan => {
+            // تحديد الخصم والسعر الأصلي حسب الباقة
+            let discount = 0;
+            let original_price = parseFloat(plan.price);
+            
+            if (plan.id === '98c199b7-1a73-4ab6-8b32-160beff3c167') { // الباقة الشهرية
+              discount = 15;
+              original_price = 35.28;
+            } else if (plan.id === '8783fe43-e784-401a-9644-33bd8b81d18c') { // الباقة السنوية
+              discount = 20;
+              original_price = 359.99;
+            } else if (plan.id === 'e8c4d506-9dbd-4412-8c7c-504e989653c3') { // باقة 3 سنوات
+              discount = 40;
+              original_price = 1079.82;
+            }
+            
+            return {
+              ...plan,
+              original_price: original_price,
+              discount: discount,
+              popular: plan.id === '8783fe43-e784-401a-9644-33bd8b81d18c', // الباقة السنوية
+              gradient: plan.id === '98c199b7-1a73-4ab6-8b32-160beff3c167' ? 'from-blue-500 to-cyan-500' :
+                       plan.id === '8783fe43-e784-401a-9644-33bd8b81d18c' ? 'from-purple-500 to-pink-500' :
+                       'from-orange-500 to-red-500'
+            };
+          });
+          
+          setPlans(formattedPlans);
+        }
+      } catch (error) {
+        console.error('خطأ في الاتصال بقاعدة البيانات:', error);
+        setPlans([]);
+      }
+    };
+
+    fetchPlans();
+  }, [language]);
 
   const testimonials = [
     {
@@ -170,7 +223,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </div>
 
       {/* Header */}
-      <header className="relative z-50 bg-black/15 backdrop-blur-lg border-b border-white/10">
+      <header className="relative z-50 bg-black/15 backdrop-blur-lg border-b border-white/10" dir="rtl">
         {/* طبقة اللوغو المطلقة - لا تؤثر على ارتفاع الهيدر (جميع الشاشات) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
           {/* اللوغو للهواتف */}
@@ -232,15 +285,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               {/* Mobile Language Toggle */}
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'fr')}
-                className="bg-transparent hover:bg-white/5 backdrop-blur-sm border border-white/20 hover:border-white/40 rounded-md px-2 py-0.5 text-white text-[10px] font-medium focus:outline-none focus:ring-1 focus:ring-white/30 transition-all duration-300 cursor-pointer text-center"
-              >
-                <option value="ar" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>AR</option>
-                <option value="en" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>EN</option>
-                <option value="fr" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>FR</option>
-              </select>
+              <LanguageSelector variant="mobile" />
             </div>
 
             {/* Desktop Header Layout - اللوغو في طبقة مطلقة فوق */}
@@ -270,15 +315,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
               {/* Language Toggle - Right */}
               <div className="flex items-center">
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'fr')}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 backdrop-blur-sm border border-blue-400/40 hover:border-blue-300/60 rounded-lg px-4 py-2 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-300 cursor-pointer min-w-[110px] text-center shadow-lg hover:shadow-xl"
-                >
-                  <option value="ar" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>العربية</option>
-                  <option value="en" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>English</option>
-                  <option value="fr" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>Français</option>
-                </select>
+                <LanguageSelector variant="landing" />
               </div>
             </div>
           </div>
@@ -400,77 +437,76 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <div className="grid md:grid-cols-3 gap-3 sm:gap-4 max-w-6xl mx-auto items-stretch">
             {plans.map((plan, index) => (
               <Card
                 key={index}
-                className={cn(
-                  "relative p-2.5 sm:p-3 md:p-4 lg:p-5 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border transition-all duration-500 hover:transform hover:scale-105",
-                  plan.popular 
-                    ? "border-purple-500/50 ring-2 ring-purple-500/20 shadow-2xl shadow-purple-500/20" 
-                    : "border-white/10 hover:border-white/20"
-                )}
+                className={`relative overflow-hidden transition-all duration-300 hover:scale-105 h-full flex flex-col ${
+                  plan.popular ? 'ring-2 ring-yellow-400 shadow-2xl shadow-yellow-400/20' : 'hover:shadow-2xl'
+                }`}
+                padding="none"
               >
                 {plan.popular && (
-                  <div className="absolute -top-3.5 left-1/2 transform -translate-x-1/2">
-                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold">
-                      {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
-                    </div>
+                  <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1 text-sm font-bold rounded-bl-lg">
+                    <Star className="w-4 h-4 inline mr-1" />
+                    {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
                   </div>
                 )}
 
-                <div className="text-center mb-3 sm:mb-4 md:mb-5">
-                  <h3 className="text-xl sm:text-2xl md:text-xl lg:text-2xl font-bold mb-2 sm:mb-2.5 md:mb-3 text-white">
-                    {plan.name}
-                  </h3>
-                  <div className="mb-1.5 sm:mb-2">
-                    <div className="text-sm sm:text-base md:text-sm text-gray-400 mb-0.5">
-                      {plan.duration}
+                {plan.discount && (
+                  <div className="absolute top-3 left-3 bg-red-500 text-white px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-bold">
+                    {language === 'ar' ? 'وفر' : 'Save'} {plan.discount}%
+                  </div>
+                )}
+
+                <div className="p-2.5 sm:p-3 flex flex-col h-full">
+                  {/* المحتوى العلوي */}
+                  <div className="flex-1">
+                    <div className="text-center mb-2.5 sm:mb-4 mt-6 sm:mt-8">
+                      <h3 className="text-sm sm:text-lg font-bold text-white mb-1">
+                        {language === 'ar' ? plan.name_ar : plan.name}
+                      </h3>
                     </div>
-                    {plan.discount && (
-                      <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                        <span className="text-base sm:text-lg md:text-base text-gray-400 line-through">
-                          {plan.originalPrice}
-                        </span>
-                        <span className="bg-red-500 text-white px-1.5 py-0.5 rounded-full text-sm md:text-xs font-bold">
-                          -{plan.discount}
-                        </span>
+
+                    <div className="text-center mb-3 sm:mb-5">
+                      <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1.5">
+                        ${plan.price}
                       </div>
-                    )}
-                    <div className="mb-2.5 sm:mb-3 md:mb-4">
-                      <span className={cn(
-                        "text-3xl sm:text-4xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r bg-clip-text text-transparent",
-                        `bg-gradient-to-r ${plan.gradient}`
-                      )}>
-                        {plan.price}
-                      </span>
-                      <span className="text-gray-400 text-base sm:text-lg md:text-base lg:text-lg">
-                        {plan.period}
-                      </span>
+                      <div className="text-gray-300 text-sm sm:text-base font-medium">
+                        {plan.duration_months === 1 
+                          ? (language === 'ar' ? '/ شهر' : '/ month')
+                          : plan.duration_months === 12 
+                          ? (language === 'ar' ? '/ سنة' : '/ year')
+                          : plan.duration_months === 36 
+                          ? (language === 'ar' ? `/ ${plan.duration_months/12} سنوات` : `/ ${plan.duration_months/12} years`)
+                          : `/ ${plan.duration_months} ${language === 'ar' ? 'شهر' : 'months'}`}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+                      {(language === 'ar' ? plan.features_ar : plan.features)?.map((feature: string, featureIndex: number) => (
+                        <div key={featureIndex} className="flex items-start gap-2">
+                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-gray-300 text-xs sm:text-sm">{feature}</span>
+                        </div>
+                      )) || []}
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-2.5 sm:space-y-3 mb-4 sm:mb-5">
-                  {plan.features.map((feature, featureIndex) => (
-                    <div key={featureIndex} className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0" />
-                      <span className="text-gray-300 text-base sm:text-lg md:text-base">{feature}</span>
-                    </div>
-                  ))}
+                  {/* الزر في الأسفل */}
+                  <div className="mt-auto">
+                    <Button
+                      onClick={onNavigateToLogin}
+                      className={`w-full py-2 sm:py-3 text-xs sm:text-base font-semibold transition-all duration-200 ${
+                        plan.popular
+                          ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700'
+                          : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+                      }`}
+                    >
+                      {language === 'ar' ? 'اختر هذه الخطة' : 'Choose This Plan'}
+                    </Button>
+                  </div>
                 </div>
-
-                <Button
-                  onClick={onNavigateToLogin}
-                  className={cn(
-                    "w-full py-3 sm:py-4 md:py-3 font-bold rounded-xl transition-all duration-300 hover:transform hover:scale-105 text-base sm:text-lg md:text-base",
-                    plan.popular
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
-                      : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                  )}
-                >
-                  {language === 'ar' ? 'اختر هذه الخطة' : 'Choose Plan'}
-                </Button>
               </Card>
             ))}
           </div>

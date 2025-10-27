@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Activity, Database, LogOut, User, Server, Menu, Settings, Globe, TrendingUp, Power } from 'lucide-react';
-import { ConnectionStatus } from '../status/ConnectionStatus';
+import { Activity, Database, LogOut, User, Server, Menu, Settings, Globe, TrendingUp } from 'lucide-react';
 import { IQOptionStatus } from '../IQOptionStatus';
 // تم حذف marketDataService - البيانات من IQ Option مباشرة
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { LanguageSelector } from '../ui/LanguageSelector';
 import { cn, designSystem } from '../../styles/designSystem';
 import { User as AuthUser } from '../../services/simpleAuthService';
 import { useLanguage, Language } from '../../contexts/LanguageContext';
@@ -31,10 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onOpenSettings
 }) => {
-  const [apiStatus, setApiStatus] = useState<any>({});
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isRealData, setIsRealData] = useState(true);
   const [showIQStatus, setShowIQStatus] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -64,24 +62,14 @@ export const Header: React.FC<HeaderProps> = ({
   const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
-    const updateStatus = () => {
-      const status = { message: 'البيانات الحقيقية من IQ Option' };
-      setApiStatus(status);
-      setIsRealData(isConnected);
-    };
-
     const updateTime = () => {
       setCurrentTime(new Date());
     };
 
-    updateStatus();
     updateTime();
-    
-    const statusInterval = setInterval(updateStatus, 30000);
     const timeInterval = setInterval(updateTime, 5000);
 
     return () => {
-      clearInterval(statusInterval);
       clearInterval(timeInterval);
     };
   }, []);
@@ -113,18 +101,6 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, [isMobileMenuOpen, showIQStatus]);
 
-  const getConnectionQuality = () => {
-    if (!isRealData) return 'disconnected';
-    
-    const activeApis = Object.values(apiStatus).filter((status: any) => status?.canMakeRequest).length;
-    const totalApis = Object.keys(apiStatus).length;
-    
-    if (totalApis === 0) return 'disconnected';
-    if (activeApis === totalApis) return 'excellent';
-    if (activeApis >= totalApis * 0.7) return 'good';
-    if (activeApis > 0) return 'poor';
-    return 'disconnected';
-  };
 
   return (
     <>
@@ -146,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
         designSystem.colors.background.secondary,
         'border-b border-slate-800/50 shadow-2xl relative'
       )}
-      style={{ zIndex: 50 }}>
+      style={{ zIndex: 50, direction: 'rtl' }}>
       {/* خلفية متدرجة */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-cyan-600/5" />
       {/* طبقة توسيط اللوغو على كامل شريط الهيدر (ديسكتوب فقط) */}
@@ -174,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
       
       <div className="relative w-full px-2 sm:px-4 lg:px-8" style={{ zIndex: 10 }}>
         {/* تخطيط للهواتف - حديث واحترافي */}
-        <div className="md:hidden relative h-16 px-2" style={{ zIndex: 20, direction: 'ltr' }}>
+        <div className="md:hidden relative h-16 px-2" style={{ zIndex: 20 }}>
           {/* اللوغو الحديث - متوسط مع تأثيرات متقدمة */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 10 }}>
             <div className="relative group">
@@ -197,18 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* الأزرار الحديثة - موضوعة فوق اللوغو */}
           <div className="relative flex items-center justify-between h-full" style={{ zIndex: 20 }}>
-            {/* زر القائمة - على اليسار */}
-            <div className="flex items-center">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="group p-2 h-10 w-10 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 text-gray-200 hover:text-white transition-all duration-300 flex items-center justify-center backdrop-blur-sm border border-slate-700/50 hover:border-slate-600/70 shadow-lg hover:shadow-xl hover:shadow-slate-500/20 hover:scale-105"
-                type="button"
-              >
-                <Menu className="w-6 h-6 transition-transform duration-300 group-hover:rotate-90" />
-              </button>
-            </div>
-            
-            {/* زر IQ Option Status الحديث - على اليمين */}
+            {/* زر IQ Option Status الحديث - على اليسار في RTL */}
             <div className="flex items-center">
               <button
                 onClick={() => {
@@ -223,6 +188,17 @@ export const Header: React.FC<HeaderProps> = ({
                 title={language === 'ar' ? 'حالة IQ Option' : language === 'fr' ? 'Statut IQ Option' : 'IQ Option Status'}
               >
                 <TrendingUp className="w-6 h-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12" />
+              </button>
+            </div>
+            
+            {/* زر القائمة - على اليمين في RTL */}
+            <div className="flex items-center">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="group p-2 h-10 w-10 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 text-gray-200 hover:text-white transition-all duration-300 flex items-center justify-center backdrop-blur-sm border border-slate-700/50 hover:border-slate-600/70 shadow-lg hover:shadow-xl hover:shadow-slate-500/20 hover:scale-105"
+                type="button"
+              >
+                <Menu className="w-6 h-6 transition-transform duration-300 group-hover:rotate-90" />
               </button>
             </div>
           </div>
@@ -377,14 +353,6 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
               
-              {/* معلومات الاتصال */}
-              <div className="hidden xl:block">
-                <ConnectionStatus
-                  isRealData={isRealData}
-                  connectionQuality={getConnectionQuality() as any}
-                  apiStatus={apiStatus}
-                />
-              </div>
             </div>
 
             {/* الجانب الأيمن - الأزرار */}
@@ -456,37 +424,7 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
 
                 {/* زر تغيير اللغة */}
-                <div className="relative group">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="hover:bg-slate-800/60 p-1 sm:p-2 min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 flex items-center justify-center"
-                  >
-                    <span className="text-xs sm:text-sm font-bold text-slate-300 uppercase">
-                      {language.slice(0, 2)}
-                    </span>
-                  </Button>
-                  
-                  {/* قائمة اللغات المنسدلة */}
-                  <div className="absolute top-full right-0 mt-2 w-32 bg-slate-800 rounded-lg shadow-xl border border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                    <div className="p-2 space-y-1">
-                      {(['ar', 'en', 'fr'] as Language[]).map((lang) => (
-                        <button
-                          key={lang}
-                          onClick={() => setLanguage(lang)}
-                          className={cn(
-                            'w-full text-right px-3 py-2 rounded text-xs transition-colors',
-                            language === lang 
-                              ? 'bg-blue-600 text-white' 
-                              : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                          )}
-                        >
-                          {t(`lang.${lang === 'ar' ? 'arabic' : lang === 'en' ? 'english' : 'french'}`)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                <LanguageSelector variant="default" />
 
 
                 {/* معلومات المستخدم وتسجيل الخروج */}
@@ -536,7 +474,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <div 
                       className={cn(
                         "fixed top-16 w-56 rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 duration-200",
-                        language === 'ar' ? 'right-2' : 'left-2'
+                        'right-2'
                       )}
                       style={{ 
                         backgroundColor: 'rgb(15 23 42)', 
@@ -574,7 +512,7 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className={cn(
                             "w-full flex items-center gap-3 p-4 rounded-lg text-slate-200 hover:bg-slate-700 hover:text-white transition-all duration-200 font-medium",
-                            language === 'ar' ? 'text-right' : 'text-left'
+                            'text-right'
                           )}
                           style={{ backgroundColor: 'rgba(51, 65, 85, 0.3)' }}
                         >
@@ -592,7 +530,7 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className={cn(
                             "w-full flex items-center gap-3 p-4 rounded-lg text-blue-300 hover:bg-blue-900/30 hover:text-blue-200 transition-all duration-200 font-medium",
-                            language === 'ar' ? 'text-right' : 'text-left'
+                            'text-right'
                           )}
                           style={{ backgroundColor: 'rgba(30, 58, 138, 0.1)' }}
                         >
@@ -610,7 +548,7 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className={cn(
                             "w-full flex items-center gap-3 p-4 rounded-lg text-purple-300 hover:bg-purple-900/30 hover:text-purple-200 transition-all duration-200 font-medium",
-                            language === 'ar' ? 'text-right' : 'text-left'
+                            'text-right'
                           )}
                           style={{ backgroundColor: 'rgba(88, 28, 135, 0.1)' }}
                         >
@@ -627,7 +565,7 @@ export const Header: React.FC<HeaderProps> = ({
                         }}
                         className={cn(
                           "w-full flex items-center gap-3 p-4 rounded-lg text-green-300 hover:bg-green-900/30 hover:text-green-200 transition-all duration-200 font-medium",
-                          language === 'ar' ? 'text-right' : 'text-left'
+                          'text-right'
                         )}
                         style={{ backgroundColor: 'rgba(22, 101, 52, 0.1)' }}
                       >
@@ -636,26 +574,13 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
 
                       {/* اللغة */}
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="text-xs text-slate-400 font-medium px-2">{t('header.language')}</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {(['ar', 'en', 'fr'] as Language[]).map((lang) => (
-                            <button
-                              key={lang}
-                              onClick={() => {
-                                setLanguage(lang);
-                                setIsMobileMenuOpen(false);
-                              }}
-                              className={cn(
-                                'p-2 rounded-lg text-xs font-medium transition-all duration-200',
-                                language === lang 
-                                  ? 'bg-blue-600 text-white' 
-                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
-                              )}
-                            >
-                              {t(`lang.${lang === 'ar' ? 'arabic' : lang === 'en' ? 'english' : 'french'}`)}
-                            </button>
-                          ))}
+                        <div className="px-2">
+                          <LanguageSelector 
+                            variant="mobile" 
+                            onLanguageChange={() => setIsMobileMenuOpen(false)}
+                          />
                         </div>
                       </div>
 
@@ -675,12 +600,12 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className={cn(
                             "w-full flex items-center gap-3 p-4 rounded-lg text-red-300 hover:bg-red-900/30 hover:text-red-200 transition-all duration-200 font-bold",
-                            language === 'ar' ? 'text-right' : 'text-left'
+                            'text-right'
                           )}
                           style={{ backgroundColor: 'rgba(127, 29, 29, 0.1)' }}
                         >
                           <LogOut className="w-5 h-5 text-red-400" />
-                          <span className={cn("flex-1", language === 'ar' ? 'text-right' : 'text-left')}>{t('header.logout')}</span>
+                          <span className={cn("flex-1", 'text-right')}>{t('header.logout')}</span>
                         </button>
                       )}
                     </div>

@@ -73,6 +73,7 @@ const translations = {
     // Recommendations
     'recommendations.title': 'التوصيات الذكية',
     'recommendations.subtitle': 'توصيات مدعومة بالذكاء الاصطناعي',
+    'recommendations.loading': 'جاري تحميل التوصيات...',
     'recommendations.lastUpdate': 'آخر تحديث',
     'recommendations.trending': 'اتجاهي',
     'recommendations.ranging': 'متذبذب',
@@ -89,6 +90,7 @@ const translations = {
     'recommendations.confidenceLevelShort': 'مستوى الثقة',
     'recommendations.winRateShort': 'معدل الربح',
     'recommendations.noRecommendations': 'لا توجد توصيات متاحة حالياً',
+    'recommendations.tryLater': 'حاول مرة أخرى لاحقاً',
     'recommendations.retry': 'إعادة المحاولة',
     'recommendations.analyzing': 'جاري تحليل الأسواق...',
     'recommendations.warning': 'تحذير: هذه التوصيات للمرجع فقط وليست نصائح استثمارية.',
@@ -297,6 +299,8 @@ const translations = {
     'common.filter': 'تصفية',
     'common.refresh': 'تحديث',
     'common.back': 'رجوع',
+    'common.backToDashboard': 'الرجوع للوحة التحكم',
+    'common.logout': 'تسجيل الخروج',
     'common.next': 'التالي',
     'common.previous': 'السابق',
     'common.submit': 'إرسال',
@@ -669,7 +673,28 @@ const translations = {
     'assets.all': 'الكل',
     'assets.regular': 'عادي',
     'assets.otc': 'OTC',
+    'assets.major': 'رئيسية',
+    'assets.crypto': 'مشفرة',
+    'assets.commodities': 'سلع',
     'assets.noAssets': 'لا توجد أصول متاحة',
+    'assets.noResults': 'لا توجد نتائج للبحث',
+    'assets.clearFilters': 'مسح الفلاتر',
+    'assets.searchPlaceholder': 'بحث...',
+    
+    // IQ Option Status
+    'iqoption.title': 'IQ Option',
+    'iqoption.connected': 'متصل',
+    'iqoption.disconnected': 'غير متصل',
+    'iqoption.livePrices': 'الأسعار المباشرة',
+    'iqoption.lastUpdate': 'آخر تحديث',
+    'iqoption.connecting': 'جاري محاولة الاتصال بـ IQ Option...',
+    'iqoption.source': 'المصدر',
+    'iqoption.realData': 'بيانات IQ Option الحقيقية',
+    'iqoption.simulation': 'محاكاة',
+    'iqoption.connectionError': 'خطأ في الاتصال',
+    'iqoption.noResults': 'لا توجد نتائج',
+    'iqoption.searchPlaceholder': 'بحث...',
+    'iqoption.pairs': 'زوج',
     
     // Charts
     'charts.candles': 'شموع',
@@ -1049,6 +1074,31 @@ const translations = {
     
     // Assets
     'assets.title': 'Available Assets',
+    'assets.all': 'All',
+    'assets.regular': 'Regular',
+    'assets.otc': 'OTC',
+    'assets.major': 'Major',
+    'assets.crypto': 'Crypto',
+    'assets.commodities': 'Commodities',
+    'assets.noAssets': 'No assets available',
+    'assets.noResults': 'No search results',
+    'assets.clearFilters': 'Clear Filters',
+    'assets.searchPlaceholder': 'Search...',
+    
+    // IQ Option Status
+    'iqoption.title': 'IQ Option',
+    'iqoption.connected': 'Connected',
+    'iqoption.disconnected': 'Disconnected',
+    'iqoption.livePrices': 'Live Prices',
+    'iqoption.lastUpdate': 'Last update',
+    'iqoption.connecting': 'Attempting to connect to IQ Option...',
+    'iqoption.source': 'Source',
+    'iqoption.realData': 'IQ Option Real Data',
+    'iqoption.simulation': 'Simulation',
+    'iqoption.connectionError': 'Connection Error',
+    'iqoption.noResults': 'No results found',
+    'iqoption.searchPlaceholder': 'Search...',
+    'iqoption.pairs': 'pairs',
     
     // Sections
     'sections.signals.title': 'Live Signals',
@@ -1181,6 +1231,8 @@ const translations = {
     'common.filter': 'Filter',
     'common.refresh': 'Refresh',
     'common.back': 'Back',
+    'common.backToDashboard': 'Back to Dashboard',
+    'common.logout': 'Logout',
     'common.next': 'Next',
     'common.previous': 'Previous',
     'common.submit': 'Submit',
@@ -1628,6 +1680,7 @@ const translations = {
     'recommendations.execute': 'Execute',
     'recommendations.details': 'Details',
     'recommendations.noRecommendations': 'No recommendations available at the moment',
+    'recommendations.tryLater': 'Try again later',
     'recommendations.startBot': 'Start the bot to begin market analysis',
     'recommendations.errorLoading': 'Error loading recommendations',
     'recommendations.bestTimeframe': 'Best timeframe',
@@ -2004,6 +2057,31 @@ const translations = {
     
     // Assets
     'assets.title': 'Actifs Disponibles',
+    'assets.all': 'Tout',
+    'assets.regular': 'Régulier',
+    'assets.otc': 'OTC',
+    'assets.major': 'Majeurs',
+    'assets.crypto': 'Crypto',
+    'assets.commodities': 'Matières Premières',
+    'assets.noAssets': 'Aucun actif disponible',
+    'assets.noResults': 'Aucun résultat de recherche',
+    'assets.clearFilters': 'Effacer les Filtres',
+    'assets.searchPlaceholder': 'Rechercher...',
+    
+    // IQ Option Status
+    'iqoption.title': 'IQ Option',
+    'iqoption.connected': 'Connecté',
+    'iqoption.disconnected': 'Déconnecté',
+    'iqoption.livePrices': 'Prix en Direct',
+    'iqoption.lastUpdate': 'Dernière mise à jour',
+    'iqoption.connecting': 'Tentative de connexion à IQ Option...',
+    'iqoption.source': 'Source',
+    'iqoption.realData': 'Données réelles IQ Option',
+    'iqoption.simulation': 'Simulation',
+    'iqoption.connectionError': 'Erreur de connexion',
+    'iqoption.noResults': 'Aucun résultat',
+    'iqoption.searchPlaceholder': 'Rechercher...',
+    'iqoption.pairs': 'paires',
     
     // Sections
     'sections.signals.title': 'Signaux en Direct',
@@ -2136,6 +2214,8 @@ const translations = {
     'common.filter': 'Filtrer',
     'common.refresh': 'Actualiser',
     'common.back': 'Retour',
+    'common.backToDashboard': 'Retour au tableau de bord',
+    'common.logout': 'Se déconnecter',
     'common.next': 'Suivant',
     'common.previous': 'Précédent',
     'common.submit': 'Soumettre',
@@ -2582,6 +2662,7 @@ const translations = {
     'recommendations.execute': 'Exécuter',
     'recommendations.details': 'Détails',
     'recommendations.noRecommendations': 'Aucune recommandation disponible pour le moment',
+    'recommendations.tryLater': 'Réessayez plus tard',
     'recommendations.startBot': 'Démarrez le bot pour commencer l\'analyse du marché',
     'recommendations.errorLoading': 'Erreur lors du chargement des recommandations',
     'recommendations.bestTimeframe': 'Meilleur horizon',
@@ -2919,7 +3000,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('selectedLanguage', lang); // للـ manifest
     localStorage.setItem('language', lang); // لـ PayPal SDK
     
-    // تحديث اتجاه الصفحة
+    // تطبيق الاتجاه حسب اللغة
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
     
@@ -2933,7 +3014,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return translations[language][key as keyof typeof translations[typeof language]] || key;
   };
 
-  const dir = language === 'ar' ? 'rtl' : 'ltr';
+  const dir = language === 'ar' ? 'rtl' : 'ltr'; // تغيير الاتجاه حسب اللغة
 
   useEffect(() => {
     // تطبيق الاتجاه عند التحميل

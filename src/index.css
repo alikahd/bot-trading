@@ -46,11 +46,19 @@ select option {
   }
   
   /* تحسين الأزرار للمس */
-  button:not(.btn-sm):not([class*="h-"]):not([class*="w-"]):not([class*="min-h-"]), .btn:not(.btn-sm):not([class*="h-"]):not([class*="w-"]):not([class*="min-h-"]) {
+  button:not(.btn-sm):not([class*="h-"]):not([class*="w-"]):not([class*="min-h-"]):not(.filter-btn), .btn:not(.btn-sm):not([class*="h-"]):not([class*="w-"]):not([class*="min-h-"]):not(.filter-btn) {
     min-height: 48px;
     min-width: 48px;
     padding: 12px 20px;
     font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  
+  /* أزرار التصفية مخصصة للهواتف */
+  button.filter-btn {
+    min-height: auto;
+    min-width: auto;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }

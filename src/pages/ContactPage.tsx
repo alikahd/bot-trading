@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Mail, MessageCircle, Phone, Send } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Send, MessageCircle } from 'lucide-react';
 import { cn, designSystem } from '../styles/designSystem';
 import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { LanguageSelector } from '../components/ui/LanguageSelector';
 import { Footer } from '../components/layout/Footer';
 import { Header } from '../components/layout/Header';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Button } from '../components/ui/Button';
 
 interface ContactPageProps {
   onBack?: () => void;
@@ -25,7 +26,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
   user = null,
   onLogout
 }) => {
-  const { language, setLanguage, t, dir } = useLanguage();
+  const { language, t, dir } = useLanguage();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -138,11 +139,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                       </span>
                     </button>
                   </div>
-                  <select value={language} onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'fr')} className="bg-transparent hover:bg-white/5 backdrop-blur-sm border border-white/20 hover:border-white/40 rounded-md px-2 py-0.5 text-white text-[10px] font-medium focus:outline-none focus:ring-1 focus:ring-white/30 transition-all duration-300 cursor-pointer text-center">
-                    <option value="ar" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>AR</option>
-                    <option value="en" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>EN</option>
-                    <option value="fr" style={{background: 'transparent', color: 'white', padding: '6px', fontSize: '10px'}}>FR</option>
-                  </select>
+                  <LanguageSelector variant="mobile" />
                 </div>
                 <div className="hidden md:flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -167,11 +164,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center">
-                    <select value={language} onChange={(e) => setLanguage(e.target.value as 'ar' | 'en' | 'fr')} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 backdrop-blur-sm border border-blue-400/40 hover:border-blue-300/60 rounded-lg px-4 py-2 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-300 cursor-pointer min-w-[110px] text-center shadow-lg hover:shadow-xl">
-                      <option value="ar" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>العربية</option>
-                      <option value="en" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>English</option>
-                      <option value="fr" style={{background: '#1e3a8a', color: 'white', padding: '12px', fontWeight: '600'}}>Français</option>
-                    </select>
+                    <LanguageSelector variant="landing" />
                   </div>
                 </div>
               </div>

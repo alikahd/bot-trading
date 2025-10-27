@@ -20,7 +20,8 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Payment } from '../../services/paymentService';
-import { executeRealQuery, calculateRealTimeRemaining, formatRealLatinDate } from '../../services/realSupabaseService';
+import { executeRealQuery, formatRealLatinDate, calculateRealTimeRemaining } from '../../services/realSupabaseService';
+import { supabase } from '../../config/supabaseClient';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface SubscriptionAndPaymentsPageProps {
@@ -50,10 +51,19 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
 
   // تحميل البيانات الحقيقية من قاعدة البيانات
   const loadRealData = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      console.warn('⚠️ userId غير متوفر في SubscriptionAndPaymentsPage');
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
+      
+      // تنظيف البيانات السابقة
+      setPayments([]);
+      setSubscriptionDetails(null);
+      setRealUserData(null);
       
       // جلب بيانات المستخدم الحقيقية
       const userQuery = `
@@ -62,28 +72,77 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
         WHERE id = '${userId}'
       `;
       const userResult = await executeRealQuery(userQuery);
-      if (userResult.data && userResult.data.length > 0) {
+      if (userResult.error) {
+        console.error('خطأ في جلب بيانات المستخدم:', userResult.error);
+      } else if (userResult.data && userResult.data.length > 0) {
         setRealUserData(userResult.data[0]);
       }
       
-      // جلب تفاصيل الاشتراك مع معلومات الخطة
-      const subscriptionQuery = `
-        SELECT 
-          s.*,
-          sp.name as plan_name_en,
-          sp.name_ar as plan_name_ar,
-          sp.name_fr as plan_name_fr,
-          sp.features as features_en,
-          sp.features_ar as features_ar,
-          sp.features_fr as features_fr,
-          sp.price as plan_price
-        FROM subscriptions s
-        LEFT JOIN subscription_plans sp ON s.plan_id = sp.id
-        WHERE s.user_id = '${userId}' AND s.status = 'active'
-        ORDER BY s.created_at DESC LIMIT 1
-      `;
-      const subscriptionResult = await executeRealQuery(subscriptionQuery);
-      if (subscriptionResult.data && subscriptionResult.data.length > 0) {
+      // جلب تفاصيل الاشتراك مع معلومات الخطة باستخدام الاستعلام المباشر
+      let subscriptionResult;
+      try {
+        // محاولة الاستعلام المباشر أولاً
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .select(`
+            *,
+            subscription_plans!inner(
+              name,
+              name_ar,
+              name_fr,
+              features,
+              features_ar,
+              features_fr,
+              price
+            )
+          `)
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (subscriptionError) {
+          // العودة للاستعلام التقليدي
+          const subscriptionQuery = `
+            SELECT 
+              s.*,
+              sp.name as plan_name_en,
+              sp.name_ar as plan_name_ar,
+              sp.name_fr as plan_name_fr,
+              sp.features as features_en,
+              sp.features_ar as features_ar,
+              sp.features_fr as features_fr,
+              sp.price as plan_price
+            FROM subscriptions s
+            LEFT JOIN subscription_plans sp ON s.plan_id = sp.id
+            WHERE s.user_id = '${userId}' AND s.status = 'active'
+            ORDER BY s.created_at DESC LIMIT 1
+          `;
+          subscriptionResult = await executeRealQuery(subscriptionQuery);
+        } else {
+          // تحويل البيانات للصيغة المطلوبة
+          const formattedData = subscriptionData?.map(sub => {
+            const planData = Array.isArray(sub.subscription_plans) ? sub.subscription_plans[0] : sub.subscription_plans;
+            return {
+              ...sub,
+              plan_name_en: planData?.name,
+              plan_name_ar: planData?.name_ar,
+              plan_name_fr: planData?.name_fr,
+              features_en: planData?.features,
+              features_ar: planData?.features_ar,
+              features_fr: planData?.features_fr,
+              plan_price: planData?.price
+            };
+          });
+          
+          subscriptionResult = { data: formattedData, error: null };
+        }
+      } catch (error) {
+        subscriptionResult = { data: null, error: String(error) };
+      }
+      if (subscriptionResult.error) {
+        // خطأ في جلب بيانات الاشتراك
+      } else if (subscriptionResult.data && subscriptionResult.data.length > 0) {
         const subscription = subscriptionResult.data[0];
         
         // معالجة الميزات من JSONB إلى Array
@@ -102,24 +161,42 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
           return [];
         };
         
+        // الحصول على المميزات الافتراضية بناءً على plan_id
+        const getDefaultFeatures = (planId: string, lang: string): string[] => {
+          const defaultFeatures: Record<string, Record<string, string[]>> = {
+            '98c199b7-1a73-4ab6-8b32-160beff3c167': { // Monthly Plan
+              ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر'],
+              en: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools'],
+              fr: ['Signaux en temps réel', 'Analyse technique', 'Gestion des risques', 'Support 24/7']
+            },
+            '8783fe43-e784-401a-9644-33bd8b81d18c': { // Annual Plan
+              ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر', 'دعم أولوية', 'استراتيجيات متقدمة'],
+              en: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools', 'Priority support', 'Advanced strategies'],
+              fr: ['Toutes les fonctionnalités mensuelles', 'Support prioritaire', 'Stratégies avancées', 'Accès API']
+            },
+            'e8c4d506-9dbd-4412-8c7c-504e989653c3': { // 3-Year Plan
+              ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر', 'دعم أولوية', 'استراتيجيات متقدمة', 'مستشار تداول شخصي', 'مؤشرات مخصصة'],
+              en: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools', 'Priority support', 'Advanced strategies', 'Personal trading advisor', 'Custom indicators'],
+              fr: ['Toutes les fonctionnalités annuelles', 'Conseiller personnel', 'Communauté VIP', 'Configurations personnalisées']
+            }
+          };
+          
+          return defaultFeatures[planId]?.[lang] || [];
+        };
+        
         const featuresEn = parseFeatures(subscription.features_en);
         const featuresAr = parseFeatures(subscription.features_ar);
         const featuresFr = parseFeatures(subscription.features_fr);
         
-        console.log('📦 Subscription Features:', {
-          en: featuresEn,
-          ar: featuresAr,
-          fr: featuresFr
-        });
         
         setSubscriptionDetails({
           ...subscription,
           plan_name_en: subscription.plan_name_en || 'Monthly Plan',
           plan_name_ar: subscription.plan_name_ar || 'الباقة الشهرية',
           plan_name_fr: subscription.plan_name_fr || 'Plan Mensuel',
-          features_en: featuresEn.length > 0 ? featuresEn : ['Real-time signals', 'Technical analysis', 'Risk management', '24/7 support'],
-          features_ar: featuresAr.length > 0 ? featuresAr : ['إشارات فورية', 'التحليل الفني', 'إدارة المخاطر', 'دعم 24/7'],
-          features_fr: featuresFr.length > 0 ? featuresFr : ['Signaux en temps réel', 'Analyse technique', 'Gestion des risques', 'Support 24/7'],
+          features_en: featuresEn.length > 0 ? featuresEn : getDefaultFeatures(subscription.plan_id, 'en'),
+          features_ar: featuresAr.length > 0 ? featuresAr : getDefaultFeatures(subscription.plan_id, 'ar'),
+          features_fr: featuresFr.length > 0 ? featuresFr : getDefaultFeatures(subscription.plan_id, 'fr'),
           price: subscription.amount_paid || subscription.plan_price
         });
         
@@ -128,9 +205,9 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
         setTimeRemaining(remaining);
       }
 
-      // جلب المدفوعات الحقيقية
+      // جلب المدفوعات الحقيقية (بدون تكرار)
       const paymentsQuery = `
-        SELECT 
+        SELECT DISTINCT ON (id)
           id,
           user_id,
           amount,
@@ -142,16 +219,43 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
           proof_image
         FROM payments 
         WHERE user_id = '${userId}'
-        ORDER BY created_at DESC
+        ORDER BY id DESC, created_at DESC
         LIMIT 10
       `;
       const paymentsResult = await executeRealQuery(paymentsQuery);
-      if (paymentsResult.data) {
-        setPayments(paymentsResult.data);
+      if (paymentsResult.error) {
+        // خطأ في جلب بيانات المدفوعات
+      } else if (paymentsResult.data) {
+        
+        // فحص وإزالة المدفوعات المكررة بناءً على معايير متعددة
+        const uniquePayments = paymentsResult.data.filter((payment: any, index: number, self: any[]) => {
+          // البحث عن أول مدفوعة بنفس المعايير
+          const firstIndex = self.findIndex((p: any) => {
+            // مقارنة بناءً على ID أولاً
+            if (p.id === payment.id) return true;
+            
+            // إذا لم يكن هناك ID مطابق، نقارن بناءً على المعايير الأخرى
+            return (
+              p.amount === payment.amount &&
+              p.currency === payment.currency &&
+              p.payment_method === payment.payment_method &&
+              p.created_at === payment.created_at &&
+              p.user_id === payment.user_id
+            );
+          });
+          
+          return index === firstIndex;
+        });
+        
+        if (uniquePayments.length !== paymentsResult.data.length) {
+          // تم إزالة مدفوعات مكررة
+        }
+        
+        setPayments(uniquePayments);
       }
       
     } catch (error) {
-      console.error('خطأ في تحميل البيانات:', error);
+      // خطأ في تحميل البيانات
     } finally {
       setLoading(false);
     }
@@ -208,6 +312,29 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
     }
   };
 
+  // تصحيح عرض طريقة الدفع
+  const getCorrectPaymentMethod = (paymentMethod: string) => {
+    if (!paymentMethod) return t('subscriptionPage.notSpecified');
+    
+    // تصحيح العملات الرقمية
+    switch (paymentMethod.toLowerCase()) {
+      case 'bitcoin':
+      case 'btc':
+      case 'crypto':
+      case 'cryptocurrency':
+        return 'USDT'; // العملة المتوفرة فعلياً
+      case 'usdt':
+        return 'USDT';
+      case 'paypal':
+        return 'PayPal';
+      case 'bank':
+      case 'bank_transfer':
+        return t('subscriptionPage.bankTransfer');
+      default:
+        return paymentMethod;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 p-2 sm:p-4 flex items-center justify-center">
@@ -219,11 +346,36 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
     );
   }
 
+  // التحقق من وجود userId
+  if (!userId) {
+    return (
+      <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 p-2 sm:p-4" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="max-w-6xl mx-auto">
+          <Card className="bg-slate-900/40 backdrop-blur-xl border-slate-800/50 p-6">
+            <div className="text-center">
+              <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-white mb-2">
+                {language === 'ar' ? 'خطأ في تحميل البيانات' : 
+                 language === 'fr' ? 'Erreur de chargement des données' : 
+                 'Data Loading Error'}
+              </h3>
+              <p className="text-gray-400 text-sm">
+                {language === 'ar' ? 'لا يمكن تحميل بيانات الاشتراك. يرجى تسجيل الخروج والدخول مرة أخرى.' : 
+                 language === 'fr' ? 'Impossible de charger les données d\'abonnement. Veuillez vous déconnecter et vous reconnecter.' : 
+                 'Unable to load subscription data. Please logout and login again.'}
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 p-2 sm:p-4" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-6xl mx-auto">
         {/* الهيدر المضغوط */}
-        <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-6">
+        <div className="flex items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-6">
           <h1 className="text-base sm:text-lg md:text-xl font-bold text-white">
             {t('subscriptionPage.title')}
           </h1>
@@ -259,7 +411,24 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
         {activeTab === 'subscription' && (
           <div className="space-y-3 sm:space-y-4">
             {/* حالة الاشتراك مع العد التنازلي */}
-            <Card className="bg-slate-900/40 backdrop-blur-xl border-slate-800/50 p-3 sm:p-4">
+            {!subscriptionDetails ? (
+              <Card className="bg-slate-900/40 backdrop-blur-xl border-slate-800/50 p-6">
+                <div className="text-center">
+                  <Package className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    {language === 'ar' ? 'لا توجد بيانات اشتراك' : 
+                     language === 'fr' ? 'Aucune donnée d\'abonnement' : 
+                     'No Subscription Data'}
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    {language === 'ar' ? 'لم يتم العثور على بيانات اشتراك نشط لهذا المستخدم.' : 
+                     language === 'fr' ? 'Aucune donnée d\'abonnement actif trouvée pour cet utilisateur.' : 
+                     'No active subscription data found for this user.'}
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              <Card className="bg-slate-900/40 backdrop-blur-xl border-slate-800/50 p-3 sm:p-4">
               <div className="flex items-start gap-2 sm:gap-3 mb-4">
                 <div className="flex-shrink-0 text-green-400">
                   <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -379,23 +548,39 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
                 </Button>
               </div>
             </Card>
+            )}
 
             {/* معلومات الباقة */}
-            {(subscriptionDetails?.features_ar || subscriptionDetails?.features_en || subscriptionDetails?.features_fr) && (
+            {subscriptionDetails && (
               <Card className="bg-slate-900/40 backdrop-blur-xl border-slate-800/50 p-3 sm:p-4">
                 <h3 className="text-sm sm:text-base font-bold text-white mb-3 flex items-center gap-2">
                   <Star className="w-4 h-4 text-yellow-400" />
-                  {t('subscriptionPage.planFeatures')}
+                  {t('subscriptionPage.planFeatures')} - {language === 'ar' ? subscriptionDetails.plan_name_ar : 
+                    language === 'fr' ? subscriptionDetails.plan_name_fr : 
+                    subscriptionDetails.plan_name_en}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {((language === 'ar' ? subscriptionDetails?.features_ar : 
-                    language === 'fr' ? subscriptionDetails?.features_fr : 
-                    subscriptionDetails?.features_en) || []).map((feature: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
-                      <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-                      {feature}
-                    </div>
-                  ))}
+                  {(() => {
+                    const features = language === 'ar' ? subscriptionDetails?.features_ar : 
+                                   language === 'fr' ? subscriptionDetails?.features_fr : 
+                                   subscriptionDetails?.features_en;
+                    
+                    
+                    if (!features || features.length === 0) {
+                      return (
+                        <div className="col-span-full text-center text-gray-400 text-sm">
+                          {language === 'ar' ? 'لا توجد مميزات محددة' : 'No features specified'}
+                        </div>
+                      );
+                    }
+                    
+                    return features.map((feature: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
+                        <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
+                        {feature}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </Card>
             )}
@@ -477,7 +662,7 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
                           </Badge>
                         </div>
                         <div className="text-[10px] sm:text-xs text-gray-400">
-                          {formatRealLatinDate(payment.created_at).short} - {(payment as any).payment_method || t('subscriptionPage.notSpecified')}
+                          {formatRealLatinDate(payment.created_at).short} - {getCorrectPaymentMethod((payment as any).payment_method)}
                         </div>
                         {(payment as any).payment_reference && (
                           <div className="text-[10px] sm:text-xs text-gray-500">

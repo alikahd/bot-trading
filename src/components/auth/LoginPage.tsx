@@ -99,7 +99,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onNavigateToRegis
                   type="text"
                   value={credentials.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
-                  className="w-full bg-white/10 border border-white/20 dark:bg-white/10 dark:border-white/20 bg-black/10 border-black/20 text-white dark:text-white text-slate-900 rounded-xl px-10 py-2 sm:px-12 sm:py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-400 placeholder-gray-600 transition-all"
+                  className="w-full bg-white/10 border border-white/20 dark:bg-white/10 dark:border-white/20 bg-black/10 border-black/20 text-white dark:text-white text-slate-900 rounded-lg sm:rounded-xl px-10 py-1.5 sm:px-12 sm:py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-xs sm:placeholder:text-sm placeholder-gray-400 dark:placeholder-gray-400 placeholder-gray-600 transition-all"
                   placeholder={t('login.username')}
                   disabled={isLoading}
                 />
@@ -119,7 +119,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onNavigateToRegis
                   type={showPassword ? 'text' : 'password'}
                   value={credentials.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full bg-white/10 border border-white/20 dark:bg-white/10 dark:border-white/20 bg-black/10 border-black/20 text-white dark:text-white text-slate-900 rounded-xl px-10 py-2.5 sm:px-12 sm:py-3 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-400 placeholder-gray-600 transition-all"
+                  className="w-full bg-white/10 border border-white/20 dark:bg-white/10 dark:border-white/20 bg-black/10 border-black/20 text-white dark:text-white text-slate-900 rounded-lg sm:rounded-xl px-10 py-1.5 sm:px-12 sm:py-3 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-xs sm:placeholder:text-sm placeholder-gray-400 dark:placeholder-gray-400 placeholder-gray-600 transition-all"
                   placeholder={t('login.password')}
                   disabled={isLoading}
                 />
