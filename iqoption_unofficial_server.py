@@ -75,6 +75,10 @@ IQ_PASSWORD = "Azert@0208"
 prices_cache = {}
 connection_status = "disconnected"
 last_update_time = 0
+ENABLE_WS = os.environ.get('ENABLE_IQ_WS', 'false').lower() == 'true'
+# ضبط معدل الطلبات وحجم الدُفعات عبر متغيرات البيئة
+RATE_LIMIT_SECONDS = float(os.environ.get('IQ_RATE_LIMIT_SECONDS', '0.6'))  # افتراضي 0.6 ثانية بين الطلبات
+BATCH_SIZE = int(os.environ.get('IQ_BATCH_SIZE', '6'))  # افتراضي 6 رموز لكل دفعة
 
 # رموز العملات - جميع الأزواج المتوفرة
 CURRENCY_SYMBOLS = {
@@ -207,11 +211,18 @@ def get_price_safe(symbol, iq_symbol):
     
     # الطريقة 2: get_realtime_candles
     try:
-        if hasattr(iq_api, 'get_realtime_candles'):
-            # تشغيل stream أولاً
+        if ENABLE_WS and hasattr(iq_api, 'get_realtime_candles'):
+            # تشغيل stream مع مهلة أمان لتجنب التعليق على بيئات PaaS
             if hasattr(iq_api, 'start_candles_stream'):
-                iq_api.start_candles_stream(iq_symbol, 60, 1)
-                time.sleep(1)  # انتظار قصير
+                def _start_stream():
+                    try:
+                        iq_api.start_candles_stream(iq_symbol, 60, 1)
+                    except Exception:
+                        pass
+                t = threading.Thread(target=_start_stream, daemon=True)
+                t.start()
+                t.join(timeout=2)  # مهلة قصيرة
+                time.sleep(1)  # انتظار قصير لاستلام أول شمعة
             
             result = iq_api.get_realtime_candles(iq_symbol, 60)
             if result and len(result) > 0:
@@ -277,7 +288,7 @@ def update_iqoption_prices():
             
             # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
             symbols_list = list(CURRENCY_SYMBOLS.keys())
-            batch_size = 10  # معالجة 10 أزواج في كل دفعة
+            batch_size = BATCH_SIZE  # حجم الدُفعة قابل للضبط
             
             for i in range(0, len(symbols_list), batch_size):
                 batch = symbols_list[i:i + batch_size]
@@ -308,16 +319,18 @@ def update_iqoption_prices():
                                 'changePercent': change_percent
                             }
                             updated_count += 1
+                            # تحديث وقت آخر تحديث عند كل نجاح
+                            last_update_time = time.time()
                             consecutive_failures = 0
                         
-                        time.sleep(0.3)  # تأخير أقل بين الطلبات
+                        time.sleep(RATE_LIMIT_SECONDS)  # احترام معدل الطلبات لتفادي الحظر
                         
                     except Exception as e:
                         pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
                 
                 # استراحة قصيرة بين المجموعات
                 if i + batch_size < len(symbols_list):
-                    time.sleep(1)
+                    time.sleep(max(1.0, RATE_LIMIT_SECONDS))
             
             last_update_time = time.time()
             
@@ -359,7 +372,8 @@ def get_status():
         'cached_prices': len(prices_cache),
         'last_update': last_update_time,
         'server_time': time.time(),
-        'library_available': IQ_AVAILABLE
+        'library_available': IQ_AVAILABLE,
+        'ws_enabled': ENABLE_WS
     })
 
 @app.route('/api/quotes')
