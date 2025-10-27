@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: iqoption-bot-server
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python iqoption_unofficial_server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ENABLE_IQ_WS
+        value: false
+      - key: IQ_RATE_LIMIT_SECONDS
+        value: 2.5
+      - key: IQ_BATCH_SIZE
+        value: 1
+      - key: IQ_EMAIL
+        sync: false  # يجب إضافة القيمة يدوياً من لوحة التحكم
+      - key: IQ_PASSWORD
+        sync: false  # يجب إضافة القيمة يدوياً من لوحة التحكم
+    healthCheckPath: /api/status

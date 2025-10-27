@@ -69,8 +69,9 @@ detect_iq_library()
 # إعدادات IQ Option
 # =======================
 
-IQ_EMAIL = "qarali131@gmail.com"
-IQ_PASSWORD = "Azert@0208"
+# قراءة بيانات الدخول من متغيرات البيئة (أكثر أماناً)
+IQ_EMAIL = os.environ.get('IQ_EMAIL', 'qarali131@gmail.com')
+IQ_PASSWORD = os.environ.get('IQ_PASSWORD', 'Azert@0208')
 
 # متغيرات عامة
 prices_cache = {}
@@ -528,6 +529,12 @@ if __name__ == '__main__':
     
     # الحصول على المنفذ من متغير البيئة أو استخدام 5000 كافتراضي
     port = int(os.environ.get('PORT', 5000))
+    
+    # تسجيل معلومات البيئة للتشخيص
+    logger.info(f"📊 إعدادات البيئة:")
+    logger.info(f"   - ENABLE_IQ_WS: {ENABLE_WS}")
+    logger.info(f"   - IQ_RATE_LIMIT_SECONDS: {RATE_LIMIT_SECONDS}")
+    logger.info(f"   - IQ_BATCH_SIZE: {BATCH_SIZE}")
     
     logger.info(f"🌐 الخادم يعمل على http://0.0.0.0:{port}")
     logger.info("=" * 50)
