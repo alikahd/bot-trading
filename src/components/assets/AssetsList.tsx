@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { TrendingUp, TrendingDown, Activity, Search } from 'lucide-react';
 import { Asset } from '../../types/trading';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { API_ENDPOINTS } from '../../config/serverConfig';
+import { realTimeDataService, RealTimeQuote } from '../../services/realTimeDataService';
 
 interface AssetsListProps {
   assets?: Asset[];
@@ -12,7 +12,8 @@ interface AssetsListProps {
 export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isActive }) => {
   const { t, dir } = useLanguage();
   const [assets, setAssets] = useState<Asset[]>(propAssets || []);
-  const [filter, setFilter] = useState<'all' | 'regular' | 'otc'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto' | 'commodities' | 'otc' | 'regular'>('all');
   
   // عدد الخانات العشرية حسب نوع الزوج
   const getDecimals = (symbol: string) => {
@@ -23,104 +24,73 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
     return 2; // افتراضي
   };
   
-  // تحميل الأصول من API - فقط إذا كان البوت مفعل
+  // الاشتراك في البيانات المباشرة الفورية - فقط إذا كان البوت مفعل
   useEffect(() => {
-    if (isActive) {
-      console.log('🔄 تحميل الأصول...');
-      loadAssetsFromAPI();
-    }
-  }, [isActive]);
+    if (!isActive) return;
 
-  // الاشتراك في التحديثات الفورية لكل أصل - تم تعطيله لتحسين الأداء
-  useEffect(() => {
-    if (assets.length === 0) return;
+    console.log('🚀 الاشتراك في البيانات المباشرة الفورية - AssetsList');
     
-    console.log('⚠️ تم تعطيل الاشتراك في التحديثات الفورية لتحسين الأداء');
-    const unsubscribeFunctions: (() => void)[] = [];
-    
-    // تم تعطيل الاشتراك الفوري لتقليل الحمل على المتصفح
-    // يمكن إعادة تفعيله عند الحاجة
-    /*
-    assets.forEach((asset) => {
-      const unsubscribe = binaryOptionsAPI.subscribeToRealTimeUpdates(
-        asset.symbol,
-        (quote) => {
-          setAssets((prevAssets) => 
-            prevAssets.map((a) => 
-              a.symbol === quote.symbol
-                ? {
-                    ...a,
-                    price: quote.price,
-                    change: quote.change24h,
-                    changePercent: quote.changePercent24h,
-                  }
-                : a
-            )
-          );
-        }
-      );
-      
-      if (unsubscribe) {
-        unsubscribeFunctions.push(unsubscribe);
-      }
-    });
-    */
-    
-    // تنظيف الاشتراكات عند إلغاء المكون
-    return () => {
-      console.log('🔕 إلغاء الاشتراك في التحديثات الفورية...');
-      unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
-    };
-  }, [assets.length]); // يعيد الاشتراك عند تغير عدد الأصول
-
-
-  const loadAssetsFromAPI = async () => {
-    console.log('📊 جلب الأصول مباشرة من IQ Option Server...');
-    
-    try {
-      // جلب البيانات مباشرة من الخادم
-      const response = await fetch(API_ENDPOINTS.quotes);
-      
-      if (!response.ok) {
-        console.error('❌ فشل الاتصال بالخادم');
-        return;
-      }
-      
-      const quotes = await response.json();
-      console.log('✅ البيانات المستلمة:', quotes);
+    // الاشتراك في خدمة البيانات المباشرة
+    const unsubscribe = realTimeDataService.subscribe('assets-list', (realTimeQuotes) => {
+      console.log('📊 تحديث فوري - AssetsList:', Object.keys(realTimeQuotes).length, 'أصول');
       
       // تحويل البيانات إلى تنسيق Asset
-      const loadedAssets: Asset[] = Object.entries(quotes).map(([symbol, data]: [string, any]) => ({
-        symbol: symbol,
-        name: symbol.replace('_otc', ' OTC'),
-        price: data.price,
-        change: data.change || 0,
-        changePercent: data.changePercent || 0,
+      const loadedAssets: Asset[] = Object.values(realTimeQuotes).map((quote: RealTimeQuote) => ({
+        symbol: quote.symbol,
+        name: quote.symbol.replace('_otc', ' OTC'),
+        price: quote.price,
+        change: quote.change,
+        changePercent: quote.changePercent,
       }));
       
-      console.log(`✅ تم تحميل ${loadedAssets.length} أصل من IQ Option`);
       setAssets(loadedAssets);
-      
-    } catch (error) {
-      console.error('❌ خطأ في جلب الأصول:', error);
-      
-      // استخدام أصول افتراضية في حالة الخطأ
-      const defaultAssets: Asset[] = [
-        { symbol: 'EURUSD_otc', name: 'EUR/USD OTC', price: 1.0850, change: 0, changePercent: 0 },
-        { symbol: 'GBPUSD_otc', name: 'GBP/USD OTC', price: 1.2650, change: 0, changePercent: 0 },
-        { symbol: 'USDJPY_otc', name: 'USD/JPY OTC', price: 149.50, change: 0, changePercent: 0 },
-      ];
-      console.log('⚠️ استخدام أصول افتراضية');
-      setAssets(defaultAssets);
-    }
-  };
+      console.log(`✅ تم تحديث ${loadedAssets.length} أصل فورياً`);
+    });
 
-  const filteredAssets = assets.filter(asset => {
-    if (filter === 'all') return true;
-    if (filter === 'otc') return asset.symbol.includes('-OTC');
-    if (filter === 'regular') return !asset.symbol.includes('-OTC');
-    return true;
-  });
+    return () => {
+      console.log('🔕 إلغاء الاشتراك - AssetsList');
+      unsubscribe();
+    };
+  }, [isActive]);
+
+  // تم استبدال الكود القديم بخدمة البيانات المباشرة الفورية
+
+  // فلترة وبحث الأصول
+  const filteredAssets = useMemo(() => {
+    let filtered = assets;
+
+    // فلترة حسب النوع
+    if (filterType !== 'all') {
+      filtered = filtered.filter((asset) => {
+        const symbol = asset.symbol.toUpperCase();
+        
+        if (filterType === 'major') {
+          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
+            .some(major => symbol.includes(major));
+        } else if (filterType === 'crypto') {
+          return ['BTC', 'ETH', 'LTC', 'XRP'].some(crypto => symbol.includes(crypto));
+        } else if (filterType === 'commodities') {
+          return ['XAU', 'XAG', 'OIL', 'GOLD', 'SILVER'].some(commodity => symbol.includes(commodity));
+        } else if (filterType === 'otc') {
+          return symbol.includes('OTC') || symbol.includes('_OTC');
+        } else if (filterType === 'regular') {
+          return !symbol.includes('OTC') && !symbol.includes('_OTC');
+        }
+        return true;
+      });
+    }
+
+    // البحث النصي
+    if (searchTerm) {
+      filtered = filtered.filter((asset) => 
+        asset.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // ترتيب أبجدي
+    return filtered.sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }, [assets, searchTerm, filterType]);
   
   if (!isActive) {
     return (
@@ -134,60 +104,75 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
   return (
     <>
       <div className="bg-gray-800 dark:bg-gray-800 bg-gray-100 rounded-lg p-1 sm:p-2 lg:p-3 w-full max-w-full overflow-hidden" dir={dir}>
-        {/* الهيدر مع الفلاتر - مضغوط للهواتف */}
+        {/* الهيدر مع الفلاتر المحسنة */}
         <div className="flex flex-col gap-2 mb-2">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
-            <h2 className="text-sm sm:text-base lg:text-lg font-bold text-white dark:text-white text-gray-900 truncate">
-              {t('assets.title')}
-            </h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+              <h2 className="text-sm sm:text-base lg:text-lg font-bold text-white dark:text-white text-gray-900 truncate">
+                {t('assets.title')}
+              </h2>
+              <span className="text-xs text-green-400 animate-pulse" title="مزامنة فورية - كل 3 ثوانٍ">🔄</span>
+            </div>
             <span className="px-1.5 py-0.5 bg-green-600 text-white text-xs rounded-full">
-              {filteredAssets.length}
+              {filteredAssets.length}/{assets.length}
             </span>
-            <span className="text-xs text-green-400 animate-pulse" title="تحديث فوري مباشر (كل 500ms)">●</span>
           </div>
           
-          {/* فلاتر OTC - خلفية صغيرة جداً للهواتف */}
-          <div className="flex gap-1">
-            <button
-              onClick={() => setFilter('all')}
-              className={`flex-1 h-5 flex items-center justify-center text-xs font-medium rounded transition-all ${
-                filter === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              {t('assets.all')}
-            </button>
-            <button
-              onClick={() => setFilter('regular')}
-              className={`flex-1 h-5 flex items-center justify-center text-xs font-medium rounded transition-all ${
-                filter === 'regular' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              {t('assets.regular')}
-            </button>
-            <button
-              onClick={() => setFilter('otc')}
-              className={`flex-1 h-5 flex items-center justify-center text-xs font-medium rounded transition-all ${
-                filter === 'otc' ? 'bg-orange-600 text-white shadow-lg' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              OTC
-            </button>
+          {/* شريط البحث مصغر */}
+          <div className="relative">
+            <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder={t('assets.searchPlaceholder')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-8 sm:pl-10 pr-2 sm:pr-3 py-1 sm:py-2 bg-gray-700/50 border border-gray-600 rounded text-white text-xs sm:text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+
+          {/* أزرار الفلترة - مدمجة */}
+          <div className="flex gap-0.5 sm:gap-2 justify-between">
+            {[
+              { key: 'all', label: t('assets.all'), color: 'blue' },
+              { key: 'major', label: t('assets.major'), color: 'green' },
+              { key: 'crypto', label: t('assets.crypto'), color: 'purple' },
+              { key: 'commodities', label: t('assets.commodities'), color: 'yellow' },
+              { key: 'otc', label: t('assets.otc'), color: 'orange' },
+              { key: 'regular', label: t('assets.regular'), color: 'gray' }
+            ].map(({ key, label, color }) => (
+              <button
+                key={key}
+                onClick={() => setFilterType(key as any)}
+                className={`filter-btn flex-1 px-0.5 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-sm rounded text-center font-medium transition-colors ${
+                  filterType === key 
+                    ? `bg-${color}-600 text-white shadow-md` 
+                    : 'bg-gray-700/70 text-gray-200 hover:bg-gray-600/70 border border-gray-600/50'
+                }`}
+              >
+                  {label}
+                </button>
+            ))}
           </div>
         </div>
 
-        {/* حاوية قابلة للتمرير للأصول - مضغوطة */}
-        <div className="max-h-48 sm:max-h-64 lg:max-h-80 overflow-y-auto pr-1 assets-scroll">
+        {/* حاوية قابلة للتمرير للأصول مع شريط تمرير مخصص */}
+        <div className="max-h-48 sm:max-h-64 lg:max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 pr-2">
           {/* عرض الجدول للشاشات الكبيرة */}
           <div className="hidden md:block">
             <div className="space-y-1.5">
               {filteredAssets.map((asset) => (
                 <div 
                   key={asset.symbol}
-                  className="flex items-center justify-between p-2 sm:p-3 lg:p-3.5 bg-gray-700 dark:bg-gray-700 bg-gray-200 rounded-lg transition-all duration-200"
+                  className="flex items-center justify-between p-2 sm:p-3 lg:p-3.5 bg-gray-700 dark:bg-gray-700 bg-gray-200 rounded-lg transition-all duration-300 hover:bg-gray-600/70 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/20 cursor-pointer animate-fade-in"
                 >
                   <div className="flex-1 min-w-0 pr-2">
-                    <div className="font-medium text-white dark:text-white text-gray-900 text-xs md:text-sm lg:text-base truncate tracking-tight">{asset.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium text-white dark:text-white text-gray-900 text-xs md:text-sm lg:text-base truncate tracking-tight">{asset.name}</div>
+                      {asset.symbol.includes('_otc') && (
+                        <span className="px-1.5 py-0.5 text-[9px] font-bold bg-purple-600/80 text-white rounded">OTC</span>
+                      )}
+                    </div>
                     <div className="text-[11px] md:text-xs text-gray-400 dark:text-gray-400 text-gray-600">
                       {asset.symbol.length === 6 
                         ? `${asset.symbol.slice(0, 3)}/${asset.symbol.slice(3)}` 
@@ -222,12 +207,17 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
               {filteredAssets.map((asset) => (
                 <div 
                   key={asset.symbol}
-                  className="bg-gray-700 dark:bg-gray-700 bg-gray-200 rounded p-2 transition-all duration-200"
+                  className="bg-gray-700 dark:bg-gray-700 bg-gray-200 rounded p-2 transition-all duration-300 hover:bg-gray-600/70 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/20 cursor-pointer animate-fade-in"
                 >
                   {/* صف واحد مضغوط: اسم الأصل والسعر والتغيير */}
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-white dark:text-white text-gray-900 text-xs truncate">{asset.name}</div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-medium text-white dark:text-white text-gray-900 text-xs truncate">{asset.name}</div>
+                        {asset.symbol.includes('_otc') && (
+                          <span className="px-1 py-0.5 text-[8px] font-bold bg-purple-600/80 text-white rounded flex-shrink-0">OTC</span>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-400 dark:text-gray-400 text-gray-600">
                         {asset.symbol.length === 6 
                           ? `${asset.symbol.slice(0, 3)}/${asset.symbol.slice(3)}` 
@@ -259,16 +249,31 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
             </div>
           </div>
 
-          {/* رسالة في حالة عدم وجود أصول */}
+          {/* رسالة في حالة عدم وجود أصول أو نتائج بحث */}
           {filteredAssets.length === 0 && (
             <div className="text-center py-4 text-gray-400 dark:text-gray-400 text-gray-600">
               <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <div className="text-xs sm:text-sm">{t('assets.noAssets')}</div>
+              <div className="text-xs sm:text-sm">
+                {searchTerm || filterType !== 'all' 
+                  ? t('assets.noResults')
+                  : t('assets.noAssets')
+                }
+              </div>
+              {(searchTerm || filterType !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterType('all');
+                  }}
+                  className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                >
+                  {t('assets.clearFilters')}
+                </button>
+              )}
             </div>
           )}
         </div>
       </div>
-
     </>
   );
 };

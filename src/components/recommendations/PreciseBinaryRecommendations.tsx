@@ -41,7 +41,7 @@ interface PreciseBinaryRecommendationsProps {
 }
 
 export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendationsProps> = ({ isActive }) => {
-  const { t, language } = useLanguage();
+  const { t, language, dir } = useLanguage();
   const [recommendations, setRecommendations] = useState<BinaryOptionRecommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -382,7 +382,7 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
 
   if (!isActive) {
     return (
-      <div className="bg-gray-800 dark:bg-gray-800 bg-gray-100 rounded-lg p-3 sm:p-6 text-center w-full">
+      <div className="bg-gray-800 dark:bg-gray-800 bg-gray-100 rounded-lg p-3 sm:p-6 text-center w-full" dir={dir}>
         <Target className="w-8 h-8 sm:w-12 sm:h-12 text-gray-500 mx-auto mb-3 sm:mb-4" />
         <p className="text-gray-400 dark:text-gray-400 text-sm sm:text-base">{t('directives.startBotRecommendations')}</p>
       </div>
@@ -390,40 +390,47 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
   }
 
   return (
-    <div className="space-y-2 sm:space-y-3">
+    <div className="space-y-2 sm:space-y-3" dir={dir}>
       {/* الهيدر */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 sm:p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg">
-            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          <div className="p-1 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex-shrink-0">
+            <Target className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
           </div>
-          <div>
-            <h2 className="text-sm sm:text-lg font-bold text-white">{t('precise.title')}</h2>
-            <p className="text-[10px] sm:text-xs text-gray-400">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1">
+              <h2 className="text-xs sm:text-lg font-bold text-white truncate">{t('precise.title')}</h2>
+              {recommendations.length > 0 && (
+                <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[10px] rounded-full flex-shrink-0">
+                  {recommendations.length}
+                </span>
+              )}
+            </div>
+            <p className="text-[9px] sm:text-xs text-gray-400 truncate">
               {lastUpdate ? `${formatTime(lastUpdate)}` : t('precise.loading')}
-              {isPaused && <span className="ml-2 text-yellow-400">⏸ {language === 'ar' ? 'متوقف' : language === 'fr' ? 'En pause' : 'Paused'}</span>}
+              {isPaused && <span className="ml-1 text-yellow-400">⏸</span>}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0 flex-shrink-0">
           <button
             onClick={() => setIsPaused(!isPaused)}
-            className="p-1.5 hover:bg-purple-500/20 rounded-lg transition-colors"
+            className="p-1 hover:bg-purple-500/20 rounded transition-colors"
             title={isPaused ? (language === 'ar' ? 'استئناف' : language === 'fr' ? 'Reprendre' : 'Resume') : (language === 'ar' ? 'إيقاف' : language === 'fr' ? 'Pause' : 'Pause')}
           >
             {isPaused ? (
-              <Play className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+              <Play className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
             ) : (
-              <Pause className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
+              <Pause className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
             )}
           </button>
           <button
             onClick={loadRecommendations}
             disabled={isLoading}
-            className="p-1.5 hover:opacity-70 transition-opacity disabled:opacity-30"
+            className="p-1 hover:opacity-70 transition-opacity disabled:opacity-30"
           >
-            <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 text-purple-400 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 text-purple-400 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -454,12 +461,27 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
           <p className="text-[10px] sm:text-xs text-gray-500 mt-1 sm:mt-2">{t('precise.tryLater')}</p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-gray-800 pr-2">
+          {/* مؤشر التحديث */}
+          {isLoading && recommendations.length > 0 && (
+            <div className="bg-purple-600/10 border border-purple-500/30 rounded-lg p-2 mb-3">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-purple-400 animate-spin" />
+                <span className="text-xs text-purple-300">
+                  {language === 'ar' ? 'جاري تحديث التوصيات...' : 
+                   language === 'fr' ? 'Mise à jour des recommandations...' : 
+                   'Updating recommendations...'}
+                </span>
+              </div>
+            </div>
+          )}
+          
           {/* عرض جميع التوصيات مع شريط تمرير */}
           {recommendations.map((rec, index) => (
             <div
               key={`${rec.symbol}-${index}`}
-              className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-2.5 sm:p-4 border border-purple-500/30 hover:border-purple-500/50 transition-all shadow-lg"
+              className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-2.5 sm:p-4 border border-purple-500/30 hover:border-purple-500/50 hover:shadow-purple-500/20 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 shadow-lg cursor-pointer animate-fade-in"
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* الهيدر */}
               <div className="flex items-start justify-between mb-2 sm:mb-3">
@@ -476,13 +498,18 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
                     )}
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-white">
-                      {rec.symbol.length === 6 
-                        ? `${rec.symbol.slice(0, 3)}/${rec.symbol.slice(3)}` 
-                        : rec.symbol.length === 7
-                        ? `${rec.symbol.slice(0, 3)}/${rec.symbol.slice(3)}`
-                        : rec.symbol}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-bold text-white">
+                        {rec.symbol.replace('_otc', '').length === 6 
+                          ? `${rec.symbol.replace('_otc', '').slice(0, 3)}/${rec.symbol.replace('_otc', '').slice(3)}` 
+                          : rec.symbol.replace('_otc', '').length === 7
+                          ? `${rec.symbol.replace('_otc', '').slice(0, 3)}/${rec.symbol.replace('_otc', '').slice(3)}`
+                          : rec.symbol.replace('_otc', '')}
+                      </h3>
+                      {rec.symbol.includes('_otc') && (
+                        <span className="px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold bg-purple-600/80 text-white rounded">OTC</span>
+                      )}
+                    </div>
                     <p className="text-[10px] sm:text-xs text-gray-400">{translateSymbolName(rec.symbolName)}</p>
                   </div>
                 </div>
@@ -651,29 +678,3 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
   );
 };
 
-// CSS مخصص لشريط التمرير - يتم إضافته مرة واحدة فقط
-if (typeof window !== 'undefined' && !document.getElementById('precise-recommendations-scrollbar-style')) {
-  const style = document.createElement('style');
-  style.id = 'precise-recommendations-scrollbar-style';
-  style.textContent = `
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 8px;
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: rgba(55, 65, 81, 0.3);
-      border-radius: 10px;
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, #a855f7, #9333ea);
-      border-radius: 10px;
-      border: 2px solid rgba(17, 24, 39, 0.5);
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, #c084fc, #a855f7);
-    }
-  `;
-  document.head.appendChild(style);
-}
