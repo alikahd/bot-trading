@@ -4,9 +4,13 @@
  */
 
 // رابط سيرفر IQ Option
+// 🌐 للاستضافة المحلية مع Cloudflare Tunnel:
+//    1. شغل: python iqoption_unofficial_server.py
+//    2. شغل: cloudflared tunnel --url http://localhost:5000
+//    3. انسخ الـ URL وضعه هنا بدلاً من Railway URL
 export const IQ_OPTION_SERVER_URL = 
   process.env.NODE_ENV === 'production' 
-    ? 'https://bot-trading-production-6630.up.railway.app'  // رابط Railway
+    ? 'https://arrange-lamps-blues-proc.trycloudflare.com'  // ✅ Cloudflare Tunnel URL
     : 'http://localhost:5000';  // للتطوير المحلي
 
 // API endpoints
