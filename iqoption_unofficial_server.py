@@ -194,9 +194,35 @@ def connect_to_iqoption():
         connection_status = "error"
         return False
 
+def ensure_connected():
+    """التحقق من سلامة الاتصال وإعادة الاتصال عند الحاجة"""
+    global iq_api, connection_status
+    try:
+        # إذا كانت المكتبة توفر check_connect استخدمها
+        if iq_api and hasattr(iq_api, 'check_connect'):
+            try:
+                ok = iq_api.check_connect()
+                if not ok:
+                    logger.warning("⚠️ check_connect أعاد False - إعادة الاتصال...")
+                    return connect_to_iqoption()
+            except Exception:
+                # في حال فشل check_connect نحاول إعادة الاتصال
+                return connect_to_iqoption()
+        # إذا علمياً الحالة ليست متصلة حاول إعادة الاتصال
+        if connection_status != "connected":
+            return connect_to_iqoption()
+        return True
+    except Exception:
+        return connect_to_iqoption()
+
 def get_price_safe(symbol, iq_symbol):
     """جلب السعر بطريقة آمنة"""
-    
+    # تأكد من الاتصال قبل الطلب
+    try:
+        ensure_connected()
+    except Exception:
+        pass
+
     # الطريقة 1: get_candles (الأكثر موثوقية)
     try:
         if hasattr(iq_api, 'get_candles'):
@@ -206,8 +232,22 @@ def get_price_safe(symbol, iq_symbol):
                 price = result[0]['close']
                 logger.info(f"📊 {symbol}: ${price} من get_candles ({iq_symbol})")
                 return float(price)
+            else:
+                # اعتبر النتيجة الفارغة فشلاً لتحفيز إعادة الاتصال
+                raise Exception("empty candles, need reconnect")
     except Exception as e:
-        pass
+        # محاولة إصلاح الاتصال ثم إعادة المحاولة لمرة واحدة
+        try:
+            ensure_connected()
+            if hasattr(iq_api, 'get_candles'):
+                end_time = int(time.time())
+                result = iq_api.get_candles(iq_symbol, 60, 1, end_time)
+                if result and len(result) > 0:
+                    price = result[0]['close']
+                    logger.info(f"📊 {symbol}: ${price} من get_candles بعد إعادة الاتصال ({iq_symbol})")
+                    return float(price)
+        except Exception:
+            pass
     
     # الطريقة 2: get_realtime_candles
     try:
@@ -293,8 +333,11 @@ def update_iqoption_prices():
             for i in range(0, len(symbols_list), batch_size):
                 batch = symbols_list[i:i + batch_size]
                 
+                exceptions_in_row = 0
                 for symbol in batch:
                     try:
+                        # تأكد من سلامة الاتصال قبل كل استعلام
+                        ensure_connected()
                         price = get_iqoption_price(symbol)
                         
                         if price and price > 0:
@@ -322,11 +365,27 @@ def update_iqoption_prices():
                             # تحديث وقت آخر تحديث عند كل نجاح
                             last_update_time = time.time()
                             consecutive_failures = 0
+                            exceptions_in_row = 0
+                        else:
+                            exceptions_in_row += 1
+                            if exceptions_in_row >= 5:
+                                logger.warning("⚠️ نتائج فارغة متتالية - إعادة الاتصال...")
+                                connection_status = "disconnected"
+                                connect_to_iqoption()
+                                exceptions_in_row = 0
+                                time.sleep(2)
                         
                         time.sleep(RATE_LIMIT_SECONDS)  # احترام معدل الطلبات لتفادي الحظر
                         
                     except Exception as e:
-                        pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
+                        exceptions_in_row += 1
+                        # إذا تكرر الخطأ عدة مرات متتالية داخل الدفعة، أعد الاتصال سريعاً
+                        if exceptions_in_row >= 5:
+                            logger.warning("⚠️ أخطاء متتالية في get_candles - إعادة الاتصال...")
+                            connection_status = "disconnected"
+                            connect_to_iqoption()
+                            exceptions_in_row = 0
+                            time.sleep(2)
                 
                 # استراحة قصيرة بين المجموعات
                 if i + batch_size < len(symbols_list):
@@ -373,7 +432,9 @@ def get_status():
         'last_update': last_update_time,
         'server_time': time.time(),
         'library_available': IQ_AVAILABLE,
-        'ws_enabled': ENABLE_WS
+        'ws_enabled': ENABLE_WS,
+        'rate_limit_seconds': RATE_LIMIT_SECONDS,
+        'batch_size': BATCH_SIZE
     })
 
 @app.route('/api/quotes')
