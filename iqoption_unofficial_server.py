@@ -11,6 +11,7 @@ import logging
 import time
 import threading
 import os
+import random
 
 # إعداد السجلات
 logging.basicConfig(
@@ -79,6 +80,7 @@ ENABLE_WS = os.environ.get('ENABLE_IQ_WS', 'false').lower() == 'true'
 # ضبط معدل الطلبات وحجم الدُفعات عبر متغيرات البيئة
 RATE_LIMIT_SECONDS = float(os.environ.get('IQ_RATE_LIMIT_SECONDS', '0.6'))  # افتراضي 0.6 ثانية بين الطلبات
 BATCH_SIZE = int(os.environ.get('IQ_BATCH_SIZE', '6'))  # افتراضي 6 رموز لكل دفعة
+SYMBOL_OFFSET = 0
 
 # رموز العملات - جميع الأزواج المتوفرة
 CURRENCY_SYMBOLS = {
@@ -182,6 +184,14 @@ def connect_to_iqoption():
             except Exception as e:
                 logger.warning(f"⚠️ تحذير: فشل التبديل للحساب التجريبي: {e}")
             
+            # استدعاء تمهيدي لتحميل حالة السوق إن توفرت، وإتاحة مهلة لاستقرار الجلسة
+            try:
+                if hasattr(iq_api, 'get_all_open_time'):
+                    _ = iq_api.get_all_open_time()
+            except Exception:
+                pass
+            time.sleep(1.0)
+
             connection_status = "connected"
             return True
         else:
@@ -298,7 +308,7 @@ def get_iqoption_price(symbol):
 
 def update_iqoption_prices():
     """تحديث الأسعار من IQ Option"""
-    global prices_cache, last_update_time, connection_status
+    global prices_cache, last_update_time, connection_status, SYMBOL_OFFSET
     
     # محاولة الاتصال
     max_attempts = 3
@@ -329,9 +339,15 @@ def update_iqoption_prices():
             # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
             symbols_list = list(CURRENCY_SYMBOLS.keys())
             batch_size = BATCH_SIZE  # حجم الدُفعة قابل للضبط
+            if len(symbols_list) == 0:
+                time.sleep(5)
+                continue
+            # تدوير قائمة الرموز لتجنب البدء دائماً من نفس الأزواج
+            SYMBOL_OFFSET = SYMBOL_OFFSET % len(symbols_list)
+            rotated = symbols_list[SYMBOL_OFFSET:] + symbols_list[:SYMBOL_OFFSET]
             
-            for i in range(0, len(symbols_list), batch_size):
-                batch = symbols_list[i:i + batch_size]
+            for i in range(0, len(rotated), batch_size):
+                batch = rotated[i:i + batch_size]
                 
                 exceptions_in_row = 0
                 for symbol in batch:
@@ -375,7 +391,8 @@ def update_iqoption_prices():
                                 exceptions_in_row = 0
                                 time.sleep(2)
                         
-                        time.sleep(RATE_LIMIT_SECONDS)  # احترام معدل الطلبات لتفادي الحظر
+                        # احترام معدل الطلبات مع تشتت بسيط لتفادي أنماط الحظر
+                        time.sleep(RATE_LIMIT_SECONDS + random.uniform(0, 0.3))
                         
                     except Exception as e:
                         exceptions_in_row += 1
@@ -388,8 +405,11 @@ def update_iqoption_prices():
                             time.sleep(2)
                 
                 # استراحة قصيرة بين المجموعات
-                if i + batch_size < len(symbols_list):
+                if i + batch_size < len(rotated):
                     time.sleep(max(1.0, RATE_LIMIT_SECONDS))
+            
+            # تقدم في الإزاحة للدفعة القادمة (خارج الحلقات الداخلية)
+            SYMBOL_OFFSET = (SYMBOL_OFFSET + batch_size) % len(symbols_list)
             
             last_update_time = time.time()
             
@@ -434,7 +454,8 @@ def get_status():
         'library_available': IQ_AVAILABLE,
         'ws_enabled': ENABLE_WS,
         'rate_limit_seconds': RATE_LIMIT_SECONDS,
-        'batch_size': BATCH_SIZE
+        'batch_size': BATCH_SIZE,
+        'symbol_offset': SYMBOL_OFFSET
     })
 
 @app.route('/api/quotes')
