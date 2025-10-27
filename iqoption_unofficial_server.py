@@ -385,15 +385,20 @@ def update_iqoption_prices():
                             exceptions_in_row = 0
                         else:
                             exceptions_in_row += 1
-                            if exceptions_in_row >= 5:
+                            # تأخير تدريجي عند الفشل المتكرر
+                            backoff_delay = min(exceptions_in_row * 2, 30)  # حتى 30 ثانية
+                            logger.warning(f"⚠️ نتيجة فارغة ({exceptions_in_row}) - انتظار {backoff_delay}s")
+                            time.sleep(backoff_delay)
+                            
+                            if exceptions_in_row >= 3:
                                 logger.warning("⚠️ نتائج فارغة متتالية - إعادة الاتصال...")
                                 connection_status = "disconnected"
                                 connect_to_iqoption()
                                 exceptions_in_row = 0
-                                time.sleep(2)
+                                time.sleep(5)
                         
                         # احترام معدل الطلبات مع تشتت بسيط لتفادي أنماط الحظر
-                        time.sleep(RATE_LIMIT_SECONDS + random.uniform(0, 0.3))
+                        time.sleep(RATE_LIMIT_SECONDS + random.uniform(0, 1.0))
                         
                     except Exception as e:
                         exceptions_in_row += 1
