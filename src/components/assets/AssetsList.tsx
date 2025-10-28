@@ -13,7 +13,7 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
   const { t, dir } = useLanguage();
   const [assets, setAssets] = useState<Asset[]>(propAssets || []);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto' | 'commodities' | 'otc' | 'regular'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto' | 'otc' | 'regular'>('all');
   
   // عدد الخانات العشرية حسب نوع الزوج
   const getDecimals = (symbol: string) => {
@@ -63,12 +63,10 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
         const symbol = asset.symbol.toUpperCase();
         
         if (filterType === 'major') {
-          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
+          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF']
             .some(major => symbol.includes(major));
         } else if (filterType === 'crypto') {
-          return ['BTC', 'ETH', 'LTC', 'XRP'].some(crypto => symbol.includes(crypto));
-        } else if (filterType === 'commodities') {
-          return ['XAU', 'XAG', 'OIL', 'GOLD', 'SILVER'].some(commodity => symbol.includes(commodity));
+          return ['BTC', 'ETH'].some(crypto => symbol.includes(crypto));
         } else if (filterType === 'otc') {
           return symbol.includes('OTC') || symbol.includes('_OTC');
         } else if (filterType === 'regular') {
@@ -135,7 +133,6 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
               { key: 'all', label: t('assets.all'), color: 'blue' },
               { key: 'major', label: t('assets.major'), color: 'green' },
               { key: 'crypto', label: t('assets.crypto'), color: 'purple' },
-              { key: 'commodities', label: t('assets.commodities'), color: 'yellow' },
               { key: 'otc', label: t('assets.otc'), color: 'orange' },
               { key: 'regular', label: t('assets.regular'), color: 'gray' }
             ].map(({ key, label, color }) => (

@@ -17,7 +17,7 @@ export const IQOptionStatus: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [dataSource, setDataSource] = useState<string>(language === 'ar' ? 'محاكاة' : language === 'fr' ? 'Simulation' : 'Simulation');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto' | 'commodities'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto'>('all');
 
   useEffect(() => {
     console.log('🚀 الاشتراك في البيانات المباشرة الفورية - IQOptionStatus');
@@ -72,12 +72,10 @@ export const IQOptionStatus: React.FC = () => {
     if (filterType !== 'all') {
       filtered = filtered.filter(([symbol]) => {
         if (filterType === 'major') {
-          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
+          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF']
             .some(major => symbol.toUpperCase().includes(major));
         } else if (filterType === 'crypto') {
-          return ['BTC', 'ETH', 'LTC', 'XRP'].some(crypto => symbol.toUpperCase().includes(crypto));
-        } else if (filterType === 'commodities') {
-          return ['XAU', 'XAG', 'OIL', 'GOLD', 'SILVER'].some(commodity => symbol.toUpperCase().includes(commodity));
+          return ['BTC', 'ETH'].some(crypto => symbol.toUpperCase().includes(crypto));
         }
         return true;
       });
@@ -162,12 +160,11 @@ export const IQOptionStatus: React.FC = () => {
             </div>
 
             {/* أزرار الفلترة - محسنة للهواتف */}
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-3 gap-1">
               {[
                 { key: 'all', label: t('assets.all') },
                 { key: 'major', label: t('assets.major') },
-                { key: 'crypto', label: t('assets.crypto') },
-                { key: 'commodities', label: t('assets.commodities') }
+                { key: 'crypto', label: t('assets.crypto') }
               ].map(({ key, label }) => (
                 <button
                   key={key}

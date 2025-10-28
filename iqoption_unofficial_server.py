@@ -131,68 +131,29 @@ prices_cache = {}
 connection_status = "disconnected"
 last_update_time = 0
 
-# رموز العملات - جميع الأزواج المتوفرة
+# رموز العملات - الأزواج المستقرة وعالية النجاح فقط
 CURRENCY_SYMBOLS = {
-    # الأزواج الرئيسية (Major Pairs)
+    # الأزواج الرئيسية (Major Pairs) - الأكثر استقراراً وسيولة
     'EURUSD_otc': ['EURUSD-OTC', 'EURUSD', 'EUR/USD'],
     'GBPUSD_otc': ['GBPUSD-OTC', 'GBPUSD', 'GBP/USD'],
     'USDJPY_otc': ['USDJPY-OTC', 'USDJPY', 'USD/JPY'],
     'AUDUSD_otc': ['AUDUSD-OTC', 'AUDUSD', 'AUD/USD'],
     'USDCAD_otc': ['USDCAD-OTC', 'USDCAD', 'USD/CAD'],
     'USDCHF_otc': ['USDCHF-OTC', 'USDCHF', 'USD/CHF'],
-    'NZDUSD_otc': ['NZDUSD-OTC', 'NZDUSD', 'NZD/USD'],
     
-    # الأزواج المتقاطعة (Cross Pairs)
+    # الأزواج المتقاطعة المستقرة (Cross Pairs)
     'EURGBP_otc': ['EURGBP-OTC', 'EURGBP', 'EUR/GBP'],
     'EURJPY_otc': ['EURJPY-OTC', 'EURJPY', 'EUR/JPY'],
     'EURCHF_otc': ['EURCHF-OTC', 'EURCHF', 'EUR/CHF'],
-    'EURAUD_otc': ['EURAUD-OTC', 'EURAUD', 'EUR/AUD'],
-    'EURCAD_otc': ['EURCAD-OTC', 'EURCAD', 'EUR/CAD'],
-    'EURNZD_otc': ['EURNZD-OTC', 'EURNZD', 'EUR/NZD'],
-    
     'GBPJPY_otc': ['GBPJPY-OTC', 'GBPJPY', 'GBP/JPY'],
     'GBPCHF_otc': ['GBPCHF-OTC', 'GBPCHF', 'GBP/CHF'],
-    'GBPAUD_otc': ['GBPAUD-OTC', 'GBPAUD', 'GBP/AUD'],
-    'GBPCAD_otc': ['GBPCAD-OTC', 'GBPCAD', 'GBP/CAD'],
-    'GBPNZD_otc': ['GBPNZD-OTC', 'GBPNZD', 'GBP/NZD'],
-    
     'AUDJPY_otc': ['AUDJPY-OTC', 'AUDJPY', 'AUD/JPY'],
-    'AUDCHF_otc': ['AUDCHF-OTC', 'AUDCHF', 'AUD/CHF'],
-    'AUDCAD_otc': ['AUDCAD-OTC', 'AUDCAD', 'AUD/CAD'],
-    'AUDNZD_otc': ['AUDNZD-OTC', 'AUDNZD', 'AUD/NZD'],
-    
-    'NZDJPY_otc': ['NZDJPY-OTC', 'NZDJPY', 'NZD/JPY'],
-    'NZDCHF_otc': ['NZDCHF-OTC', 'NZDCHF', 'NZD/CHF'],
-    'NZDCAD_otc': ['NZDCAD-OTC', 'NZDCAD', 'NZD/CAD'],
-    
     'CADJPY_otc': ['CADJPY-OTC', 'CADJPY', 'CAD/JPY'],
-    'CADCHF_otc': ['CADCHF-OTC', 'CADCHF', 'CAD/CHF'],
-    
     'CHFJPY_otc': ['CHFJPY-OTC', 'CHFJPY', 'CHF/JPY'],
     
-    # العملات الناشئة والغريبة (Exotic Pairs)
-    'USDRUB_otc': ['USDRUB-OTC', 'USDRUB', 'USD/RUB'],
-    'USDTRY_otc': ['USDTRY-OTC', 'USDTRY', 'USD/TRY'],
-    'USDZAR_otc': ['USDZAR-OTC', 'USDZAR', 'USD/ZAR'],
-    'USDMXN_otc': ['USDMXN-OTC', 'USDMXN', 'USD/MXN'],
-    'USDBRL_otc': ['USDBRL-OTC', 'USDBRL', 'USD/BRL'],
-    'USDSGD_otc': ['USDSGD-OTC', 'USDSGD', 'USD/SGD'],
-    'USDHKD_otc': ['USDHKD-OTC', 'USDHKD', 'USD/HKD'],
-    'USDKRW_otc': ['USDKRW-OTC', 'USDKRW', 'USD/KRW'],
-    'USDINR_otc': ['USDINR-OTC', 'USDINR', 'USD/INR'],
-    'USDCNH_otc': ['USDCNH-OTC', 'USDCNH', 'USD/CNH'],
-    
-    # أزواج النفط والذهب
-    'XAUUSD_otc': ['XAUUSD-OTC', 'XAUUSD', 'XAU/USD', 'GOLD'],
-    'XAGUSD_otc': ['XAGUSD-OTC', 'XAGUSD', 'XAG/USD', 'SILVER'],
-    'USOIL_otc': ['USOIL-OTC', 'USOIL', 'OIL', 'CRUDE'],
-    'UKOIL_otc': ['UKOIL-OTC', 'UKOIL', 'BRENT'],
-    
-    # العملات المشفرة الرئيسية
+    # العملات المشفرة المستقرة فقط
     'BTCUSD_otc': ['BTCUSD-OTC', 'BTCUSD', 'BTC/USD', 'BITCOIN'],
     'ETHUSD_otc': ['ETHUSD-OTC', 'ETHUSD', 'ETH/USD', 'ETHEREUM'],
-    'LTCUSD_otc': ['LTCUSD-OTC', 'LTCUSD', 'LTC/USD', 'LITECOIN'],
-    'XRPUSD_otc': ['XRPUSD-OTC', 'XRPUSD', 'XRP/USD', 'RIPPLE'],
 }
 
 # =======================
@@ -296,7 +257,8 @@ def connect_to_iqoption():
         return False
 
 def get_price_safe(symbol, iq_symbol):
-    """جلب السعر بطريقة آمنة - الأولوية للسعر الفوري"""
+    """جلب السعر بطريقة آمنة - معالجة خاصة لـ Railway"""
+    global connection_status
     
     # الطريقة 1: get_realtime_candles (الأسرع والأكثر دقة للسعر الحالي)
     try:
@@ -305,7 +267,7 @@ def get_price_safe(symbol, iq_symbol):
             if hasattr(iq_api, 'start_candles_stream'):
                 try:
                     iq_api.start_candles_stream(iq_symbol, 60, 1)
-                    time.sleep(0.1)  # سرعة فورية قصوى (50ms)
+                    time.sleep(0.2)  # انتظار أطول للstream
                 except:
                     pass
             
@@ -316,9 +278,12 @@ def get_price_safe(symbol, iq_symbol):
                 logger.info(f"📊 {symbol}: ${price} من get_realtime_candles ({iq_symbol})")
                 return float(price)
     except Exception as e:
+        if "need reconnect" in str(e):
+            logger.warning(f"🔄 {symbol}: حاجة لإعادة الاتصال - {e}")
+            connection_status = "disconnected"
         pass
     
-    # الطريقة 2: get_candles (احتياطي)
+    # الطريقة 2: get_candles (احتياطي مع معالجة أخطاء Railway)
     try:
         if hasattr(iq_api, 'get_candles'):
             end_time = int(time.time())
@@ -328,6 +293,11 @@ def get_price_safe(symbol, iq_symbol):
                 logger.info(f"📊 {symbol}: ${price} من get_candles ({iq_symbol})")
                 return float(price)
     except Exception as e:
+        if "need reconnect" in str(e):
+            logger.warning(f"🔄 {symbol}: خطأ get_candles - حاجة لإعادة الاتصال")
+            connection_status = "disconnected"
+            # توقف فوري عند هذا الخطأ لتجنب المزيد من الأخطاء
+            raise Exception("Railway connection limit reached")
         pass
     
     return None
@@ -388,9 +358,10 @@ def update_iqoption_prices():
                     time.sleep(30)
                     continue
             
-            # تحديث محسن للبيئة السحابية (دفعات أصغر)
+            # تحديث محسن للبيئة السحابية - 16 زوج مستقر فقط
             symbols_list = list(CURRENCY_SYMBOLS.keys())
-            batch_size = 8 if connection_status == "demo_mode" else 15  # دفعات أصغر للاستقرار
+            # Railway يحد بشدة - استخدام دفعات صغيرة جداً
+            batch_size = 4 if os.getenv('RAILWAY_ENVIRONMENT') else 8  # دفعات مناسبة للـ 16 زوج
             
             for i in range(0, len(symbols_list), batch_size):
                 batch = symbols_list[i:i + batch_size]
@@ -423,7 +394,11 @@ def update_iqoption_prices():
                             updated_count += 1
                             consecutive_failures = 0
                         
-                        time.sleep(0.1)  # تأخير أطول للبيئة السحابية (50ms)
+                        # تأخير مخصص لـ Railway لتجنب الحظر
+                        if os.getenv('RAILWAY_ENVIRONMENT'):
+                            time.sleep(1.0)  # تأخير طويل جداً لـ Railway (ثانية كاملة)
+                        else:
+                            time.sleep(0.3)  # تأخير عادي للبيئات الأخرى
                         
                     except Exception as e:
                         # إعادة محاولة للأسعار الفاشلة
@@ -442,9 +417,13 @@ def update_iqoption_prices():
                             except:
                                 pass
                 
-                # بدون استراحة بين المجموعات للسرعة القصوى
-                # if i + batch_size < len(symbols_list):
-                #     time.sleep(0.5)
+                # استراحة بين المجموعات لـ Railway
+                if i + batch_size < len(symbols_list):
+                    if os.getenv('RAILWAY_ENVIRONMENT'):
+                        time.sleep(5.0)  # استراحة طويلة بين المجموعات لـ Railway
+                        logger.info(f"⏳ استراحة Railway - معالجة المجموعة التالية...")
+                    else:
+                        time.sleep(1.0)  # استراحة قصيرة للبيئات الأخرى
             
             last_update_time = time.time()
             
@@ -462,7 +441,12 @@ def update_iqoption_prices():
                 time.sleep(10)
                 continue
             
-            time.sleep(0.2 if updated_count > 0 else 2)  # تحديث فوري قصوى كل 200ms! ⚡⚡⚡
+            # تحديث مخصص لـ Railway - تأخير طويل لتجنب الحظر
+            if os.getenv('RAILWAY_ENVIRONMENT'):
+                time.sleep(10 if updated_count > 0 else 30)  # تأخير طويل جداً لـ Railway
+                logger.info(f"🚂 Railway: انتظار {10 if updated_count > 0 else 30} ثانية قبل الدورة التالية")
+            else:
+                time.sleep(0.5 if updated_count > 0 else 5)  # تأخير عادي للبيئات الأخرى
             
         except KeyboardInterrupt:
             logger.info("⏹️ تم إيقاف التحديث")
