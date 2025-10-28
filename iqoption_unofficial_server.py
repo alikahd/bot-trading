@@ -83,6 +83,23 @@ PROXY_LIST = [
     {'http': 'http://45.144.234.129:53681', 'https': 'https://45.144.234.129:53681'},
     {'http': 'http://172.86.66.151:3128', 'https': 'https://172.86.66.151:3128'},
 ]
+# Proxy مخصص لـ Railway (أضف proxy مدفوع هنا)
+RAILWAY_PROXY_LIST = [
+    # ProxyMesh (موصى به - $10/شهر)
+    # {'http': 'http://username:password@us-wa.proxymesh.com:31280', 'https': 'https://username:password@us-wa.proxymesh.com:31280'},
+    
+    # Bright Data (أفضل جودة - $500+/شهر)
+    # {'http': 'http://customer-username:password@zproxy.lum-superproxy.io:22225', 'https': 'https://customer-username:password@zproxy.lum-superproxy.io:22225'},
+    
+    # إذا كان لديك proxy مدفوع، أضفه هنا
+]
+
+# استخدام proxy مخصص لـ Railway
+if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER'):
+    if RAILWAY_PROXY_LIST:
+        PROXY_LIST = RAILWAY_PROXY_LIST
+        print("🚂 استخدام proxy مخصص لـ Railway/Render")
+
 
 # Proxy rotation للتنويع
 current_proxy_index = 0
@@ -240,7 +257,7 @@ def connect_to_iqoption():
         # محاولة إضافة timeout قصير لتجنب التأخير
         if hasattr(iq_api, 'set_session_timeout'):
             try:
-                iq_api.set_session_timeout(15)  # timeout أطول قليلاً للproxy
+                iq_api.set_session_timeout(20)  # timeout أطول قليلاً للproxy
             except:
                 pass
         
@@ -288,7 +305,7 @@ def get_price_safe(symbol, iq_symbol):
             if hasattr(iq_api, 'start_candles_stream'):
                 try:
                     iq_api.start_candles_stream(iq_symbol, 60, 1)
-                    time.sleep(0.05)  # سرعة فورية قصوى (50ms)
+                    time.sleep(0.1)  # سرعة فورية قصوى (50ms)
                 except:
                     pass
             
@@ -359,16 +376,21 @@ def update_iqoption_prices():
         try:
             updated_count = 0
             
-            # التحقق من حالة الاتصال
+            # التحقق من حالة الاتصال مع إعادة محاولة ذكية
             if connection_status != "connected":
                 logger.warning("⚠️ فقدان الاتصال، محاولة إعادة الاتصال...")
-                if not connect_to_iqoption():
+                for retry in range(3):  # 3 محاولات
+                    if connect_to_iqoption():
+                        break
+                    time.sleep(5)  # انتظار قصير بين المحاولات
+                else:
+                    logger.warning("❌ فشل في إعادة الاتصال، الانتظار 30 ثانية...")
                     time.sleep(30)
                     continue
             
-            # تحديث فوري بسرعة السوق الحقيقية (دفعات ضخمة)
+            # تحديث محسن للبيئة السحابية (دفعات أصغر)
             symbols_list = list(CURRENCY_SYMBOLS.keys())
-            batch_size = 30  # معالجة 30 زوج في كل دفعة للسرعة الفورية
+            batch_size = 8 if connection_status == "demo_mode" else 15  # دفعات أصغر للاستقرار
             
             for i in range(0, len(symbols_list), batch_size):
                 batch = symbols_list[i:i + batch_size]
@@ -401,10 +423,24 @@ def update_iqoption_prices():
                             updated_count += 1
                             consecutive_failures = 0
                         
-                        time.sleep(0.01)  # تأخير فوري قصوى (10ms فقط!)
+                        time.sleep(0.1)  # تأخير أطول للبيئة السحابية (50ms)
                         
                     except Exception as e:
-                        pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
+                        # إعادة محاولة للأسعار الفاشلة
+                        if consecutive_failures < 2:
+                            time.sleep(0.5)
+                            try:
+                                price = get_iqoption_price(symbol)
+                                if price and price > 0:
+                                    quotes_data[symbol] = {
+                                        'price': price,
+                                        'timestamp': time.time(),
+                                        'symbol': symbol,
+                                        'source': 'iqoption_retry'
+                                    }
+                                    updated_count += 1
+                            except:
+                                pass
                 
                 # بدون استراحة بين المجموعات للسرعة القصوى
                 # if i + batch_size < len(symbols_list):
