@@ -283,7 +283,7 @@ def get_price_safe(symbol, iq_symbol):
             connection_status = "disconnected"
         pass
     
-    # الطريقة 2: get_candles (احتياطي مع معالجة أخطاء Railway)
+    # الطريقة 2: get_candles (احتياطي مع معالجة أخطاء Railway المحسنة)
     try:
         if hasattr(iq_api, 'get_candles'):
             end_time = int(time.time())
@@ -293,11 +293,15 @@ def get_price_safe(symbol, iq_symbol):
                 logger.info(f"📊 {symbol}: ${price} من get_candles ({iq_symbol})")
                 return float(price)
     except Exception as e:
-        if "need reconnect" in str(e):
-            logger.warning(f"🔄 {symbol}: خطأ get_candles - حاجة لإعادة الاتصال")
+        error_msg = str(e).lower()
+        if "need reconnect" in error_msg:
+            logger.error(f"🚂 Railway حد الاتصال: {symbol} - توقف للحماية من الحظر")
             connection_status = "disconnected"
-            # توقف فوري عند هذا الخطأ لتجنب المزيد من الأخطاء
-            raise Exception("Railway connection limit reached")
+            # إيقاف معالجة الأزواج المتبقية لحماية الاتصال
+            raise Exception(f"Railway protection: stopped at {symbol}")
+        elif "connection" in error_msg or "timeout" in error_msg:
+            logger.warning(f"⚠️ مشكلة اتصال مؤقتة: {symbol}")
+            time.sleep(2)  # انتظار قصير للمشاكل المؤقتة
         pass
     
     return None
@@ -358,10 +362,10 @@ def update_iqoption_prices():
                     time.sleep(30)
                     continue
             
-            # تحديث محسن للبيئة السحابية - 16 زوج مستقر فقط
+            # تحديث محسن للبيئة السحابية - حل جذري لمشكلة Railway
             symbols_list = list(CURRENCY_SYMBOLS.keys())
-            # Railway يحد بشدة - استخدام دفعات صغيرة جداً
-            batch_size = 4 if os.getenv('RAILWAY_ENVIRONMENT') else 8  # دفعات مناسبة للـ 16 زوج
+            # Railway يحد بشدة - دفعة واحدة فقط في كل مرة
+            batch_size = 1  # دفعة واحدة فقط لتجنب حظر Railway نهائياً
             
             for i in range(0, len(symbols_list), batch_size):
                 batch = symbols_list[i:i + batch_size]
@@ -394,16 +398,24 @@ def update_iqoption_prices():
                             updated_count += 1
                             consecutive_failures = 0
                         
-                        # تأخير مخصص لـ Railway لتجنب الحظر
-                        if os.getenv('RAILWAY_ENVIRONMENT'):
-                            time.sleep(1.0)  # تأخير طويل جداً لـ Railway (ثانية كاملة)
+                        # تأخير مخصص لـ Railway - حل جذري
+                        if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER'):
+                            time.sleep(3.0)  # تأخير طويل جداً لـ Railway (3 ثوانٍ)
+                            logger.info(f"🚂 Railway: انتظار 3 ثوانٍ بعد {symbol}")
                         else:
-                            time.sleep(0.3)  # تأخير عادي للبيئات الأخرى
+                            time.sleep(0.5)  # تأخير عادي للبيئات الأخرى
                         
                     except Exception as e:
-                        # إعادة محاولة للأسعار الفاشلة
-                        if consecutive_failures < 2:
-                            time.sleep(0.5)
+                        error_msg = str(e)
+                        if "Railway protection" in error_msg or "Railway connection limit" in error_msg:
+                            logger.error(f"🚂 Railway: توقف حماية عند {symbol}")
+                            logger.info(f"📊 Railway: تم جلب {updated_count} أزواج قبل الحد")
+                            break  # توقف فوري لحماية الاتصال
+                        
+                        # إعادة محاولة محدودة للأخطاء العادية
+                        if consecutive_failures < 1:  # محاولة واحدة فقط
+                            logger.warning(f"⚠️ إعادة محاولة: {symbol}")
+                            time.sleep(2.0)
                             try:
                                 price = get_iqoption_price(symbol)
                                 if price and price > 0:
@@ -414,14 +426,17 @@ def update_iqoption_prices():
                                         'source': 'iqoption_retry'
                                     }
                                     updated_count += 1
-                            except:
+                            except Exception as retry_e:
+                                if "Railway protection" in str(retry_e):
+                                    logger.error(f"🚂 Railway: توقف في إعادة المحاولة")
+                                    break
                                 pass
                 
-                # استراحة بين المجموعات لـ Railway
+                # استراحة بين كل زوج لـ Railway (لأن batch_size = 1)
                 if i + batch_size < len(symbols_list):
-                    if os.getenv('RAILWAY_ENVIRONMENT'):
-                        time.sleep(5.0)  # استراحة طويلة بين المجموعات لـ Railway
-                        logger.info(f"⏳ استراحة Railway - معالجة المجموعة التالية...")
+                    if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER'):
+                        time.sleep(5.0)  # استراحة طويلة بين كل زوج لـ Railway
+                        logger.info(f"⏳ Railway: معالجة الزوج التالي ({i+1}/{len(symbols_list)})...")
                     else:
                         time.sleep(1.0)  # استراحة قصيرة للبيئات الأخرى
             
@@ -441,12 +456,14 @@ def update_iqoption_prices():
                 time.sleep(10)
                 continue
             
-            # تحديث مخصص لـ Railway - تأخير طويل لتجنب الحظر
-            if os.getenv('RAILWAY_ENVIRONMENT'):
-                time.sleep(10 if updated_count > 0 else 30)  # تأخير طويل جداً لـ Railway
-                logger.info(f"🚂 Railway: انتظار {10 if updated_count > 0 else 30} ثانية قبل الدورة التالية")
+            # تحديث مخصص لـ Railway - تأخير طويل جداً لتجنب الحظر
+            if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER'):
+                wait_time = 60 if updated_count > 0 else 120  # دقيقة كاملة أو دقيقتين
+                logger.info(f"🚂 Railway: انتظار {wait_time} ثانية قبل الدورة التالية")
+                logger.info(f"📊 Railway: تم جلب {updated_count} من {len(symbols_list)} أزواج")
+                time.sleep(wait_time)
             else:
-                time.sleep(0.5 if updated_count > 0 else 5)  # تأخير عادي للبيئات الأخرى
+                time.sleep(1 if updated_count > 0 else 10)  # تأخير عادي للبيئات الأخرى
             
         except KeyboardInterrupt:
             logger.info("⏹️ تم إيقاف التحديث")
