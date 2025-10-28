@@ -63,16 +63,22 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
   }, []);
 
   useEffect(() => {
-    if (isActive) {
+    if (isActive && !isPaused) {
       loadRecommendations();
-      // تحديث كل 30 ثانية لتقليل الحمل (إذا لم يكن متوقفاً)
-      const interval = setInterval(() => {
-        if (!isPaused) {
-          loadRecommendations();
-        }
-      }, 30000);
-      return () => clearInterval(interval);
     }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (!isActive || isPaused) return;
+    
+    // تحديث فوري كل 3 ثوانٍ للحصول على أحدث التوصيات ⚡⚡
+    const interval = setInterval(() => {
+      if (!isPaused) {
+        loadRecommendations();
+      }
+    }, 3000);
+    
+    return () => clearInterval(interval);
   }, [isActive, isPaused]);
 
   const loadRecommendations = async () => {

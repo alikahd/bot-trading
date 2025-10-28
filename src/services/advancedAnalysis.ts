@@ -77,6 +77,8 @@ interface TradingSignal {
 
 export class AdvancedAnalysisEngine {
   private readonly MIN_CONFIDENCE = 55; // حد أدنى مرن للحصول على توصيات متنوعة
+  private priceCache: Map<string, {price: number, timestamp: number}> = new Map();
+  private readonly CACHE_DURATION = 500; // نصف ثانية فقط للتحديث الفوري
 
   /**
    * 📊 حساب RSI
@@ -820,8 +822,13 @@ export class AdvancedAnalysisEngine {
         return null;
       }
 
-      console.log(`💰 السعر الحالي: ${priceData.currentPrice}`);
+      console.log(`💰 السعر الحالي: ${priceData.currentPrice} (عمر: ${priceData.priceAge}ms)`);
       console.log(`📊 تحليل ${priceData.historicalPrices.length} نقطة سعرية تاريخية`);
+      
+      // تحذير إذا كان السعر قديم جداً
+      if (priceData.priceAge > 5000) {
+        console.warn(`⚠️ السعر قديم! عمره ${(priceData.priceAge / 1000).toFixed(1)} ثانية`);
+      }
 
       // إنشاء شموع حقيقية من البيانات التاريخية
       const candles = this.createRealCandles(priceData.historicalPrices, priceData.currentPrice);
@@ -847,19 +854,42 @@ export class AdvancedAnalysisEngine {
   /**
    * 📊 جلب البيانات الحقيقية من IQ Option
    */
-  private async fetchRealPriceData(symbol: string): Promise<{currentPrice: number, historicalPrices: number[]} | null> {
+  private async fetchRealPriceData(symbol: string): Promise<{currentPrice: number, historicalPrices: number[], priceAge: number} | null> {
     try {
-      // جلب السعر الحالي
-      const response = await fetch(API_ENDPOINTS.quote(symbol));
+      // التحقق من الـ cache أولاً
+      const cached = this.priceCache.get(symbol);
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) < this.CACHE_DURATION) {
+        console.log(`⚡ استخدام السعر من الـ cache لـ ${symbol} (عمر: ${now - cached.timestamp}ms)`);
+        const historicalPrices = await this.generateRealisticHistoricalData(cached.price, 50);
+        return { currentPrice: cached.price, historicalPrices, priceAge: now - cached.timestamp };
+      }
+
+      // جلب السعر الحالي مع timeout قصير
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 ثانية فقط
+      
+      const response = await fetch(API_ENDPOINTS.quote(symbol), {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       if (!response.ok) return null;
 
       const data = await response.json();
       const currentPrice = data.price;
+      const priceTimestamp = data.timestamp || now;
+      const priceAge = now - (priceTimestamp * 1000); // تحويل من ثواني إلى ميلي ثانية
+      
+      // حفظ في الـ cache
+      this.priceCache.set(symbol, { price: currentPrice, timestamp: now });
+      
+      console.log(`💰 سعر جديد لـ ${symbol}: ${currentPrice} (عمر: ${priceAge}ms)`);
 
       // جلب البيانات التاريخية الحقيقية من IQ Option
       const historicalPrices = await this.generateRealisticHistoricalData(currentPrice, 50);
 
-      return { currentPrice, historicalPrices };
+      return { currentPrice, historicalPrices, priceAge };
     } catch (error) {
       console.error(`خطأ في جلب البيانات لـ ${symbol}:`, error);
       return null;

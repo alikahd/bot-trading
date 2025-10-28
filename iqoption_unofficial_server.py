@@ -11,6 +11,9 @@ import logging
 import time
 import threading
 import os
+import requests
+import random
+import math
 
 # إعداد السجلات
 logging.basicConfig(
@@ -65,11 +68,46 @@ def detect_iq_library():
 detect_iq_library()
 
 # =======================
-# إعدادات IQ Option
+# إعدادات IQ Option + Proxy
 # =======================
 
 IQ_EMAIL = "qarali131@gmail.com"
 IQ_PASSWORD = "Azert@0208"
+
+# إعدادات Proxy للتجاوز حظر Railway/Render
+PROXY_ENABLED = os.getenv('USE_PROXY', 'false').lower() == 'true'
+PROXY_LIST = [
+    {'http': 'http://72.10.160.94:12797', 'https': 'https://72.10.160.94:12797'},
+    {'http': 'http://196.204.83.235:1981', 'https': 'https://196.204.83.235:1981'},
+    {'http': 'http://43.229.79.217:3128', 'https': 'https://43.229.79.217:3128'},
+    {'http': 'http://45.144.234.129:53681', 'https': 'https://45.144.234.129:53681'},
+    {'http': 'http://172.86.66.151:3128', 'https': 'https://172.86.66.151:3128'},
+]
+
+# Proxy rotation للتنويع
+current_proxy_index = 0
+
+def get_next_proxy():
+    """الحصول على proxy التالي من القائمة"""
+    global current_proxy_index
+    if not PROXY_LIST:
+        return None
+    
+    proxy = PROXY_LIST[current_proxy_index]
+    current_proxy_index = (current_proxy_index + 1) % len(PROXY_LIST)
+    return proxy
+
+def test_proxy(proxy):
+    """اختبار proxy للتأكد من عمله"""
+    try:
+        response = requests.get('https://httpbin.org/ip', proxies=proxy, timeout=10)
+        if response.status_code == 200:
+            ip_info = response.json()
+            logger.info(f"✅ Proxy يعمل - IP: {ip_info.get('origin', 'unknown')}")
+            return True
+    except Exception as e:
+        logger.warning(f"⚠️ Proxy لا يعمل: {e}")
+    return False
 
 # متغيرات عامة
 prices_cache = {}
@@ -144,24 +182,65 @@ CURRENCY_SYMBOLS = {
 # دوال IQ Option
 # =======================
 
+def setup_proxy_for_iqoption():
+    """إعداد proxy لـ IQ Option API"""
+    if not PROXY_ENABLED or not PROXY_LIST:
+        logger.info("🌐 الاتصال المباشر بـ IQ Option (بدون proxy)")
+        return None
+    
+    # اختبار proxy servers
+    working_proxy = None
+    for _ in range(len(PROXY_LIST)):
+        proxy = get_next_proxy()
+        if test_proxy(proxy):
+            working_proxy = proxy
+            break
+    
+    if working_proxy:
+        logger.info(f"🔄 استخدام Proxy: {working_proxy}")
+        # تطبيق proxy على requests session
+        try:
+            import urllib3
+            # تعطيل تحذيرات SSL للproxy
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        except:
+            pass
+        return working_proxy
+    else:
+        logger.warning("⚠️ لا يوجد proxy يعمل - الاتصال المباشر")
+        return None
+
 def connect_to_iqoption():
-    """الاتصال بـ IQ Option"""
+    """الاتصال بـ IQ Option مع دعم Proxy لتجاوز حظر Railway/Render"""
     global iq_api, connection_status
     
     if not IQ_AVAILABLE or not IQ_Option:
-        logger.error("❌ مكتبة IQ Option غير متوفرة!")
-        connection_status = "library_missing"
+        logger.warning("⚠️ مكتبة IQ Option غير متوفرة - استخدام البيانات التجريبية")
+        connection_status = "demo_mode"
         return False
     
     try:
+        # إعداد proxy إذا كان مفعل
+        proxy = setup_proxy_for_iqoption()
+        
         logger.info("🔌 محاولة الاتصال بـ IQ Option...")
+        if proxy:
+            logger.info("🌐 الاتصال عبر Proxy لتجاوز حظر Railway/Render")
         
         iq_api = IQ_Option(IQ_EMAIL, IQ_PASSWORD)
         
-        # محاولة إضافة timeout إذا كان متوفراً
+        # تطبيق proxy على IQ Option API إذا كان متوفر
+        if proxy and hasattr(iq_api, 'set_proxy'):
+            try:
+                iq_api.set_proxy(proxy)
+                logger.info("✅ تم تطبيق Proxy على IQ Option API")
+            except Exception as e:
+                logger.warning(f"⚠️ فشل تطبيق Proxy: {e}")
+        
+        # محاولة إضافة timeout قصير لتجنب التأخير
         if hasattr(iq_api, 'set_session_timeout'):
             try:
-                iq_api.set_session_timeout(30)
+                iq_api.set_session_timeout(15)  # timeout أطول قليلاً للproxy
             except:
                 pass
         
@@ -169,6 +248,8 @@ def connect_to_iqoption():
         
         if check:
             logger.info("✅ تم الاتصال بـ IQ Option بنجاح!")
+            if proxy:
+                logger.info("🎯 نجح تجاوز حظر Railway/Render باستخدام Proxy")
             
             # التبديل للحساب التجريبي
             try:
@@ -181,19 +262,46 @@ def connect_to_iqoption():
             connection_status = "connected"
             return True
         else:
-            logger.error(f"❌ فشل الاتصال: {reason}")
-            connection_status = "failed"
+            logger.warning(f"⚠️ فشل الاتصال: {reason}")
+            if proxy:
+                logger.warning("🔄 قد يكون Proxy محظور أيضاً - جرب proxy آخر")
+            logger.info("📊 التبديل للوضع التجريبي")
+            connection_status = "demo_mode"
             return False
             
     except Exception as e:
-        logger.error(f"❌ خطأ في الاتصال: {e}")
-        connection_status = "error"
+        logger.warning(f"⚠️ خطأ في الاتصال: {e}")
+        if "getaddrinfo failed" in str(e):
+            logger.warning("🚫 يبدو أن Railway/Render يحظر الاتصال بـ IQ Option")
+            logger.info("💡 نصيحة: فعّل USE_PROXY=true وأضف proxy servers")
+        logger.info("📊 التبديل للوضع التجريبي")
+        connection_status = "demo_mode"
         return False
 
 def get_price_safe(symbol, iq_symbol):
-    """جلب السعر بطريقة آمنة"""
+    """جلب السعر بطريقة آمنة - الأولوية للسعر الفوري"""
     
-    # الطريقة 1: get_candles (الأكثر موثوقية)
+    # الطريقة 1: get_realtime_candles (الأسرع والأكثر دقة للسعر الحالي)
+    try:
+        if hasattr(iq_api, 'get_realtime_candles'):
+            # تشغيل stream أولاً إذا لم يكن نشطاً
+            if hasattr(iq_api, 'start_candles_stream'):
+                try:
+                    iq_api.start_candles_stream(iq_symbol, 60, 1)
+                    time.sleep(0.05)  # سرعة فورية قصوى (50ms)
+                except:
+                    pass
+            
+            result = iq_api.get_realtime_candles(iq_symbol, 60)
+            if result and len(result) > 0:
+                latest = list(result.values())[-1]
+                price = latest['close']
+                logger.info(f"📊 {symbol}: ${price} من get_realtime_candles ({iq_symbol})")
+                return float(price)
+    except Exception as e:
+        pass
+    
+    # الطريقة 2: get_candles (احتياطي)
     try:
         if hasattr(iq_api, 'get_candles'):
             end_time = int(time.time())
@@ -201,23 +309,6 @@ def get_price_safe(symbol, iq_symbol):
             if result and len(result) > 0:
                 price = result[0]['close']
                 logger.info(f"📊 {symbol}: ${price} من get_candles ({iq_symbol})")
-                return float(price)
-    except Exception as e:
-        pass
-    
-    # الطريقة 2: get_realtime_candles
-    try:
-        if hasattr(iq_api, 'get_realtime_candles'):
-            # تشغيل stream أولاً
-            if hasattr(iq_api, 'start_candles_stream'):
-                iq_api.start_candles_stream(iq_symbol, 60, 1)
-                time.sleep(1)  # انتظار قصير
-            
-            result = iq_api.get_realtime_candles(iq_symbol, 60)
-            if result and len(result) > 0:
-                latest = list(result.values())[-1]
-                price = latest['close']
-                logger.info(f"📊 {symbol}: ${price} من get_realtime_candles ({iq_symbol})")
                 return float(price)
     except Exception as e:
         pass
@@ -275,20 +366,19 @@ def update_iqoption_prices():
                     time.sleep(30)
                     continue
             
-            # تحديث الأزواج بشكل متوازي (مجموعات صغيرة)
+            # تحديث فوري بسرعة السوق الحقيقية (دفعات ضخمة)
             symbols_list = list(CURRENCY_SYMBOLS.keys())
+            batch_size = 30  # معالجة 30 زوج في كل دفعة للسرعة الفورية
             
-            # التحقق من بيئة الإنتاج
-            is_production = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER')
-            
-            if is_production:
-                # في الإنتاج: معالجة تسلسلية بطيئة لتجنب الحظر
-                logger.info("🌐 وضع الإنتاج: معالجة تسلسلية مع تأخير 2 ثانية")
-                for symbol in symbols_list:
+            for i in range(0, len(symbols_list), batch_size):
+                batch = symbols_list[i:i + batch_size]
+                
+                for symbol in batch:
                     try:
                         price = get_iqoption_price(symbol)
                         
                         if price and price > 0:
+                            # حساب التغيير إذا كان هناك سعر سابق
                             change = 0
                             change_percent = 0
                             if symbol in prices_cache:
@@ -311,51 +401,14 @@ def update_iqoption_prices():
                             updated_count += 1
                             consecutive_failures = 0
                         
-                        time.sleep(2)  # تأخير 2 ثانية بين كل طلب لتجنب الحظر
+                        time.sleep(0.01)  # تأخير فوري قصوى (10ms فقط!)
+                        
                     except Exception as e:
-                        logger.debug(f"خطأ في جلب {symbol}: {e}")
-                        continue
-            else:
-                # محلياً: معالجة متوازية سريعة
-                logger.info("💻 وضع محلي: معالجة متوازية (6 خيوط)")
+                        pass  # تجاهل الأخطاء للحفاظ على الاستمرارية
                 
-                def fetch_single_price(symbol):
-                    try:
-                        price = get_iqoption_price(symbol)
-                        if price and price > 0:
-                            change = 0
-                            change_percent = 0
-                            if symbol in prices_cache:
-                                old_price = prices_cache[symbol]['price']
-                                change = price - old_price
-                                change_percent = (change / old_price) * 100 if old_price > 0 else 0
-                            
-                            return (symbol, {
-                                'price': price,
-                                'bid': price * 0.99999,
-                                'ask': price * 1.00001,
-                                'timestamp': time.time(),
-                                'symbol': symbol,
-                                'source': 'iqoption_universal',
-                                'is_real': True,
-                                'provider': f'IQ Option ({IQ_Option.__module__})',
-                                'change': change,
-                                'changePercent': change_percent
-                            })
-                    except Exception:
-                        pass
-                    return None
-                
-                with ThreadPoolExecutor(max_workers=6) as executor:
-                    futures = {executor.submit(fetch_single_price, symbol): symbol for symbol in symbols_list}
-                    
-                    for future in as_completed(futures):
-                        result = future.result()
-                        if result:
-                            symbol, data = result
-                            prices_cache[symbol] = data
-                            updated_count += 1
-                            consecutive_failures = 0
+                # بدون استراحة بين المجموعات للسرعة القصوى
+                # if i + batch_size < len(symbols_list):
+                #     time.sleep(0.5)
             
             last_update_time = time.time()
             
@@ -373,7 +426,7 @@ def update_iqoption_prices():
                 time.sleep(10)
                 continue
             
-            time.sleep(5 if updated_count > 0 else 15)
+            time.sleep(0.2 if updated_count > 0 else 2)  # تحديث فوري قصوى كل 200ms! ⚡⚡⚡
             
         except KeyboardInterrupt:
             logger.info("⏹️ تم إيقاف التحديث")

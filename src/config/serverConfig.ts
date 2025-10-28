@@ -10,7 +10,7 @@
 //    3. انسخ الـ URL وضعه هنا بدلاً من Railway URL
 export const IQ_OPTION_SERVER_URL = 
   process.env.NODE_ENV === 'production' 
-    ? 'https://arrange-lamps-blues-proc.trycloudflare.com'  // ✅ Cloudflare Tunnel URL
+    ? import.meta.env.VITE_IQ_SERVER_URL || 'http://localhost:5000'  // ✅ من Netlify Environment Variable
     : 'http://localhost:5000';  // للتطوير المحلي
 
 // API endpoints

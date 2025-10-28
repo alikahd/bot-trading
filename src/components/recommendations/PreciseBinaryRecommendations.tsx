@@ -59,18 +59,22 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
 
   // جلب التوصيات عند التحميل - فقط إذا كان البوت مفعل
   useEffect(() => {
-    if (isActive) {
+    if (isActive && !isPaused) {
       loadRecommendations();
-      
-      // تحديث كل 10 ثوانٍ إذا لم يكن متوقفاً
-      const interval = setInterval(() => {
-        if (!isPaused) {
-          loadRecommendations();
-        }
-      }, 10000);
-
-      return () => clearInterval(interval);
     }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (!isActive || isPaused) return;
+    
+    // تحديث فوري كل ثانيتين للحصول على أحدث الأسعار ⚡⚡
+    const interval = setInterval(() => {
+      if (!isPaused) {
+        loadRecommendations();
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, [isActive, isPaused]);
 
   const loadRecommendations = async () => {

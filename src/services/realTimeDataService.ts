@@ -40,10 +40,10 @@ class RealTimeDataService {
     // جلب فوري عند البدء
     this.fetchData();
     
-    // تحديث كل 2 ثانية للمزامنة الفورية (أسرع)
+    // تحديث فوري كل نصف ثانية (500ms) للمزامنة الفورية! ⚡⚡
     this.updateInterval = setInterval(() => {
       this.fetchData();
-    }, 2000);
+    }, 500);
   }
 
   /**
