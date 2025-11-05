@@ -271,7 +271,7 @@ ${getRiskEmoji(rec.riskLevel)} <b>Risk:</b> ${rec.riskLevel}
 };
 
 // الدالة الرئيسية
-const handler: Handler = async (event, context) => {
+const mainHandler: Handler = async (event, context) => {
   console.log('🚀 بدء إرسال التوصيات إلى Telegram...');
 
   // التحقق من المتغيرات البيئية
@@ -333,10 +333,5 @@ const handler: Handler = async (event, context) => {
   }
 };
 
-// جدولة الدالة لتعمل كل 5 ثواني
-// ملاحظة: Netlify Functions لا تدعم جدولة أقل من دقيقة
-// للحصول على إرسال كل 5 ثواني، ستحتاج إلى خدمة cron خارجية
-export { handler };
-
 // تصدير كـ scheduled function (كل دقيقة)
-export const scheduledHandler = schedule('* * * * *', handler);
+export const handler = schedule('* * * * *', mainHandler);
