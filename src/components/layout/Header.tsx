@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Activity, Database, LogOut, User, Server, Menu, Settings, Globe, TrendingUp } from 'lucide-react';
+import { LogOut, User, Menu, Settings, Globe, TrendingUp, Users } from 'lucide-react';
 import { IQOptionStatus } from '../IQOptionStatus';
+import { UserNotifications } from '../notifications/UserNotifications';
+import { useAdminNotifications } from '../../contexts/AdminNotificationsContext';
 // تم حذف marketDataService - البيانات من IQ Option مباشرة
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -13,23 +15,19 @@ import { useLanguage, Language } from '../../contexts/LanguageContext';
 interface HeaderProps {
   isConnected: boolean;
   onToggleBot: () => void;
-  onOpenDataSource?: () => void;
-  onOpenRealDataPanel?: () => void;
-  onOpenApiStatus?: () => void;
   user?: AuthUser | null;
   onLogout?: () => void;
   onOpenSettings?: () => void;
+  onOpenReferral?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   isConnected, 
   onToggleBot, 
-  onOpenDataSource, 
-  onOpenRealDataPanel,
-  onOpenApiStatus,
   user,
   onLogout,
-  onOpenSettings
+  onOpenSettings,
+  onOpenReferral
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -60,6 +58,17 @@ export const Header: React.FC<HeaderProps> = ({
   
   // استخدام السياقات
   const { language, setLanguage, t } = useLanguage();
+
+  // إذا كان أدمن، استخدم Context للإشعارات
+  let adminData = null;
+  try {
+    if (user?.role === 'admin') {
+      adminData = useAdminNotifications();
+    }
+  } catch (error) {
+    // المستخدم العادي - لا يوجد Context
+    console.log('ℹ️ مستخدم عادي - لا إشعارات أدمن');
+  }
 
   useEffect(() => {
     const updateTime = () => {
@@ -158,14 +167,14 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-cyan-500/30 rounded-2xl blur-2xl opacity-60 group-hover:opacity-100 transition-all duration-700 animate-pulse" />
               
               {/* حاوية اللوغو مع حدود مضيئة */}
-              <div className="relative h-12 w-auto flex-shrink-0 p-1 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-2xl">
+              <div className="relative h-10 w-auto flex-shrink-0 p-1 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-2xl">
                 <img 
                   src="/images/logo.png" 
                   alt="Bot Trading Logo" 
                   loading="eager"
                   decoding="sync"
                   className="h-full w-auto object-contain drop-shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3"
-                  style={{ minWidth: '40px', minHeight: '40px' }}
+                  style={{ minWidth: '36px', minHeight: '36px' }}
                 />
               </div>
             </div>
@@ -174,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* الأزرار الحديثة - موضوعة فوق اللوغو */}
           <div className="relative flex items-center justify-between h-full" style={{ zIndex: 20 }}>
             {/* زر IQ Option Status الحديث - على اليسار في RTL */}
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => {
                   console.log('📈 زر IQ Option تم النقر عليه في الهاتف');
@@ -191,8 +200,17 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
             
-            {/* زر القائمة - على اليمين في RTL */}
-            <div className="flex items-center">
+            {/* زر القائمة والتنبيهات - على اليمين في RTL */}
+            <div className="flex items-center gap-2">
+              {/* زر التنبيهات للهاتف */}
+              <div className="md:hidden">
+                <UserNotifications 
+                  isAdmin={user?.role === 'admin'}
+                  adminNotificationsCount={adminData?.totalCount}
+                  adminNotificationsSummary={adminData?.notifications}
+                />
+              </div>
+              
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="group p-2 h-10 w-10 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 text-gray-200 hover:text-white transition-all duration-300 flex items-center justify-center backdrop-blur-sm border border-slate-700/50 hover:border-slate-600/70 shadow-lg hover:shadow-xl hover:shadow-slate-500/20 hover:scale-105"
@@ -247,6 +265,22 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
                       <span className="text-sm font-medium">{t('header.settings')}</span>
+                    </button>
+                  )}
+
+                  {/* زر الإحالة */}
+                  {onOpenReferral && user?.role === 'trader' && (
+                    <button
+                      onClick={() => {
+                        if (onOpenReferral) {
+                          onOpenReferral();
+                        }
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 p-3.5 text-gray-300 hover:text-white bg-gray-800/50 hover:bg-gradient-to-r hover:from-indigo-600/20 hover:to-purple-600/20 rounded-xl transition-all duration-300 border border-gray-700/50 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/20"
+                    >
+                      <Users className="w-5 h-5" />
+                      <span className="text-sm font-medium">{t('nav.referral')}</span>
                     </button>
                   )}
 
@@ -371,44 +405,6 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* أزرار الإعدادات والتحكم */}
               <div className="flex items-center gap-1 sm:gap-2">
-                {/* زر إدارة مصادر البيانات - للأدمن فقط */}
-                {user?.role === 'admin' && onOpenDataSource && (
-                  <Button
-                    onClick={onOpenDataSource}
-                    variant="ghost"
-                    size="sm"
-                    icon={<Database className="w-3 h-3 sm:w-4 sm:h-4" />}
-                    iconOnly={true}
-                    className="hover:bg-slate-800/60 p-1 sm:p-2"
-                  />
-                )}
-
-                {/* زر البيانات الحقيقية - للأدمن فقط */}
-                {user?.role === 'admin' && onOpenRealDataPanel && (
-                  <Button
-                    onClick={onOpenRealDataPanel}
-                    variant="glass"
-                    size="sm"
-                    icon={<Activity className="w-3 h-3 sm:w-4 sm:h-4" />}
-                    iconOnly={true}
-                    className="text-blue-400 hover:text-blue-300 p-1 sm:p-2"
-                  />
-                )}
-
-                {/* زر حالة APIs - للأدمن فقط */}
-                {user?.role === 'admin' && onOpenApiStatus && (
-                  <div title={t('header.apiStatus')}>
-                    <Button
-                      onClick={onOpenApiStatus}
-                      variant="glass"
-                      size="sm"
-                      icon={<Server className="w-3 h-3 sm:w-4 sm:h-4" />}
-                      iconOnly={true}
-                      className="text-purple-400 hover:text-purple-300 p-1 sm:p-2"
-                    />
-                  </div>
-                )}
-
                 {/* زر الإعدادات */}
                 {onOpenSettings && (
                   <div title="الإعدادات">
@@ -422,6 +418,27 @@ export const Header: React.FC<HeaderProps> = ({
                     />
                   </div>
                 )}
+
+                {/* زر الإحالة */}
+                {onOpenReferral && user?.role === 'trader' && (
+                  <div title={t('nav.referral')}>
+                    <Button
+                      onClick={onOpenReferral}
+                      variant="ghost"
+                      size="sm"
+                      icon={<Users className="w-3 h-3 sm:w-4 sm:h-4" />}
+                      iconOnly={true}
+                      className="text-gray-400 hover:text-indigo-400 p-1 sm:p-2"
+                    />
+                  </div>
+                )}
+
+                {/* زر التنبيهات */}
+                <UserNotifications 
+                  isAdmin={user?.role === 'admin'}
+                  adminNotificationsCount={adminData?.totalCount}
+                  adminNotificationsSummary={adminData?.notifications}
+                />
 
                 {/* زر تغيير اللغة */}
                 <LanguageSelector variant="default" />
@@ -502,60 +519,6 @@ export const Header: React.FC<HeaderProps> = ({
                       )}
 
 
-
-                      {/* إدارة البيانات */}
-                      {onOpenDataSource && (
-                        <button
-                          onClick={() => {
-                            onOpenDataSource();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-3 p-4 rounded-lg text-slate-200 hover:bg-slate-700 hover:text-white transition-all duration-200 font-medium",
-                            'text-right'
-                          )}
-                          style={{ backgroundColor: 'rgba(51, 65, 85, 0.3)' }}
-                        >
-                          <Database className="w-5 h-5 text-gray-400" />
-                          <span className="text-sm">{t('header.dataManagement')}</span>
-                        </button>
-                      )}
-
-                      {/* البيانات الحقيقية */}
-                      {onOpenRealDataPanel && (
-                        <button
-                          onClick={() => {
-                            onOpenRealDataPanel();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-3 p-4 rounded-lg text-blue-300 hover:bg-blue-900/30 hover:text-blue-200 transition-all duration-200 font-medium",
-                            'text-right'
-                          )}
-                          style={{ backgroundColor: 'rgba(30, 58, 138, 0.1)' }}
-                        >
-                          <Activity className="w-5 h-5 text-blue-400" />
-                          <span className="text-sm">{t('header.realData')}</span>
-                        </button>
-                      )}
-
-                      {/* حالة APIs - للأدمن فقط */}
-                      {user?.role === 'admin' && onOpenApiStatus && (
-                        <button
-                          onClick={() => {
-                            onOpenApiStatus();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-3 p-4 rounded-lg text-purple-300 hover:bg-purple-900/30 hover:text-purple-200 transition-all duration-200 font-medium",
-                            'text-right'
-                          )}
-                          style={{ backgroundColor: 'rgba(88, 28, 135, 0.1)' }}
-                        >
-                          <Server className="w-5 h-5 text-purple-400" />
-                          <span className="text-sm">{t('header.apiStatus')}</span>
-                        </button>
-                      )}
 
                       {/* حالة IQ Option */}
                       <button

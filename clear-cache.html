@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مسح الذاكرة المؤقتة</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        
+        .cache-list {
+            text-align: right;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .cache-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cache-key {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🧹</div>
+        <h1>مسح الذاكرة المؤقتة</h1>
+        <p>هذه الأداة ستساعدك على مسح جميع بيانات التطبيق المحفوظة في المتصفح</p>
+        
+        <div id="cacheList" class="cache-list"></div>
+        
+        <button class="btn" onclick="clearCache()">مسح الذاكرة المؤقتة</button>
+        <button class="btn btn-secondary" onclick="showCache()">عرض البيانات المحفوظة</button>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        // قائمة المفاتيح المعروفة في التطبيق
+        const knownKeys = [
+            'auth_state_cache',
+            'show_subscription_page',
+            'subscription_step',
+            'selected_plan',
+            'user_info',
+            'SHOW_DATA_SOURCE_PANEL',
+            'SHOW_REAL_DATA_PANEL',
+            'ACTIVE_TAB',
+            'email_just_verified'
+        ];
+
+        function showCache() {
+            const cacheList = document.getElementById('cacheList');
+            cacheList.innerHTML = '<h3 style="margin-bottom: 10px;">البيانات المحفوظة:</h3>';
+            
+            let foundItems = 0;
+            
+            // عرض المفاتيح المعروفة
+            knownKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value !== null) {
+                    foundItems++;
+                    const item = document.createElement('div');
+                    item.className = 'cache-item';
+                    item.innerHTML = `
+                        <span class="cache-key">${key}</span>
+                        <span style="font-size: 12px; color: #999;">${value.length} حرف</span>
+                    `;
+                    cacheList.appendChild(item);
+                }
+            });
+            
+            // عرض أي مفاتيح أخرى
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!knownKeys.includes(key)) {
+                    foundItems++;
+                    const value = localStorage.getItem(key);
+                    const item = document.createElement('div');
+                    item.className = 'cache-item';
+                    item.innerHTML = `
+                        <span class="cache-key">${key}</span>
+                        <span style="font-size: 12px; color: #999;">${value.length} حرف</span>
+                    `;
+                    cacheList.appendChild(item);
+                }
+            }
+            
+            if (foundItems === 0) {
+                cacheList.innerHTML = '<p style="color: #999; padding: 20px;">لا توجد بيانات محفوظة</p>';
+            }
+            
+            showStatus('تم عرض ' + foundItems + ' عنصر محفوظ', 'info');
+        }
+
+        function clearCache() {
+            const itemsCleared = localStorage.length;
+            
+            // مسح جميع البيانات
+            localStorage.clear();
+            
+            // مسح sessionStorage أيضاً
+            sessionStorage.clear();
+            
+            // مسح الكوكيز (إن وجدت)
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // تحديث العرض
+            document.getElementById('cacheList').innerHTML = '';
+            
+            showStatus('✅ تم مسح ' + itemsCleared + ' عنصر بنجاح!<br>يُنصح بإعادة تحميل الصفحة الآن.', 'success');
+            
+            // إعادة تحميل الصفحة بعد 2 ثانية
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.innerHTML = message;
+        }
+
+        // عرض البيانات المحفوظة عند تحميل الصفحة
+        window.onload = function() {
+            showCache();
+        };
+    </script>
+</body>
+</html>

@@ -49,26 +49,116 @@ const executeDirectQuery = async (query: string): Promise<RealSupabaseResponse> 
 const getUsersData = async (query: string): Promise<RealSupabaseResponse> => {
   try {
     // استخراج user_id من الاستعلام
-    const userIdMatch = query.match(/WHERE id = '([^']+)'/);
+    const userIdMatch = query.match(/WHERE u\.id = '([^']+)'/) || query.match(/WHERE id = '([^']+)'/);
     const userId = userIdMatch ? userIdMatch[1] : null;
     
     if (!userId) {
       return { data: null, error: 'لم يتم العثور على معرف المستخدم' };
     }
     
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, email, role, subscription_status, subscription_end_date, created_at')
-      .eq('id', userId)
-      .single();
+    // ✅ التحقق إذا كان الاستعلام يحتوي على JOIN (استعلام مدمج)
+    const hasJoin = query.includes('LEFT JOIN subscriptions') || query.includes('JOIN subscriptions');
     
-    if (error) {
-      console.error('❌ خطأ في جلب بيانات المستخدم:', error);
-      return { data: null, error: error.message };
+    if (hasJoin) {
+      // استعلام مدمج مع subscriptions و subscription_plans
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, username, email, role, subscription_status, subscription_end_date, created_at')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (userError) {
+        console.error('❌ خطأ في جلب بيانات المستخدم:', userError);
+        return { data: null, error: userError.message };
+      }
+      
+      if (!userData) {
+        console.log('⚠️ المستخدم غير موجود في قاعدة البيانات');
+        return { data: [], error: null };
+      }
+      
+      // جلب بيانات الاشتراك النشط
+      const { data: subData, error: subError } = await supabase
+        .from('subscriptions')
+        .select(`
+          id,
+          status,
+          start_date,
+          end_date,
+          plan_id,
+          subscription_plans!inner(
+            name,
+            name_ar,
+            features_ar,
+            price
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (subError) {
+        console.error('❌ خطأ في جلب بيانات الاشتراك:', subError);
+      }
+      
+      // دمج البيانات
+      let combinedData: any = {
+        ...userData,
+        subscription_id: null,
+        subscription_table_status: null,
+        start_date: null,
+        end_date: null,
+        plan_id: null,
+        plan_name: null,
+        plan_name_ar: null,
+        features: null,
+        plan_price: null
+      };
+      
+      if (subData && subData.length > 0) {
+        const subscription = subData[0];
+        const planData = Array.isArray(subscription.subscription_plans) 
+          ? subscription.subscription_plans[0] 
+          : subscription.subscription_plans;
+        
+        combinedData = {
+          ...combinedData,
+          subscription_id: subscription.id,
+          subscription_table_status: subscription.status,
+          start_date: subscription.start_date,
+          end_date: subscription.end_date,
+          plan_id: subscription.plan_id,
+          plan_name: planData?.name || null,
+          plan_name_ar: planData?.name_ar || null,
+          features: planData?.features_ar || null,
+          plan_price: planData?.price || null
+        };
+      }
+      
+      console.log('✅ تم جلب بيانات المستخدم والاشتراك بنجاح');
+      return { data: [combinedData], error: null };
+    } else {
+      // استعلام بسيط بدون JOIN
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, username, email, role, subscription_status, subscription_end_date, created_at')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('❌ خطأ في جلب بيانات المستخدم:', error);
+        return { data: null, error: error.message };
+      }
+      
+      if (!data) {
+        console.log('⚠️ المستخدم غير موجود في قاعدة البيانات');
+        return { data: [], error: null };
+      }
+      
+      console.log('✅ تم جلب بيانات المستخدم بنجاح');
+      return { data: [data], error: null };
     }
-    
-    console.log('✅ تم جلب بيانات المستخدم بنجاح');
-    return { data: [data], error: null };
     
   } catch (error) {
     return { data: null, error: `خطأ في جلب المستخدمين: ${error}` };

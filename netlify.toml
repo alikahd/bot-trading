@@ -1,0 +1,31 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Scheduled function - تعمل كل دقيقة
+[functions."send-telegram-signals"]
+  schedule = "* * * * *"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    # السماح بـ WebSocket
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+
+# تمكين WebSocket
+[[headers]]
+  for = "/ws/*"
+  [headers.values]
+    Connection = "Upgrade"
+    Upgrade = "websocket"

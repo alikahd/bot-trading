@@ -35,6 +35,33 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
+
+  // دالة للتحقق من قوة كلمة المرور
+  const checkPasswordStrength = (password: string): 'weak' | 'medium' | 'strong' => {
+    let strength = 0;
+    
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (/[a-z]/.test(password)) strength++; // حروف صغيرة
+    if (/[A-Z]/.test(password)) strength++; // حروف كبيرة
+    if (/[0-9]/.test(password)) strength++; // أرقام
+    if (/[^a-zA-Z0-9]/.test(password)) strength++; // رموز خاصة
+    
+    if (strength <= 2) return 'weak';
+    if (strength <= 4) return 'medium';
+    return 'strong';
+  };
+
+  // تحديث قوة كلمة المرور عند الكتابة
+  const handleNewPasswordChange = (value: string) => {
+    setNewPassword(value);
+    if (value) {
+      setPasswordStrength(checkPasswordStrength(value));
+    } else {
+      setPasswordStrength(null);
+    }
+  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +76,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       setMessage({ type: 'error', text: t('settings.passwordTooShort') });
+      return;
+    }
+
+    // التحقق من قوة كلمة المرور
+    const strength = checkPasswordStrength(newPassword);
+    if (strength === 'weak') {
+      setMessage({ type: 'error', text: t('settings.passwordTooWeak') });
       return;
     }
 
@@ -168,11 +202,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <input
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={(e) => handleNewPasswordChange(e.target.value)}
                   className={`small-placeholder w-full bg-gray-700 text-white px-3 py-2.5 rounded-lg text-[10px] sm:text-xs border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 ${language === 'ar' ? 'pr-10' : 'pl-10'}`}
                   placeholder={t('settings.enterNewPassword')}
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -182,6 +216,36 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              
+              {/* مؤشر قوة كلمة المرور */}
+              {newPassword && passwordStrength && (
+                <div className="mt-2">
+                  <div className="flex gap-1 mb-1">
+                    <div className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                      passwordStrength === 'weak' ? 'bg-red-500' :
+                      passwordStrength === 'medium' ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}></div>
+                    <div className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                      passwordStrength === 'medium' ? 'bg-yellow-500' :
+                      passwordStrength === 'strong' ? 'bg-green-500' :
+                      'bg-gray-600'
+                    }`}></div>
+                    <div className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                      passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-600'
+                    }`}></div>
+                  </div>
+                  <p className={`text-xs ${
+                    passwordStrength === 'weak' ? 'text-red-400' :
+                    passwordStrength === 'medium' ? 'text-yellow-400' :
+                    'text-green-400'
+                  }`}>
+                    {passwordStrength === 'weak' && t('settings.weakPassword')}
+                    {passwordStrength === 'medium' && t('settings.mediumPassword')}
+                    {passwordStrength === 'strong' && t('settings.strongPassword')}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* تأكيد كلمة المرور الجديدة */}

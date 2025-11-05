@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -17,7 +17,9 @@ import {
   PieChart,
   Menu,
   Smartphone,
-  Monitor
+  Monitor,
+  Bell,
+  Ticket
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -26,16 +28,22 @@ import { cn } from '../../styles/designSystem';
 import { User, useSimpleAuth } from '../../services/simpleAuthService';
 import { SubscriptionManagement } from './SubscriptionManagement';
 import { PaymentManagement } from './PaymentManagement';
-import { subscriptionService } from '../../services/subscriptionService';
+import { AdminNotificationPanel } from './AdminNotificationPanel';
+import { CouponManagement } from './CouponManagement';
+import { CommissionManagement } from './CommissionManagement';
+import { ReferralSettings } from './ReferralSettings';
+import { AutoPayoutSettings } from './AutoPayoutSettings';
+import { ReferralNotificationControl } from './ReferralNotificationControl';
+import { supabase } from '../../config/supabaseClient';
 
 interface AdminPanelProps {
   currentUser: User;
 }
 
-type TabType = 'dashboard' | 'users' | 'subscriptions' | 'payments' | 'settings';
+type TabType = 'dashboard' | 'users' | 'subscriptions' | 'payments' | 'notifications' | 'coupons' | 'commissions' | 'autopayout' | 'referral-notifications' | 'settings';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
-  const { getAllUsers, createUser: authCreateUser, updateUser: authUpdateUser, deleteUser: authDeleteUser } = useSimpleAuth();
+  const { createUser: authCreateUser, updateUser: authUpdateUser, deleteUser: authDeleteUser } = useSimpleAuth();
   
   // الحالات الأساسية
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -44,7 +52,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'trader'>('all');
-  const loadingRef = useRef(false);
   
   // حالات النماذج
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -75,58 +82,161 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     pendingPayments: 0
   });
 
-  // تحميل البيانات
+  // إشعارات الأدمن
+  const [notifications, setNotifications] = useState({
+    newUsers: 0,
+    pendingPayments: 0,
+    pendingCommissions: 0,
+    expiringSoon: 0
+  });
+
+  // تتبع آخر مشاهدة للصفحات
+  const [lastViewedPages, setLastViewedPages] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('admin_last_viewed_pages');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // تحميل البيانات وإعداد Realtime
   useEffect(() => {
+    console.log('🚀 AdminPanel useEffect - بدء التحميل الأولي');
     loadDashboardData();
+
+    // ✅ إعداد Realtime subscriptions للمزامنة الفورية
+    console.log('🔴 إعداد Realtime subscriptions...');
+
+    // مزامنة المستخدمين
+    const usersChannel = supabase
+      .channel('admin-users-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'users' },
+        (payload) => {
+          console.log('🔄 تغيير في المستخدمين:', payload);
+          loadDashboardData();
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    // مزامنة الاشتراكات
+    const subscriptionsChannel = supabase
+      .channel('admin-subscriptions-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions' },
+        (payload) => {
+          console.log('🔄 تغيير في الاشتراكات:', payload);
+          loadDashboardData();
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    // مزامنة المدفوعات
+    const paymentsChannel = supabase
+      .channel('admin-payments-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'payments' },
+        (payload) => {
+          console.log('🔄 تغيير في المدفوعات:', payload);
+          console.log('🔄 نوع الحدث:', payload.eventType);
+          console.log('🔄 البيانات الجديدة:', payload.new);
+          loadDashboardData();
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    // مزامنة العمولات
+    const commissionsChannel = supabase
+      .channel('admin-commissions-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'pending_commissions' },
+        (payload) => {
+          console.log('🔄 تغيير في العمولات:', payload);
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    // تنظيف الاشتراكات عند إلغاء التحميل
+    return () => {
+      console.log('🧹 تنظيف Realtime subscriptions...');
+      supabase.removeChannel(usersChannel);
+      supabase.removeChannel(subscriptionsChannel);
+      supabase.removeChannel(paymentsChannel);
+      supabase.removeChannel(commissionsChannel);
+    };
   }, []);
 
-  const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
-    return new Promise<T>((resolve, reject) => {
-      const id = setTimeout(() => {
-        console.warn(`⏰ ${label} timed out after ${ms}ms`);
-        reject(new Error('timeout'));
-      }, ms);
-      promise.then(
-        (val) => { clearTimeout(id); resolve(val); },
-        (err) => { clearTimeout(id); reject(err); }
-      );
-    });
-  };
-
   const loadDashboardData = async () => {
+    console.log('🔄 بدء تحميل بيانات لوحة التحكم...');
+    
+    setLoading(true);
+    
     try {
-      if (loadingRef.current) {
-        console.log('⏳ تجاهل تحميل متزامن للوحة التحكم');
-        return;
+      
+      // جلب المستخدمين مباشرة من Supabase
+      console.log('📥 جلب المستخدمين من قاعدة البيانات...');
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (usersError) {
+        console.error('❌ خطأ في جلب المستخدمين:', usersError);
+        throw usersError;
       }
-      loadingRef.current = true;
-      console.log('🔄 بدء تحميل بيانات لوحة التحكم...');
-      setLoading(true);
       
-      // جلب البيانات بالتوازي مع حماية timeout لكل استدعاء
-      console.log('📥 جلب المستخدمين...');
-      console.log('📊 جلب الاشتراكات...');
-      const [usersRes, subsRes] = await Promise.allSettled([
-        withTimeout(getAllUsers(), 8000, 'getAllUsers'),
-        withTimeout(subscriptionService.getAllSubscriptions(), 8000, 'getAllSubscriptions')
-      ]);
-      const usersData = usersRes.status === 'fulfilled' ? usersRes.value : [];
-      const subscriptions = subsRes.status === 'fulfilled' ? subsRes.value : [];
-      if (usersRes.status !== 'fulfilled') console.warn('⚠️ getAllUsers failed or timed out');
-      if (subsRes.status !== 'fulfilled') console.warn('⚠️ getAllSubscriptions failed or timed out');
+      console.log('✅ تم جلب المستخدمين:', usersData?.length || 0, usersData);
+      setUsers(usersData || []);
       
-      console.log('✅ تم جلب المستخدمين:', usersData.length);
-      console.log('✅ تم جلب الاشتراكات:', subscriptions.length);
-      setUsers(usersData);
+      // جلب الاشتراكات مباشرة من Supabase
+      console.log('📊 جلب الاشتراكات من قاعدة البيانات...');
+      const { data: subscriptions, error: subsError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .order('created_at', { ascending: false });
       
+      if (subsError) {
+        console.error('❌ خطأ في جلب الاشتراكات:', subsError);
+      }
+      
+      console.log('✅ تم جلب الاشتراكات:', subscriptions?.length || 0);
+      
+      // جلب جميع المدفوعات لحساب الإحصائيات
+      const { data: allPayments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('amount, status');
+      
+      if (paymentsError) {
+        console.error('❌ خطأ في جلب المدفوعات:', paymentsError);
+      }
+      
+      // المدفوعات المكتملة
+      const completedPayments = allPayments?.filter((p: any) => p.status === 'completed') || [];
+      console.log('💰 المدفوعات المكتملة:', completedPayments.length);
+      
+      // المدفوعات المعلقة
+      const pendingPayments = allPayments?.filter((p: any) => 
+        p.status === 'pending' || 
+        p.status === 'pending_review' || 
+        p.status === 'crypto_pending' || 
+        p.status === 'reviewing'
+      ) || [];
+      console.log('⏳ المدفوعات المعلقة:', pendingPayments.length);
+      
+      // حساب الإيرادات الفعلية (رقمين بعد الفاصلة)
+      const totalRevenue = completedPayments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+      const formattedRevenue = Math.round(totalRevenue * 100) / 100;
+      
+      // حساب الإحصائيات الدقيقة
       const dashboardStats = {
-        totalUsers: usersData.length,
-        activeUsers: usersData.filter(u => u.is_active).length,
-        admins: usersData.filter(u => u.role === 'admin').length,
-        traders: usersData.filter(u => u.role === 'trader').length,
-        totalRevenue: subscriptions.reduce((sum: number, sub: any) => sum + (sub.subscription_plans?.price || 0), 0),
-        activeSubscriptions: subscriptions.filter((sub: any) => sub.status === 'active').length,
-        pendingPayments: subscriptions.filter((sub: any) => sub.status === 'pending').length
+        totalUsers: usersData?.length || 0,
+        activeUsers: usersData?.filter((u: any) => u.is_active === true).length || 0,
+        admins: usersData?.filter((u: any) => u.role === 'admin').length || 0,
+        traders: usersData?.filter((u: any) => u.role === 'trader').length || 0,
+        totalRevenue: formattedRevenue,
+        activeSubscriptions: subscriptions?.filter((sub: any) => sub.status === 'active').length || 0,
+        pendingPayments: pendingPayments.length
       };
       
       console.log('📈 الإحصائيات:', dashboardStats);
@@ -147,9 +257,93 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     } finally {
       console.log('🏁 انتهى تحميل لوحة التحكم');
       setLoading(false);
-      loadingRef.current = false;
     }
   };
+
+  // تحديث آخر مشاهدة للصفحة
+  const markPageAsViewed = (page: string) => {
+    const now = new Date().toISOString();
+    const updated = { ...lastViewedPages, [page]: now };
+    setLastViewedPages(updated);
+    localStorage.setItem('admin_last_viewed_pages', JSON.stringify(updated));
+    console.log(`✅ تم تحديث آخر مشاهدة لصفحة ${page}:`, now);
+  };
+
+  // تحميل الإشعارات
+  const loadNotifications = async () => {
+    try {
+      console.log('🔔 بدء تحميل الإشعارات...');
+      
+      // 1. المستخدمين الجدد (بعد آخر مشاهدة)
+      const lastViewedUsers = lastViewedPages['users'] || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      
+      const { data: newUsersData } = await supabase
+        .from('users')
+        .select('id')
+        .gte('created_at', lastViewedUsers);
+      
+      console.log('👥 مستخدمين جدد منذ آخر مشاهدة:', newUsersData?.length || 0);
+      
+      // 2. المدفوعات المعلقة
+      const { data: pendingPaymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('id, status')
+        .in('status', ['pending', 'pending_review', 'crypto_pending', 'reviewing']);
+      
+      if (paymentsError) {
+        console.error('❌ خطأ في جلب المدفوعات المعلقة:', paymentsError);
+      }
+      
+      console.log('💰 مدفوعات معلقة:', pendingPaymentsData?.length || 0, pendingPaymentsData);
+      
+      // 3. العمولات المعلقة
+      const { data: pendingCommissionsData, error: commissionsError } = await supabase
+        .from('pending_commissions')
+        .select('id');
+      
+      if (commissionsError) {
+        console.error('❌ خطأ في جلب العمولات المعلقة:', commissionsError);
+      }
+      
+      console.log('💵 عمولات معلقة:', pendingCommissionsData?.length || 0);
+      
+      // 4. الاشتراكات التي ستنتهي قريباً (خلال 7 أيام)
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      
+      const { data: expiringSoonData } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('status', 'active')
+        .lte('end_date', nextWeek.toISOString())
+        .gte('end_date', new Date().toISOString());
+      
+      console.log('📅 اشتراكات ستنتهي قريباً:', expiringSoonData?.length || 0);
+      
+      const notificationsData = {
+        newUsers: newUsersData?.length || 0,
+        pendingPayments: pendingPaymentsData?.length || 0,
+        pendingCommissions: pendingCommissionsData?.length || 0,
+        expiringSoon: expiringSoonData?.length || 0
+      };
+      
+      console.log('✅ إجمالي الإشعارات:', notificationsData);
+      
+      setNotifications(notificationsData);
+    } catch (error) {
+      console.error('❌ خطأ في تحميل الإشعارات:', error);
+    }
+  };
+
+  // تحديث الإشعارات مع البيانات
+  useEffect(() => {
+    loadNotifications();
+    
+    // تحديث الإشعارات كل دقيقة
+    const interval = setInterval(loadNotifications, 60000);
+    
+    return () => clearInterval(interval);
+  }, [lastViewedPages]); // إعادة التحميل عند تغيير آخر مشاهدة
 
   // تصفية المستخدمين
   const filteredUsers = users.filter(user => {
@@ -165,20 +359,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
   // قائمة التبويبات
   const tabs = [
-    { id: 'dashboard', label: 'لوحة المعلومات', icon: BarChart3 },
-    { id: 'users', label: 'إدارة المستخدمين', icon: Users },
-    { id: 'subscriptions', label: 'إدارة الاشتراكات', icon: CreditCard },
-    { id: 'payments', label: 'إدارة المدفوعات', icon: DollarSign },
-    { id: 'settings', label: 'الإعدادات', icon: Settings }
+    { id: 'dashboard', label: 'لوحة المعلومات', icon: BarChart3, badge: 0 },
+    { id: 'users', label: 'إدارة المستخدمين', icon: Users, badge: notifications.newUsers },
+    { id: 'subscriptions', label: 'إدارة الاشتراكات', icon: CreditCard, badge: notifications.expiringSoon },
+    { id: 'payments', label: 'إدارة المدفوعات', icon: DollarSign, badge: notifications.pendingPayments },
+    { id: 'notifications', label: 'إدارة التنبيهات', icon: Bell, badge: 0 },
+    { id: 'coupons', label: 'إدارة الكوبونات', icon: Ticket, badge: 0 },
+    { id: 'commissions', label: 'إدارة العمولات', icon: TrendingUp, badge: notifications.pendingCommissions },
+    { id: 'autopayout', label: 'الدفع التلقائي', icon: Calendar, badge: 0 },
+    { id: 'referral-notifications', label: 'إشعارات الإحالة', icon: Bell, badge: 0 },
+    { id: 'settings', label: 'الإعدادات', icon: Settings, badge: 0 }
   ];
 
   // بطاقات الإحصائيات
-  const StatCard = ({ title, value, icon: Icon, color, trend }: {
+  const StatCard = ({ title, value, icon: Icon, color, trend, isRevenue }: {
     title: string;
     value: number;
     icon: any;
     color: 'blue' | 'green' | 'purple' | 'orange';
     trend?: number;
+    isRevenue?: boolean;
   }) => (
     <Card className="p-3 sm:p-4 lg:p-6 hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:scale-105">
       <div className="flex items-center justify-between">
@@ -187,7 +387,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             {title}
           </p>
           <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-1">
-            {value.toLocaleString()}
+            {isRevenue ? `$${value.toFixed(2)}` : value.toLocaleString()}
           </p>
           {trend && (
             <p className={cn(
@@ -249,6 +449,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           icon={DollarSign}
           color="orange"
           trend={22}
+          isRevenue={true}
         />
       </div>
 
@@ -963,16 +1164,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as TabType)}
+                    onClick={() => {
+                      setActiveTab(tab.id as TabType);
+                      // تحديث آخر مشاهدة عند الضغط على الزر
+                      markPageAsViewed(tab.id);
+                    }}
                     className={cn(
-                      "w-full group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
+                      "w-full group flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
                       activeTab === tab.id
                         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200 shadow-sm border border-blue-200 dark:border-blue-800"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white"
                     )}
                   >
-                    <Icon className="mr-3 flex-shrink-0 h-5 w-5" />
-                    {tab.label}
+                    <div className="flex items-center">
+                      <Icon className="mr-3 flex-shrink-0 h-5 w-5" />
+                      {tab.label}
+                    </div>
+                    {tab.badge > 0 && (
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full animate-pulse">
+                        {tab.badge}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -1029,16 +1241,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                       onClick={() => {
                         setActiveTab(tab.id as TabType);
                         setIsMobileMenuOpen(false);
+                        // تحديث آخر مشاهدة عند الضغط على الزر
+                        markPageAsViewed(tab.id);
                       }}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                        "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                         activeTab === tab.id
                           ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                           : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
                       )}
                     >
-                      <Icon className="w-4 h-4" />
-                      {tab.label}
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-4 h-4" />
+                        {tab.label}
+                      </div>
+                      {tab.badge > 0 && (
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                          {tab.badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -1071,27 +1292,45 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                 {activeTab === 'dashboard' && <DashboardContent />}
                 {activeTab === 'users' && <UsersContent />}
                 {activeTab === 'subscriptions' && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <SubscriptionManagement 
-                      isVisible={true}
-                      onClose={() => setActiveTab('dashboard')}
-                    />
-                  </div>
+                  <SubscriptionManagement 
+                    isVisible={true}
+                    onClose={() => setActiveTab('dashboard')}
+                  />
                 )}
                 {activeTab === 'payments' && (
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <PaymentManagement currentUser={currentUser} />
                   </div>
                 )}
+                {activeTab === 'notifications' && (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <AdminNotificationPanel />
+                  </div>
+                )}
+                {activeTab === 'coupons' && (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <CouponManagement />
+                  </div>
+                )}
+                {activeTab === 'commissions' && (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <CommissionManagement />
+                  </div>
+                )}
+                {activeTab === 'autopayout' && (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <AutoPayoutSettings />
+                  </div>
+                )}
+                {activeTab === 'referral-notifications' && (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">إدارة إشعارات الإحالة</h2>
+                    <ReferralNotificationControl />
+                  </div>
+                )}
                 {activeTab === 'settings' && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-                    <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                      الإعدادات
-                    </h3>
-                    <p className="text-gray-500 dark:text-gray-400">
-                      قريباً... سيتم إضافة إعدادات النظام المتقدمة هنا
-                    </p>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <ReferralSettings />
                   </div>
                 )}
               </div>

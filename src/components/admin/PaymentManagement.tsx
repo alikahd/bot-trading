@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Clock, 
   Check, 
   X, 
   Eye, 
@@ -64,22 +63,16 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
       realtimeSubscription = sub;
     });
     
-    // تحديث تلقائي كل 5 دقائق كنسخة احتياطية
+    // ✅ إلغاء التحديث المتكرر - Realtime يكفي!
+    // تحديث احتياطي فقط كل دقيقة واحدة (بدلاً من 10 ثوانٍ)
     const interval = setInterval(() => {
-      console.log('🔄 تحديث تلقائي للمدفوعات...');
+      console.log('🔄 تحديث احتياطي للمدفوعات...');
       paymentService.clearCache();
       loadPayments();
-    }, 300000); // 5 دقائق
-    
-    // تحديث خفيف متكرر لضمان ظهور المدفوعات الجديدة حتى عند تعطل Realtime
-    const liveInterval = setInterval(() => {
-      paymentService.clearCache();
-      loadPayments();
-    }, 10000);
+    }, 60000); // دقيقة واحدة فقط
     
     return () => {
       clearInterval(interval);
-      clearInterval(liveInterval);
       if (realtimeSubscription) {
         realtimeSubscription.unsubscribe();
       }
@@ -240,70 +233,39 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
     return matchesSearch && matchesStatus && matchesMethod;
   });
 
+  // حساب الإحصائيات الدقيقة
+  const completedPayments = payments.filter(p => p.status === 'completed' || p.status === 'crypto_approved');
+  const totalRevenue = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+  const formattedRevenue = Math.round(totalRevenue * 100) / 100; // رقمين بعد الفاصلة
+  
   const stats = {
     total: payments.length,
     pending: payments.filter(p => p.status === 'pending' || p.status === 'crypto_pending').length,
     reviewing: payments.filter(p => p.status === 'reviewing' || p.status === 'crypto_pending').length,
-    completed: payments.filter(p => p.status === 'completed' || p.status === 'crypto_approved').length,
-    totalRevenue: payments.filter(p => p.status === 'completed' || p.status === 'crypto_approved').reduce((sum, p) => sum + p.amount, 0)
+    completed: completedPayments.length,
+    totalRevenue: formattedRevenue
   };
 
   return (
     <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
       {/* إحصائيات المدفوعات */}
-      <div className="space-y-2 sm:space-y-3">
-        {/* الإحصائيات في صف واحد للهواتف */}
-        <div className="grid grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3">
-          <div className="bg-slate-800 p-2 sm:p-3 rounded-lg">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
-              <span className="text-xs text-slate-400">الإجمالي</span>
-            </div>
-            <div className="text-sm sm:text-lg font-bold text-white">{stats.total}</div>
-          </div>
-          
-          <div className="bg-slate-800 p-2 sm:p-3 rounded-lg">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
-              <span className="text-xs text-slate-400">مراجعة</span>
-            </div>
-            <div className="text-sm sm:text-lg font-bold text-white">{stats.reviewing}</div>
-          </div>
-          
-          <div className="bg-slate-800 p-2 sm:p-3 rounded-lg">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
-              <span className="text-xs text-slate-400">مكتملة</span>
-            </div>
-            <div className="text-sm sm:text-lg font-bold text-white">{stats.completed}</div>
-          </div>
-          
-          <div className="bg-slate-800 p-2 sm:p-3 rounded-lg">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Wallet className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
-              <span className="text-xs text-slate-400">الإيرادات</span>
-            </div>
-            <div className="text-sm sm:text-lg font-bold text-green-400">${stats.totalRevenue.toFixed(2)}</div>
-          </div>
-        </div>
-        
-        {/* زر التحديث في صف منفصل للهواتف */}
-        <div className="bg-slate-800 p-2 sm:p-3 rounded-lg">
-          <Button
-            onClick={() => {
-              paymentService.clearCache();
-              console.log('🔄 تحديث يدوي - مسح الـ cache');
-              loadPayments();
-            }}
-            variant="ghost"
-            size="sm"
-            className="w-full h-full text-xs"
-            disabled={loading}
-          >
-            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="ml-1">{loading ? 'تحديث...' : 'تحديث'}</span>
-          </Button>
-        </div>
+      <div className="grid grid-cols-4 gap-1 sm:gap-2 lg:gap-4 mb-3 sm:mb-4 lg:mb-6">
+        <Card padding="sm" className="text-center py-1 sm:py-2">
+          <div className="text-sm sm:text-base lg:text-2xl font-bold text-white">{stats.total}</div>
+          <div className="text-[8px] sm:text-[10px] lg:text-sm text-gray-400">إجمالي</div>
+        </Card>
+        <Card padding="sm" className="text-center py-1 sm:py-2">
+          <div className="text-sm sm:text-base lg:text-2xl font-bold text-yellow-400">{stats.reviewing}</div>
+          <div className="text-[8px] sm:text-[10px] lg:text-sm text-gray-400">مراجعة</div>
+        </Card>
+        <Card padding="sm" className="text-center py-1 sm:py-2">
+          <div className="text-sm sm:text-base lg:text-2xl font-bold text-green-400">{stats.completed}</div>
+          <div className="text-[8px] sm:text-[10px] lg:text-sm text-gray-400">مكتملة</div>
+        </Card>
+        <Card padding="sm" className="text-center py-1 sm:py-2">
+          <div className="text-sm sm:text-base lg:text-2xl font-bold text-green-400">${stats.totalRevenue.toFixed(2)}</div>
+          <div className="text-[8px] sm:text-[10px] lg:text-sm text-gray-400">إيرادات</div>
+        </Card>
       </div>
 
       {/* أدوات البحث والتصفية */}
@@ -388,17 +350,28 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
               
               {/* الصف الثالث: الأزرار */}
               <div className="flex gap-1 justify-end">
-                {/* زر عرض الصورة - يظهر للعملات الرقمية أو إذا كانت هناك صورة إثبات */}
-                {(payment.payment_method === 'crypto' || payment.payment_method === 'bitcoin' || payment.payment_method === 'usdt' || payment.proof_image) && (
+                {/* زر عرض الصورة - يظهر للعملات الرقمية */}
+                {(payment.payment_method === 'crypto' || payment.payment_method === 'bitcoin' || payment.payment_method === 'usdt') && (
                   <Button
                     size="sm"
                     variant="ghost"
                     className="px-2 py-1"
-                    onClick={() => {
+                    onClick={async () => {
                       console.log('🖼️ عرض صورة الدفع:', payment.id);
-                      console.log('📸 رابط الصورة:', payment.proof_image);
-                      console.log('📋 بيانات الدفع:', payment);
-                      setSelectedPayment(payment);
+                      
+                      // جلب الصورة من قاعدة البيانات
+                      const proofData = await paymentService.getPaymentProofImage(payment.id);
+                      console.log('📸 بيانات الصورة:', proofData);
+                      
+                      // تحديث بيانات الدفع بالصورة
+                      const paymentWithProof = {
+                        ...payment,
+                        crypto_proof_image: proofData?.crypto_proof_image,
+                        proof_image: proofData?.proof_image
+                      };
+                      
+                      console.log('📋 بيانات الدفع مع الصورة:', paymentWithProof);
+                      setSelectedPayment(paymentWithProof);
                       setShowProofModal(true);
                     }}
                   >
@@ -515,12 +488,12 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
               </div>
               
               {/* عرض الصورة للعملات الرقمية */}
-              {(selectedPayment.payment_method === 'crypto' || selectedPayment.payment_method === 'bitcoin' || selectedPayment.payment_method === 'usdt') && selectedPayment.proof_image && (
+              {(selectedPayment.payment_method === 'crypto' || selectedPayment.payment_method === 'bitcoin' || selectedPayment.payment_method === 'usdt') && (selectedPayment.crypto_proof_image || selectedPayment.proof_image) && (
                 <div className="text-center">
                   <div className="bg-slate-800/50 p-3 rounded-lg">
                     <div className="relative">
                       <img 
-                        src={selectedPayment.proof_image} 
+                        src={selectedPayment.crypto_proof_image || selectedPayment.proof_image} 
                         alt="صورة تأكيد الدفع"
                         className="w-full h-auto max-h-[50vh] object-contain mx-auto rounded-lg border-2 border-slate-700 shadow-xl cursor-zoom-in"
                         onClick={() => {
@@ -551,7 +524,7 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
                                   </style>
                                 </head>
                                 <body>
-                                  <img src="${selectedPayment.proof_image}" alt="صورة إثبات الدفع" />
+                                  <img src="${selectedPayment.crypto_proof_image || selectedPayment.proof_image}" alt="صورة إثبات الدفع" />
                                 </body>
                               </html>
                             `);
@@ -577,7 +550,7 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
               )}
               
               {/* رسالة إذا لم تكن هناك صورة */}
-              {(selectedPayment.payment_method === 'crypto' || selectedPayment.payment_method === 'bitcoin' || selectedPayment.payment_method === 'usdt') && !selectedPayment.proof_image && (
+              {(selectedPayment.payment_method === 'crypto' || selectedPayment.payment_method === 'bitcoin' || selectedPayment.payment_method === 'usdt') && !selectedPayment.crypto_proof_image && !selectedPayment.proof_image && (
                 <div className="text-center p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                   <div className="text-yellow-400 mb-2">⚠️ لا توجد صورة إثبات</div>
                   <p className="text-gray-300 text-sm">

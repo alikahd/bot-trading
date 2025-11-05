@@ -13,10 +13,13 @@ import {
   RefreshCw,
   BarChart3,
   Pause,
-  Play
+  Play,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { advancedAnalysisEngine } from '../../services/advancedAnalysis';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { notificationSound } from '../../services/notificationSound';
 
 // تعريف النوع محلياً
 interface CurrencyRecommendation {
@@ -53,6 +56,7 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
   const [selectedRecommendation, setSelectedRecommendation] = useState<CurrencyRecommendation | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -71,32 +75,45 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
   useEffect(() => {
     if (!isActive || isPaused) return;
     
-    // تحديث فوري كل 3 ثوانٍ للحصول على أحدث التوصيات ⚡⚡
+    // عرض متتالي للتوصيات - تحديث كل 15 ثانية
     const interval = setInterval(() => {
       if (!isPaused) {
         loadRecommendations();
       }
-    }, 3000);
+    }, 15000); // 15 ثانية - عرض متتالي سريع جداً
     
     return () => clearInterval(interval);
   }, [isActive, isPaused]);
 
   const loadRecommendations = async () => {
+    if (!isActive || isPaused) {
+      console.log('⏸️ التوصيات الذكية متوقفة مؤقتاً');
+      return;
+    }
+    
     setLoading(true);
     try {
-      console.log('🚀 بدء تحليل التوصيات الذكية من IQ Option...');
-      console.log('✅ مصدر البيانات: IQ Option Real Data (بيانات حقيقية)');
-      console.log('🎯 الحد الأدنى للثقة: 55% (مع نظام احتياطي عند 45%)');
+      console.log('🚀 بدء تحليل التوصيات الذكية من Binary.com...');
+      console.log('✅ مصدر البيانات: Binary.com WebSocket (بيانات فورية)');
+      console.log('⚡ سرعة التحديث: كل 15 ثانية (عرض متتالي سريع جداً)');
+      console.log('🔍 نظام فحص جودة البيانات: مفعل');
+      console.log('⚙️ الحد الأدنى للثقة: 40% + جودة بيانات ≥70%');
       
-      // استخدام المحرك المتقدم للتحليل (بيانات حقيقية من IQ Option)
+      // استخدام المحرك المتقدم للتحليل (بيانات مباشرة من Binary.com)
       const signals = await advancedAnalysisEngine.analyzeAllSymbols();
       
       console.log(`📊 تم إنشاء ${signals.length} إشارة من المحرك المتقدم`);
       
+      if (signals.length === 0) {
+        console.warn('⚠️ لا توجد إشارات متاحة - سيتم المحاولة مرة أخرى في 15 ثانية');
+        setLoading(false);
+        return;
+      }
+      
       // تحويل الإشارات إلى تنسيق التوصيات - عرض المزيد من التوصيات
       const recs: CurrencyRecommendation[] = signals.slice(0, 6).map((signal) => ({
         symbol: signal.symbol,
-        name: signal.symbol.replace('_otc', ''), // إزالة _otc - سيظهر badge منفصل
+        name: signal.symbol.replace('_OTC', '').replace('_otc', ''), // إزالة OTC إذا وجد
         score: Math.round(signal.confidence),
         confidence: Math.round(signal.confidence),
         expectedWinRate: Math.round(signal.expected_success_rate),
@@ -121,21 +138,38 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
         reasons: signal.reasoning,
         lastUpdate: new Date(),
         validUntil: new Date(Date.now() + 15 * 60 * 1000), // صالح لمدة 15 دقيقة
-        entryTime: new Date(Date.now() + Math.random() * 60000), // وقت دخول عشوائي خلال الدقيقة القادمة
-        expiryTime: new Date(Date.now() + signal.timeframe * 60000) // وقت انتهاء بناءً على الإطار الزمني
+        entryTime: new Date(Date.now() + 120000), // بعد دقيقتين من الآن - وقت كافٍ للمستخدم
+        expiryTime: new Date(Date.now() + 120000 + signal.timeframe * 60000) // بعد وقت الدخول + مدة الصفقة
       }));
       
       console.log(`✅ تم تحليل ${recs.length} توصية ذكية من أصل ${signals.length} إشارة`);
+      console.log(`⏰ وقت الدخول: بعد دقيقتين من الآن (وقت كافٍ للمستخدم)`);
       if (recs.length > 0) {
         console.log(`📈 نطاق الثقة: ${Math.min(...recs.map(r => r.confidence))}% - ${Math.max(...recs.map(r => r.confidence))}%`);
         console.log(`🎯 متوسط الثقة: ${Math.round(recs.reduce((sum, r) => sum + r.confidence, 0) / recs.length)}%`);
       }
+      
+      // تشغيل صوت التنبيه إذا كانت هناك توصيات جديدة (فقط إذا كان مفعلاً)
+      if (soundEnabled) {
+        if (recs.length > 0 && recommendations.length === 0) {
+          // توصيات جديدة للمرة الأولى
+          notificationSound.play();
+          console.log('🔔 تم تشغيل صوت التنبيه - توصيات ذكية جديدة!');
+        } else if (recs.length > recommendations.length) {
+          // زيادة في عدد التوصيات
+          notificationSound.play();
+          console.log(`🔔 تم تشغيل صوت التنبيه - ${recs.length - recommendations.length} توصية ذكية جديدة!`);
+        }
+      }
+      
       setRecommendations(recs);
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('❌ خطأ في تحميل التوصيات:', error);
-      setRecommendations([]);
-      setLastUpdate(null);
+      console.error('❌ خطأ في تحميل التوصيات الذكية:', error);
+      console.error('📋 تفاصيل الخطأ:', error);
+      console.warn('🔄 سيتم المحاولة مرة أخرى في 15 ثانية...');
+      // لا نمسح التوصيات القديمة - نبقيها حتى نحصل على جديدة
+      // setRecommendations([]);
     } finally {
       setLoading(false);
     }
@@ -223,18 +257,18 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
       <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-1 flex-1 min-w-0">
           <div className="p-1 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex-shrink-0">
-            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+            <Star className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <h2 className="text-xs sm:text-lg font-bold text-white truncate">{t('recommendations.title')}</h2>
+              <h2 className="text-sm sm:text-lg font-bold text-white truncate">{t('recommendations.title')}</h2>
               {recommendations.length > 0 && (
                 <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[10px] rounded-full flex-shrink-0">
                   {recommendations.length}
                 </span>
               )}
             </div>
-            <p className="text-[9px] sm:text-xs text-gray-400 truncate">
+            <p className="text-[10px] sm:text-xs text-gray-400 truncate">
               {lastUpdate ? `${formatTime(lastUpdate)}` : t('recommendations.loading')}
               {isPaused && <span className="ml-1 text-yellow-400">⏸</span>}
               {lastUpdate && <span className="ml-1 text-green-400">📊</span>}
@@ -242,24 +276,43 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
           </div>
         </div>
         
-        <div className="flex items-center gap-0 flex-shrink-0">
+        <div className="flex items-center gap-5 sm:gap-2 flex-shrink-0">
+          <button
+            onClick={() => {
+              const newState = !soundEnabled;
+              setSoundEnabled(newState);
+              notificationSound.setEnabled(newState);
+              // تشغيل صوت اختبار عند التفعيل
+              if (newState) {
+                notificationSound.play();
+              }
+            }}
+            className="icon-btn hover:opacity-70 transition-opacity"
+            title={soundEnabled ? (language === 'ar' ? 'تعطيل الصوت' : language === 'fr' ? 'Désactiver le son' : 'Mute') : (language === 'ar' ? 'تفعيل الصوت' : language === 'fr' ? 'Activer le son' : 'Unmute')}
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-5 h-5 sm:w-5 sm:h-5 text-green-400" />
+            ) : (
+              <VolumeX className="w-5 h-5 sm:w-5 sm:h-5 text-gray-400" />
+            )}
+          </button>
           <button
             onClick={() => setIsPaused(!isPaused)}
-            className="p-1 hover:bg-purple-500/20 rounded transition-colors"
+            className="icon-btn hover:opacity-70 transition-opacity"
             title={isPaused ? (language === 'ar' ? 'استئناف' : language === 'fr' ? 'Reprendre' : 'Resume') : (language === 'ar' ? 'إيقاف' : language === 'fr' ? 'Pause' : 'Pause')}
           >
             {isPaused ? (
-              <Play className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+              <Play className="w-5 h-5 sm:w-5 sm:h-5 text-green-400" />
             ) : (
-              <Pause className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
+              <Pause className="w-5 h-5 sm:w-5 sm:h-5 text-yellow-400" />
             )}
           </button>
           <button
             onClick={loadRecommendations}
             disabled={loading}
-            className="p-1 hover:opacity-70 transition-opacity disabled:opacity-30"
+            className="icon-btn hover:opacity-70 transition-opacity disabled:opacity-30"
           >
-            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 text-purple-400 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 sm:w-5 sm:h-5 text-purple-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>

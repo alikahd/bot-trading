@@ -6,19 +6,101 @@
   font-family: 'Cairo', sans-serif;
 }
 
-/* تنسيقات زر اللغة - تطبق على جميع الشاشات */
+/* شريط التمرير المخصص */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* تنسيقات عامة للقوائم المنسدلة */
 select {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   background-color: transparent !important;
+  background-image: none !important;
+  cursor: pointer;
 }
 
 select option {
-  background-color: #1e3a8a !important;
+  background-color: #374151 !important;
   color: white !important;
   font-weight: 600 !important;
-  padding: 12px !important;
+  padding: 14px 20px !important;
+  border: none !important;
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+  text-align: center !important;
+  min-height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+select option:hover {
+  background-color: #4B5563 !important;
+}
+
+select option:checked {
+  background-color: #3B82F6 !important;
+}
+
+/* تنسيقات خاصة لقوائم الفلترة */
+.filter-select {
+  background: linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.6)) !important;
+  border: 1px solid rgba(107, 114, 128, 0.5) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+}
+
+.filter-select:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+  outline: none !important;
+}
+
+.filter-select:hover {
+  border-color: rgba(107, 114, 128, 0.7) !important;
+}
+
+/* تنسيقات خاصة لخيارات قوائم الفلترة */
+.filter-select option {
+  background-color: #1F2937 !important;
+  color: #F9FAFB !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  padding: 16px 24px !important;
+  text-align: center !important;
+  border-radius: 4px !important;
+  margin: 2px 0 !important;
+}
+
+.filter-select option:hover {
+  background-color: #374151 !important;
+  color: #60A5FA !important;
+}
+
+.filter-select option:checked,
+.filter-select option:selected {
+  background-color: #3B82F6 !important;
+  color: white !important;
+  font-weight: 700 !important;
 }
 
 /* تحسينات أساسية للهاتف المحمول */
@@ -32,21 +114,95 @@ select option {
     padding: 12px 16px;
   }
   
-  /* استثناء لزر اللغة - لا تطبق عليه التنسيقات العامة */
+  /* تحسين القوائم المنسدلة للهواتف */
   select {
     -webkit-appearance: none;
     appearance: none;
     background-color: transparent !important;
+    font-size: 16px !important;
+    min-height: 32px;
+    max-height: 36px;
+    padding: 6px 12px;
+    border-radius: 6px !important;
   }
   
-  /* إجبار ألوان زر اللغة */
+  /* تحسين خيارات القوائم للهواتف */
   select option {
-    background-color: #1e3a8a !important;
+    background-color: #1F2937 !important;
+    color: #F3F4F6 !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    padding: 12px 20px !important;
+    min-height: 44px !important;
+    line-height: 1.4 !important;
+    text-align: center !important;
+    border-bottom: 1px solid rgba(75, 85, 99, 0.3) !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  /* تحسين القائمة المنسدلة للهواتف */
+  select {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #4B5563 #1F2937 !important;
+  }
+  
+  /* شريط تمرير أنيق للقوائم في الهواتف */
+  select::-webkit-scrollbar {
+    width: 4px !important;
+  }
+  
+  select::-webkit-scrollbar-track {
+    background: rgba(31, 41, 59, 0.8) !important;
+    border-radius: 4px !important;
+  }
+  
+  select::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #4B5563, #6B7280) !important;
+    border-radius: 4px !important;
+    border: 1px solid rgba(107, 114, 128, 0.3) !important;
+  }
+  
+  select::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #6B7280, #9CA3AF) !important;
+  }
+  
+  /* تنسيقات خاصة لقوائم الفلترة في الهواتف */
+  .filter-select {
+    min-height: 32px !important;
+    max-height: 36px !important;
+    font-size: 14px !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .filter-select option {
+    background-color: #111827 !important;
+    color: #F9FAFB !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    padding: 14px 20px !important;
+    min-height: 42px !important;
+    border-bottom: 1px solid rgba(55, 65, 81, 0.4) !important;
+    text-align: center !important;
+  }
+  
+  .filter-select option:hover {
+    background-color: #1F2937 !important;
+    color: #60A5FA !important;
+  }
+  
+  .filter-select option:checked,
+  .filter-select option:selected {
+    background-color: #2563EB !important;
     color: white !important;
+    font-weight: 600 !important;
   }
   
   /* تحسين الأزرار للمس */
-  button:not(.btn-sm):not([class*="h-"]):not([class*="w-"]):not([class*="min-h-"]):not(.filter-btn), .btn:not(.btn-sm):not([class*="h-"]):not([class*="w-"]):not([class*="min-h-"]):not(.filter-btn) {
+  button:not(.btn-sm):not([class*="h-"]):not([class*="w-"]):not([class*="min-h-"]):not(.filter-btn):not(.icon-btn), .btn:not(.btn-sm):not([class*="h-"]):not([class*="w-"]):not([class*="min-h-"]):not(.filter-btn):not(.icon-btn) {
     min-height: 48px;
     min-width: 48px;
     padding: 12px 20px;
@@ -55,12 +211,26 @@ select option {
     touch-action: manipulation;
   }
   
-  /* أزرار التصفية مخصصة للهواتف */
-  button.filter-btn {
-    min-height: auto;
-    min-width: auto;
+  /* أزرار الأيقونات فقط - بدون padding أو min-width */
+  button.icon-btn {
+    min-height: auto !important;
+    min-width: auto !important;
+    padding: 0 !important;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+  }
+  
+  /* أزرار التصفية مخصصة للهواتف - أنيقة ومدمجة */
+  button.filter-btn {
+    min-height: 32px !important;
+    min-width: auto !important;
+    max-height: 40px !important;
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    border-radius: 6px !important;
   }
   
   /* أزرار صغيرة للهيدر (اللغة والخروج) */
@@ -247,13 +417,23 @@ img[loading="eager"] {
 
 /* إخفاء شريط التمرير */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
   scroll-behavior: smooth;  /* تمرير سلس */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none !important;  /* Chrome, Safari and Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar-thumb {
+  display: none !important;
 }
 
 /* تحسين التمرير الأفقي للأزرار */

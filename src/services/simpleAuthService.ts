@@ -1,5 +1,6 @@
 import { emailService } from './emailService';
 import { supabase } from '../config/supabaseClient';
+import { realtimeSyncService } from './realtimeSync';
 import React from 'react';
 
 // اكتشاف الجهاز المحمول
@@ -85,10 +86,11 @@ class SimpleAuthService {
         }
       }
       
-      // إذا لم يكن هناك cache، نحمل الجلسة مباشرة مع timeout
+      // إذا لم يكن هناك cache، نحمل الجلسة مباشرة مع timeout أطول للهاتف
       const sessionPromise = supabase.auth.getSession();
+      const timeoutDuration = isMobile() ? 10000 : 5000; // 10 ثوانٍ للهاتف، 5 للكمبيوتر
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session timeout')), 3000)
+        setTimeout(() => reject(new Error('Session timeout')), timeoutDuration)
       );
       
       let session, error;
@@ -97,9 +99,27 @@ class SimpleAuthService {
         session = result.data?.session;
         error = result.error;
       } catch (timeoutError) {
-        // Timeout - نعتبر المستخدم غير مسجل دخول
-        this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
-        return;
+        // Timeout - نحاول مرة أخرى للهاتف
+        console.warn('⏱️ Session timeout - محاولة ثانية...');
+        
+        if (isMobile()) {
+          try {
+            const { data, error: retryError } = await supabase.auth.getSession();
+            if (!retryError && data?.session) {
+              session = data.session;
+              error = null;
+            } else {
+              this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
+              return;
+            }
+          } catch (e) {
+            this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
+            return;
+          }
+        } else {
+          this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
+          return;
+        }
       }
       
       if (error) {
@@ -135,11 +155,144 @@ class SimpleAuthService {
         
         if (event === 'SIGNED_IN' && session?.user) {
           // Signed in
+          console.log('✅ تسجيل دخول ناجح عبر:', session.user.app_metadata?.provider || 'email');
+          
+          // ⚡ التحقق من وجود المستخدم في public.users (خاصة لـ OAuth)
+          const { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('auth_id', session.user.id)
+            .maybeSingle();
+          
+          if (!existingUser) {
+            console.log('⚠️ المستخدم غير موجود في public.users - إنشاء سجل جديد...');
+            
+            // إنشاء سجل للمستخدم (OAuth users)
+            const { error: insertError } = await supabase
+              .from('users')
+              .insert({
+                auth_id: session.user.id,
+                email: session.user.email,
+                username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
+                full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0],
+                role: 'trader',
+                is_active: true,
+                email_verified: true, // OAuth users have verified email
+                status: 'pending_subscription',
+                subscription_status: 'inactive'
+              });
+            
+            if (insertError) {
+              console.error('❌ خطأ في إنشاء المستخدم:', insertError);
+            } else {
+              console.log('✅ تم إنشاء سجل المستخدم بنجاح');
+            }
+          }
+          
           // انتظار إضافي للهاتف المحمول
           if (isMobile()) {
             await new Promise(resolve => setTimeout(resolve, 50));
           }
+          
           await this.loadUserData(session.user.id);
+          
+          // ✅ إرسال إشعار ترحيبي عند أول تسجيل دخول (OAuth أو Email/Password)
+          if (this.authState.user?.id && this.authState.user?.subscription_status === 'active') {
+            (async () => {
+              try {
+                const { data: userData } = await supabase
+                  .from('users')
+                  .select('id, subscription_status')
+                  .eq('auth_id', session.user.id)
+                  .single();
+
+                if (!userData || userData.subscription_status !== 'active') {
+                  return;
+                }
+
+                const { data: existingWelcome } = await supabase
+                  .from('notifications')
+                  .select('id')
+                  .eq('recipient_id', userData.id)
+                  .ilike('title_ar', '%مرحباً بك%')
+                  .limit(1);
+
+                if (!existingWelcome || existingWelcome.length === 0) {
+                  // ✅ التحقق من نوع الاشتراك (جديد أم تجديد)
+                  const { data: previousSubs } = await supabase
+                    .from('subscriptions')
+                    .select('id')
+                    .eq('user_id', userData.id)
+                    .order('created_at', { ascending: false })
+                    .limit(2);
+                  
+                  const isRenewal = !!(previousSubs && previousSubs.length > 1);
+                  
+                  console.log('📧 إرسال إشعار ترحيبي فوري (OAuth)...');
+                  const { adminNotificationService } = await import('./adminNotificationService');
+                  await adminNotificationService.sendWelcomeNotification(userData.id, isRenewal);
+                  console.log(`✅ تم إرسال الإشعار الترحيبي ${isRenewal ? '(تجديد)' : '(جديد)'}`);
+                  
+                  // ✅ إرسال إشعار نظام الإحالة بعد 30 ثانية (للمستخدمين الجدد فقط)
+                  if (!isRenewal) {
+                    setTimeout(async () => {
+                      try {
+                        console.log('📧 إرسال إشعار نظام الإحالة (بعد 30 ثانية - OAuth)...');
+                        await supabase
+                          .from('notifications')
+                          .insert({
+                            recipient_id: userData.id,
+                            recipient_type: 'user',
+                            type: 'referral_welcome',
+                            title: '🎉 Earn up to $5000 monthly!',
+                            title_ar: '🎉 اربح حتى $5000 شهرياً!',
+                            title_fr: '🎉 Gagnez jusqu\'à $5000 par mois!',
+                            message: '🚀 Invite your friends and earn amazing commissions! Each friend who subscribes = commission for you. Your monthly salary from commissions can reach more than $5000! 💰 Start now and share your referral link.',
+                            message_ar: '🚀 ادعُ أصدقاءك واربح عمولات مذهلة! كل صديق يشترك = عمولة لك. راتبك الشهري من العمولات قد يصل إلى أكثر من $5000! 💰 ابدأ الآن وشارك رابط الإحالة الخاص بك.',
+                            message_fr: '🚀 Invitez vos amis et gagnez des commissions incroyables! Chaque ami qui s\'inscrit = commission pour vous. Votre salaire mensuel peut atteindre plus de $5000! 💰 Commencez maintenant et partagez votre lien de parrainage.',
+                            priority: 'high',
+                            is_read: false,
+                            action_type: 'navigate',
+                            action_url: '/referral',
+                            action_data: {
+                              feature: 'referral_program',
+                              potential_earnings: 5000
+                            }
+                          });
+                        
+                        console.log('✅ تم إرسال إشعار نظام الإحالة (OAuth)');
+                      } catch (referralError) {
+                        console.error('⚠️ فشل إرسال إشعار الإحالة (غير حرج):', referralError);
+                      }
+                    }, 30000); // 30 ثانية
+                  }
+                }
+              } catch (notifError) {
+                console.error('⚠️ فشل إرسال الإشعار الترحيبي (غير حرج):', notifError);
+              }
+            })();
+          }
+          
+          // ⚡ تفعيل Realtime فوراً
+          if (this.authState.user?.id) {
+            console.log('⚡ تفعيل Realtime للمزامنة الفورية...');
+            
+            realtimeSyncService.subscribeToUserChanges(
+              this.authState.user.id,
+              async (_payload) => {
+                console.log('🔔 تحديث فوري - تغيير في بيانات المستخدم');
+                await this.refreshUserData();
+              }
+            );
+            
+            realtimeSyncService.subscribeToSubscriptionChanges(
+              this.authState.user.id,
+              async (_payload) => {
+                console.log('🔔 تحديث فوري - تغيير في الاشتراك');
+                await this.refreshUserData();
+              }
+            );
+          }
         } 
         else if (event === 'USER_UPDATED' && session?.user) {
           // تحديث المستخدم - قد يكون بسبب تفعيل البريد
@@ -166,6 +319,17 @@ class SimpleAuthService {
               console.log('✅ User updated successfully');
               // إعادة تحميل بيانات المستخدم
               await this.loadUserData(session.user.id);
+              
+              // ⚡ توجيه المستخدم مباشرة لصفحة الاشتراك بعد تفعيل البريد
+              console.log('🎯 توجيه المستخدم لصفحة الاشتراك...');
+              
+              // تعيين علامة في localStorage للتوجيه
+              localStorage.setItem('email_just_verified', 'true');
+              
+              // إطلاق حدث مخصص لإخبار التطبيق
+              window.dispatchEvent(new CustomEvent('email-verified', {
+                detail: { userId: session.user.id }
+              }));
             }
           }
         }
@@ -206,12 +370,48 @@ class SimpleAuthService {
   private async loadUserData(authId: string): Promise<void> {
     try {
       // Load user data
+      console.log('📥 جاري تحميل بيانات المستخدم...', authId);
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_id', authId)
-        .maybeSingle();
+      // للهاتف: محاولة مع timeout
+      const isMobileDevice = isMobile();
+      let data, error;
+      
+      if (isMobileDevice) {
+        // محاولة مع timeout للهاتف
+        const loadPromise = supabase
+          .from('users')
+          .select('*')
+          .eq('auth_id', authId)
+          .maybeSingle();
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Load timeout')), 10000)
+        );
+        
+        try {
+          const result = await Promise.race([loadPromise, timeoutPromise]) as any;
+          data = result.data;
+          error = result.error;
+        } catch (timeoutError) {
+          console.warn('⏱️ Timeout في تحميل البيانات - محاولة ثانية...');
+          const retryResult = await supabase
+            .from('users')
+            .select('*')
+            .eq('auth_id', authId)
+            .maybeSingle();
+          data = retryResult.data;
+          error = retryResult.error;
+        }
+      } else {
+        // للكمبيوتر: الطريقة العادية
+        const result = await supabase
+          .from('users')
+          .select('*')
+          .eq('auth_id', authId)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('❌ خطأ في تحميل بيانات المستخدم:', error);
@@ -235,7 +435,7 @@ class SimpleAuthService {
 
       if (data) {
         // User data loaded successfully
-        console.log('📊 بيانات المستخدم الكاملة:', JSON.stringify(data, null, 2));
+        console.log('✅ تم تحميل بيانات المستخدم:', data.email, '- الحالة:', data.status);
         
         // التأكد من أن المستخدم Admin يمكنه الوصول
         if (data.email === 'hichamkhad00@gmail.com') {
@@ -352,40 +552,17 @@ class SimpleAuthService {
       
       if (isEmail) {
         userEmail = credentials.username;
-        
-        // التحقق من حالة المستخدم عند استخدام البريد الإلكتروني
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id, email, is_active, email_verified, status, subscription_status')
-          .eq('email', userEmail)
-          .single();
-
-        if (userError || !userData) {
-          console.error('❌ البريد الإلكتروني غير موجود');
-          return { success: false, error: 'البريد الإلكتروني غير موجود', errorType: 'email_not_found' };
-        }
-        
-        // ملاحظة: تم إزالة التحقق من email_verified والاشتراك هنا
-        // سيتم التوجيه حسب حالة المستخدم (redirectTo) بعد تسجيل الدخول
       } else {
-        // Username search
+        // ✅ استخدام دالة آمنة للبحث عن البريد من username (تتجاوز RLS)
+        const { data: emailData, error: emailError } = await supabase
+          .rpc('get_user_email_by_username', { p_username: credentials.username });
         
-        // البحث عن المستخدم باسم المستخدم
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id, email, is_active, email_verified, status, subscription_status')
-          .eq('username', credentials.username)
-          .single();
-
-        if (userError || !userData) {
+        if (emailError || !emailData) {
           console.error('❌ اسم المستخدم غير موجود');
           return { success: false, error: 'اسم المستخدم غير موجود', errorType: 'username_not_found' };
         }
         
-        userEmail = userData.email;
-        
-        // ملاحظة: تم إزالة التحقق من email_verified والاشتراك هنا
-        // سيتم التوجيه حسب حالة المستخدم (redirectTo) بعد تسجيل الدخول
+        userEmail = emailData;
       }
 
       // Authenticate
@@ -497,10 +674,118 @@ class SimpleAuthService {
       }
 
       // Login successful
-      // سيتم تحميل بيانات المستخدم تلقائياً عبر onAuthStateChange
+      console.log('✅ تسجيل دخول ناجح - تحميل بيانات المستخدم مع التحقق من الاشتراك...');
       
-      // انتظار قصير للتأكد من تحميل بيانات المستخدم
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // ⚡ تحميل فوري لبيانات المستخدم
+      if (authData.user) {
+        // ⚡ تحميل البيانات وإرسال الإشعار بشكل متوازي لتسريع العملية
+        const loadDataPromise = this.loadUserData(authData.user.id);
+        
+        // ✅ إرسال إشعار ترحيبي بشكل متوازي (لا ننتظر تحميل البيانات)
+        (async () => {
+          try {
+            // ⚡ جلب بيانات المستخدم أولاً
+            const { data: userData } = await supabase
+              .from('users')
+              .select('id, subscription_status')
+              .eq('auth_id', authData.user.id)
+              .single();
+
+            if (!userData || userData.subscription_status !== 'active') {
+              return; // لا حاجة للمتابعة
+            }
+
+            // ⚡ التحقق من الإشعار الموجود
+            const { data: existingWelcome } = await supabase
+              .from('notifications')
+              .select('id')
+              .eq('recipient_id', userData.id) // ✅ استخدام users.id
+              .ilike('title_ar', '%مرحباً بك%')
+              .limit(1);
+
+            if (userData?.subscription_status === 'active') {
+              // ✅ التحقق من نوع الاشتراك (جديد أم تجديد)
+              const { data: previousSubs } = await supabase
+                .from('subscriptions')
+                .select('id')
+                .eq('user_id', userData.id)
+                .order('created_at', { ascending: false })
+                .limit(2);
+              
+              const isRenewal = !!(previousSubs && previousSubs.length > 1);
+              
+              if (!existingWelcome || existingWelcome.length === 0) {
+                console.log('📧 إرسال إشعار ترحيبي فوري...');
+                const { adminNotificationService } = await import('./adminNotificationService');
+                await adminNotificationService.sendWelcomeNotification(userData.id, isRenewal);
+                console.log(`✅ تم إرسال الإشعار الترحيبي ${isRenewal ? '(تجديد)' : '(جديد)'}`);
+                
+                // ✅ إرسال إشعار نظام الإحالة بعد 30 ثانية (للمستخدمين الجدد فقط)
+                if (!isRenewal) {
+                  setTimeout(async () => {
+                    try {
+                      console.log('📧 إرسال إشعار نظام الإحالة (بعد 30 ثانية)...');
+                      await supabase
+                        .from('notifications')
+                        .insert({
+                          recipient_id: userData.id,
+                          recipient_type: 'user',
+                          type: 'referral_welcome',
+                          title: '🎉 Earn up to $5000 monthly!',
+                          title_ar: '🎉 اربح حتى $5000 شهرياً!',
+                          title_fr: '🎉 Gagnez jusqu\'à $5000 par mois!',
+                          message: '🚀 Invite your friends and earn amazing commissions! Each friend who subscribes = commission for you. Your monthly salary from commissions can reach more than $5000! 💰 Start now and share your referral link.',
+                          message_ar: '🚀 ادعُ أصدقاءك واربح عمولات مذهلة! كل صديق يشترك = عمولة لك. راتبك الشهري من العمولات قد يصل إلى أكثر من $5000! 💰 ابدأ الآن وشارك رابط الإحالة الخاص بك.',
+                          message_fr: '🚀 Invitez vos amis et gagnez des commissions incroyables! Chaque ami qui s\'inscrit = commission pour vous. Votre salaire mensuel peut atteindre plus de $5000! 💰 Commencez maintenant et partagez votre lien de parrainage.',
+                          priority: 'high',
+                          is_read: false,
+                          action_type: 'navigate',
+                          action_url: '/referral',
+                          action_data: {
+                            feature: 'referral_program',
+                            potential_earnings: 5000
+                          }
+                        });
+                      
+                      console.log('✅ تم إرسال إشعار نظام الإحالة');
+                    } catch (referralError) {
+                      console.error('⚠️ فشل إرسال إشعار الإحالة (غير حرج):', referralError);
+                    }
+                  }, 30000); // 30 ثانية
+                }
+              } else {
+                console.log('ℹ️ الإشعار الترحيبي تم إرساله مسبقاً');
+              }
+            }
+          } catch (notifError) {
+            console.error('⚠️ فشل إرسال الإشعار الترحيبي (غير حرج):', notifError);
+          }
+        })();
+
+        // ⚡ انتظار تحميل البيانات فقط (الإشعار يُرسل في الخلفية)
+        await loadDataPromise;
+        
+        // ⚡ تفعيل Realtime فوراً بعد تسجيل الدخول للمزامنة الفورية
+        if (this.authState.user?.id) {
+          console.log('⚡ تفعيل Realtime للمزامنة الفورية...');
+          
+          realtimeSyncService.subscribeToUserChanges(
+            this.authState.user.id,
+            async (_payload) => {
+              console.log('🔔 تحديث فوري - تغيير في بيانات المستخدم');
+              await this.refreshUserData();
+            }
+          );
+          
+          realtimeSyncService.subscribeToSubscriptionChanges(
+            this.authState.user.id,
+            async (_payload) => {
+              console.log('🔔 تحديث فوري - تغيير في الاشتراك');
+              await this.refreshUserData();
+            }
+          );
+        }
+      }
       
       return { success: true };
 
@@ -753,73 +1038,63 @@ class SimpleAuthService {
       }
 
       if (authData.user) {
-        // التحقق من وجود السجل في جدول users بـ auth_id
-        const { data: existingUserByAuthId } = await supabase
-          .from('users')
-          .select('*')
-          .eq('auth_id', authData.user.id)
-          .maybeSingle();
-
-        if (existingUserByAuthId) {
-          // السجل موجود بالفعل، نعيد البيانات الموجودة
-          console.log('✅ المستخدم موجود بالفعل في جدول users');
-          
-          // تسجيل خروج المستخدم إذا لم يكن بريده مفعّل
-          if (!existingUserByAuthId.email_verified) {
-            console.log('🚪 تسجيل خروج المستخدم (البريد غير مفعّل)...');
-            await supabase.auth.signOut();
-          }
-          
-          return { 
-            success: true, 
-            user: existingUserByAuthId as User 
-          };
-        }
-
-        // إنشاء سجل جديد في جدول users
-        console.log('📝 إنشاء سجل جديد في جدول users...');
-        const { data: newUser, error: userError } = await supabase
-          .from('users')
-          .insert({
-            auth_id: authData.user.id,
-            username: userData.username,
-            email: userData.email,
-            full_name: userData.fullName,
-            country: userData.country || '',
-            role: 'trader',
-            is_active: false,
-            email_verified: false, // سيتم تحديثه تلقائياً عند تأكيد البريد
-            status: 'pending_email_verification'
-          })
-          .select()
-          .single();
+        console.log('✅ تم إنشاء حساب Auth بنجاح:', authData.user.id);
         
+        // ✅ إنشاء سجل في جدول users باستخدام دالة آمنة (تتجاوز RLS)
+        // نحاول الإنشاء مباشرة، وإذا كان موجود سنعالج الخطأ
+        const { data: newUserArray, error: userError } = await supabase
+          .rpc('create_new_user', {
+            p_auth_id: authData.user.id,
+            p_email: userData.email,
+            p_username: userData.username,
+            p_full_name: userData.fullName,
+            p_country: userData.country || null
+          });
+        
+        const newUser = Array.isArray(newUserArray) ? newUserArray[0] : newUserArray;
         console.log('✅ تم إنشاء السجل:', newUser?.id);
 
         if (userError) {
-          // إذا كان الخطأ بسبب duplicate key، نحاول جلب السجل الموجود
-          if (userError.code === '23505') {
-            console.log('⚠️ السجل موجود بالفعل، جاري جلب البيانات...');
-            const { data: existingRecord } = await supabase
-              .from('users')
-              .select('*')
-              .eq('auth_id', authData.user.id)
-              .maybeSingle();
-            
-            if (existingRecord) {
-              // تسجيل خروج المستخدم إذا لم يكن بريده مفعّل
-              if (!existingRecord.email_verified) {
-                console.log('🚪 تسجيل خروج المستخدم (البريد غير مفعّل)...');
-                await supabase.auth.signOut();
-              }
-              
-              return { 
-                success: true, 
-                user: existingRecord as User 
-              };
-            }
+          console.error('❌ خطأ في إنشاء السجل:', userError);
+          
+          // حذف المستخدم من Auth لأن الإنشاء فشل
+          console.log('🧹 تنظيف - حذف المستخدم من Auth...');
+          try {
+            await supabase.auth.admin.deleteUser(authData.user.id);
+            console.log('✅ تم حذف المستخدم من Auth');
+          } catch (deleteErr) {
+            console.error('❌ فشل حذف المستخدم من Auth:', deleteErr);
           }
-          throw userError;
+          
+          return {
+            success: false,
+            error: 'حدث خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى.'
+          };
+        }
+        
+        // ✅ التحقق من أن السجل تم إنشاؤه أو إرجاعه
+        if (!newUser || !newUser.id) {
+          console.error('❌ لم يتم إرجاع بيانات المستخدم');
+          
+          // حذف من Auth
+          try {
+            await supabase.auth.admin.deleteUser(authData.user.id);
+          } catch (deleteErr) {
+            console.error('❌ فشل حذف المستخدم من Auth:', deleteErr);
+          }
+          
+          return {
+            success: false,
+            error: 'حدث خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى.'
+          };
+        }
+        
+        console.log('✅ تم إنشاء/جلب السجل بنجاح:', newUser.id);
+        
+        // ملاحظة: Supabase يرسل بريد التفعيل تلقائياً عند signUp
+        // لا حاجة لإعادة الإرسال هنا لتجنب خطأ 429 (Too Many Requests)
+        if (!newUser.email_verified) {
+          console.log('📧 تم إرسال بريد التفعيل تلقائياً من Supabase');
         }
 
         // تسجيل خروج المستخدم مباشرة بعد التسجيل

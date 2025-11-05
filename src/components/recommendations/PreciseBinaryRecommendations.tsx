@@ -12,10 +12,14 @@ import {
   Pause,
   Play,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { advancedAnalysisEngine } from '../../services/advancedAnalysis';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { notificationSound } from '../../services/notificationSound';
+import { telegramService } from '../../services/telegramService';
 
 // تعريف النوع محلياً
 interface BinaryOptionRecommendation {
@@ -48,6 +52,11 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isPaused, setIsPaused] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [selectedTimeframes, setSelectedTimeframes] = useState<number[]>([1, 2, 3, 5]); // جميع الأطر مفعلة افتراضياً
+  const [allRecommendations, setAllRecommendations] = useState<BinaryOptionRecommendation[]>([]); // جميع التوصيات
+  const [showTimeframeFilter, setShowTimeframeFilter] = useState(false); // إظهار/إخفاء قائمة التصفية
+  const [currentRecommendationIndex, setCurrentRecommendationIndex] = useState(0); // مؤشر التوصية الحالية للإرسال
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -64,39 +73,122 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
     }
   }, [isActive]);
 
+  // تحديث التوصيات كل دقيقة
   useEffect(() => {
     if (!isActive || isPaused) return;
     
-    // تحديث فوري كل ثانيتين للحصول على أحدث الأسعار ⚡⚡
     const interval = setInterval(() => {
       if (!isPaused) {
         loadRecommendations();
       }
-    }, 2000);
+    }, 60000); // 60 ثانية - تحديث قائمة التوصيات
 
     return () => clearInterval(interval);
   }, [isActive, isPaused]);
 
+  // إرسال توصية واحدة كل 5 ثواني إلى Telegram
+  useEffect(() => {
+    if (!isActive || isPaused || allRecommendations.length === 0) return;
+    
+    const sendInterval = setInterval(async () => {
+      if (!isPaused && allRecommendations.length > 0) {
+        try {
+          // اختيار التوصية الحالية
+          const rec = allRecommendations[currentRecommendationIndex];
+          
+          console.log(`📤 إرسال توصية ${currentRecommendationIndex + 1}/${allRecommendations.length} إلى Telegram...`);
+          
+          await telegramService.sendBinaryRecommendation({
+            symbol: rec.symbol,
+            symbolName: rec.symbolName,
+            direction: rec.direction,
+            confidence: rec.confidence,
+            timeframe: rec.timeframe,
+            expiryMinutes: rec.expiryMinutes,
+            entryTime: rec.entryTime,
+            expiryTime: rec.expiryTime,
+            currentPrice: rec.currentPrice,
+            successProbability: rec.successProbability,
+            riskLevel: rec.riskLevel,
+            reasoning: rec.reasoning
+          });
+          
+          console.log(`✅ تم إرسال التوصية ${currentRecommendationIndex + 1} بنجاح`);
+          
+          // الانتقال للتوصية التالية (دائري)
+          setCurrentRecommendationIndex((prevIndex) => 
+            (prevIndex + 1) % allRecommendations.length
+          );
+        } catch (telegramError) {
+          console.error('❌ خطأ في إرسال التوصية إلى Telegram:', telegramError);
+        }
+      }
+    }, 5000); // 5 ثواني
+
+    return () => clearInterval(sendInterval);
+  }, [isActive, isPaused, allRecommendations, currentRecommendationIndex]);
+
+  // تصفية التوصيات حسب الأطر الزمنية المختارة
+  useEffect(() => {
+    const filtered = allRecommendations.filter(rec => 
+      selectedTimeframes.includes(rec.expiryMinutes)
+    );
+    setRecommendations(filtered);
+  }, [allRecommendations, selectedTimeframes]);
+
+  // إغلاق القائمة عند النقر خارجها
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showTimeframeFilter && !target.closest('.timeframe-filter-container')) {
+        setShowTimeframeFilter(false);
+      }
+    };
+
+    if (showTimeframeFilter) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showTimeframeFilter]);
+
   const loadRecommendations = async () => {
+    if (!isActive || isPaused) {
+      console.log('⏸️ التوصيات متوقفة مؤقتاً');
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      console.log('🎯 بدء تحليل التوصيات الدقيقة من IQ Option...');
-      console.log('📊 مصدر البيانات: IQ Option API (بيانات حقيقية)');
+      console.log('🎯 بدء تحليل التوصيات الدقيقة من Binary.com...');
+      console.log('📊 مصدر البيانات: Binary.com WebSocket (بيانات حقيقية فورية)');
+      console.log('⚡ سرعة التحديث: كل 15 ثانية');
+      console.log('🔍 نظام فحص جودة البيانات: مفعل (معايير متوازنة)');
+      console.log('⚙️ الحد الأدنى للثقة: 35% + جودة بيانات ≥60%');
+      console.log('✅ استراتيجيات: RSI، EMA، Bollinger، Momentum، Reversal، Trend');
+      console.log('❌ لا توجد توصيات احتياطية أو افتراضية - فقط تحليل حقيقي');
       
-      // استخدام المحرك المتقدم للتحليل (يستخدم بيانات IQ Option من port 5001)
+      // استخدام المحرك المتقدم للتحليل (يستخدم بيانات Binary.com WebSocket)
       const signals = await advancedAnalysisEngine.analyzeAllSymbols();
       
-      // تحويل الإشارات إلى تنسيق التوصيات الدقيقة
-      const recs: BinaryOptionRecommendation[] = signals.slice(0, 5).map((signal) => ({
+      console.log(`📊 تم الحصول على ${signals.length} إشارة من المحرك`);
+      
+      if (signals.length === 0) {
+        console.warn('⚠️ لا توجد إشارات متاحة - سيتم المحاولة مرة أخرى في 15 ثانية');
+        setIsLoading(false);
+        return;
+      }
+      
+      // تحويل الإشارات إلى تنسيق التوصيات الدقيقة - عرض المزيد من التوصيات
+      const recs: BinaryOptionRecommendation[] = signals.slice(0, 12).map((signal) => ({
         id: `${signal.symbol}-${Date.now()}`,
         symbol: signal.symbol,
-        symbolName: signal.symbol.replace('_otc', ''), // إزالة _otc - سيظهر badge منفصل
+        symbolName: signal.symbol.replace('_OTC', '').replace('_otc', ''), // إزالة OTC إذا وجد
         direction: signal.direction,
         confidence: Math.round(signal.confidence),
         timeframe: `${signal.timeframe}m`,
         expiryMinutes: signal.timeframe as 1 | 2 | 3 | 5,
-        entryTime: new Date(Date.now() + Math.random() * 60000),
-        expiryTime: new Date(Date.now() + signal.timeframe * 60000),
+        entryTime: new Date(Date.now() + 120000), // بعد دقيقتين - وقت كافٍ للمستخدم
+        expiryTime: new Date(Date.now() + 120000 + signal.timeframe * 60000), // بعد وقت الدخول + مدة الصفقة
         currentPrice: signal.entry_price,
         targetPrice: signal.direction === 'CALL' ? 
           signal.entry_price * 1.001 : 
@@ -127,12 +219,42 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
         }
       }));
       console.log(`✅ تم تحليل ${recs.length} توصية دقيقة`);
-      setRecommendations(recs);
+      
+      // تشغيل صوت التنبيه إذا كانت هناك توصيات جديدة (فقط إذا كان مفعلاً)
+      if (soundEnabled) {
+        if (recs.length > 0 && recommendations.length === 0) {
+          // توصيات جديدة للمرة الأولى
+          notificationSound.play();
+          console.log('🔔 تم تشغيل صوت التنبيه - توصيات جديدة!');
+        } else if (recs.length > recommendations.length) {
+          // زيادة في عدد التوصيات
+          notificationSound.play();
+          console.log(`🔔 تم تشغيل صوت التنبيه - ${recs.length - recommendations.length} توصية جديدة!`);
+        }
+      }
+      
+      console.log(`✅ تم تحليل ${recs.length} توصية دقيقة`);
+      console.log(`📊 توزيع الأطر الزمنية:`);
+      console.log(`   - 1 دقيقة: ${recs.filter(r => r.expiryMinutes === 1).length}`);
+      console.log(`   - 2 دقيقة: ${recs.filter(r => r.expiryMinutes === 2).length}`);
+      console.log(`   - 3 دقائق: ${recs.filter(r => r.expiryMinutes === 3).length}`);
+      console.log(`   - 5 دقائق: ${recs.filter(r => r.expiryMinutes === 5).length}`);
+      console.log(`⚡ سيتم إرسال توصية واحدة كل 5 ثواني إلى Telegram`);
+      
+      // ترتيب التوصيات حسب الثقة (الأفضل أولاً)
+      const sortedRecs = recs.sort((a, b) => b.confidence - a.confidence);
+      
+      setAllRecommendations(sortedRecs);
       setLastUpdate(new Date());
+      
+      // إعادة تعيين المؤشر عند تحديث التوصيات
+      setCurrentRecommendationIndex(0);
     } catch (error) {
-      console.error('❌ خطأ في جلب التوصيات:', error);
-      setRecommendations([]);
-      setIsLoading(false);
+      console.error('❌ خطأ في جلب التوصيات الدقيقة:', error);
+      console.error('📋 تفاصيل الخطأ:', error);
+      console.warn('🔄 سيتم المحاولة مرة أخرى في دقيقة واحدة...');
+      // لا نمسح التوصيات القديمة - نبقيها حتى نحصل على جديدة
+      // setRecommendations([]);
     } finally {
       setIsLoading(false);
     }
@@ -399,42 +521,61 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
       <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-1 flex-1 min-w-0">
           <div className="p-1 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex-shrink-0">
-            <Target className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <h2 className="text-xs sm:text-lg font-bold text-white truncate">{t('precise.title')}</h2>
+              <h2 className="text-sm sm:text-lg font-bold text-white truncate">{t('precise.title')}</h2>
               {recommendations.length > 0 && (
                 <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[10px] rounded-full flex-shrink-0">
                   {recommendations.length}
                 </span>
               )}
             </div>
-            <p className="text-[9px] sm:text-xs text-gray-400 truncate">
+            <p className="text-[10px] sm:text-xs text-gray-400 truncate">
               {lastUpdate ? `${formatTime(lastUpdate)}` : t('precise.loading')}
               {isPaused && <span className="ml-1 text-yellow-400">⏸</span>}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-0 flex-shrink-0">
+        <div className="flex items-center gap-5 sm:gap-2 flex-shrink-0">
+          <button
+            onClick={() => {
+              const newState = !soundEnabled;
+              setSoundEnabled(newState);
+              notificationSound.setEnabled(newState);
+              // تشغيل صوت اختبار عند التفعيل
+              if (newState) {
+                notificationSound.play();
+              }
+            }}
+            className="icon-btn hover:opacity-70 transition-opacity"
+            title={soundEnabled ? (language === 'ar' ? 'تعطيل الصوت' : language === 'fr' ? 'Désactiver le son' : 'Mute') : (language === 'ar' ? 'تفعيل الصوت' : language === 'fr' ? 'Activer le son' : 'Unmute')}
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-5 h-5 sm:w-5 sm:h-5 text-green-400" />
+            ) : (
+              <VolumeX className="w-5 h-5 sm:w-5 sm:h-5 text-gray-400" />
+            )}
+          </button>
           <button
             onClick={() => setIsPaused(!isPaused)}
-            className="p-1 hover:bg-purple-500/20 rounded transition-colors"
+            className="icon-btn hover:opacity-70 transition-opacity"
             title={isPaused ? (language === 'ar' ? 'استئناف' : language === 'fr' ? 'Reprendre' : 'Resume') : (language === 'ar' ? 'إيقاف' : language === 'fr' ? 'Pause' : 'Pause')}
           >
             {isPaused ? (
-              <Play className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+              <Play className="w-5 h-5 sm:w-5 sm:h-5 text-green-400" />
             ) : (
-              <Pause className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
+              <Pause className="w-5 h-5 sm:w-5 sm:h-5 text-yellow-400" />
             )}
           </button>
           <button
             onClick={loadRecommendations}
             disabled={isLoading}
-            className="p-1 hover:opacity-70 transition-opacity disabled:opacity-30"
+            className="icon-btn hover:opacity-70 transition-opacity disabled:opacity-30"
           >
-            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 text-purple-400 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 sm:w-5 sm:h-5 text-purple-400 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -450,6 +591,90 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
             {formatTime(currentTime)}
           </span>
         </div>
+      </div>
+
+      {/* تصفية الأطر الزمنية - قائمة منسدلة مدمجة */}
+      <div className="relative timeframe-filter-container">
+        <button
+          onClick={() => setShowTimeframeFilter(!showTimeframeFilter)}
+          className="w-full bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-lg p-2 sm:p-3 border border-purple-500/30 hover:border-purple-500/50 transition-all flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400 flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-semibold text-gray-300">
+              {language === 'ar' ? 'تصفية المدة' : language === 'fr' ? 'Filtrer durée' : 'Filter Duration'}
+            </span>
+            <span className="text-[10px] sm:text-xs text-gray-400">
+              ({recommendations.length}/{allRecommendations.length})
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {selectedTimeframes.length < 4 && (
+              <div className="flex gap-1">
+                {selectedTimeframes.map(tf => (
+                  <span key={tf} className="px-1.5 py-0.5 bg-purple-600 text-white text-[10px] rounded">
+                    {tf}{language === 'ar' ? 'د' : 'm'}
+                  </span>
+                ))}
+              </div>
+            )}
+            {showTimeframeFilter ? (
+              <ChevronUp className="w-4 h-4 text-purple-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-purple-400" />
+            )}
+          </div>
+        </button>
+
+        {/* القائمة المنسدلة */}
+        {showTimeframeFilter && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 rounded-lg border border-purple-500/30 shadow-lg shadow-purple-500/20 z-50 overflow-hidden animate-fade-in">
+            <div className="p-2 sm:p-3">
+              <div className="flex gap-1 sm:gap-1.5 mb-2">
+                {[1, 2, 3, 5].map(timeframe => {
+                  const count = allRecommendations.filter(r => r.expiryMinutes === timeframe).length;
+                  const isSelected = selectedTimeframes.includes(timeframe);
+                  return (
+                    <button
+                      key={timeframe}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedTimeframes(prev => prev.filter(t => t !== timeframe));
+                        } else {
+                          setSelectedTimeframes(prev => [...prev, timeframe].sort());
+                        }
+                      }}
+                      className={`filter-btn flex-1 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded text-[11px] sm:text-xs font-medium transition-all flex items-center justify-center gap-1 sm:gap-1.5 ${
+                        isSelected
+                          ? 'bg-purple-600 text-white border border-purple-400'
+                          : 'bg-gray-700/50 text-gray-400 border border-gray-600 hover:bg-gray-700'
+                      }`}
+                    >
+                      {isSelected && <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />}
+                      <span className="whitespace-nowrap">{timeframe}{language === 'ar' ? 'د' : language === 'fr' ? 'min' : 'm'}</span>
+                      {count > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-semibold leading-none flex-shrink-0 ${
+                          isSelected ? 'bg-purple-800/80 text-white' : 'bg-gray-600/80 text-gray-200'
+                        }`}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedTimeframes([1, 2, 3, 5]);
+                  setShowTimeframeFilter(false);
+                }}
+                className="filter-btn w-full px-2 py-1.5 sm:px-3 sm:py-2 rounded text-[11px] sm:text-xs font-medium bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 transition-all"
+              >
+                {language === 'ar' ? 'تحديد الكل' : language === 'fr' ? 'Tout sélectionner' : 'Select All'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* التوصيات مع شريط التنقل */}

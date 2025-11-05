@@ -2,6 +2,10 @@
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
+  // تفعيل دعم RTL
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     screens: {
       'xs': '375px',

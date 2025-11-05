@@ -2,19 +2,27 @@ import React, { useEffect, useRef, useState } from 'react';
 import { loadPayPalScript } from '../../services/paypalService';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { geolocationService } from '../../services/geolocationService';
 
 interface PayPalButtonsProps {
   amount: number;
   planName: string;
   onSuccess: (details: any) => void;
   onError: (error: any) => void;
+  userInfo?: {
+    country?: string;
+    phone?: string;
+    email?: string;
+    fullName?: string;
+  };
 }
 
 export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
   amount,
   planName,
   onSuccess,
-  onError
+  onError,
+  userInfo
 }) => {
   const { language } = useLanguage();
   const paypalRef = useRef<HTMLDivElement>(null);
@@ -22,6 +30,7 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const initializedRef = useRef(false);
+  const [detectedCountryCode, setDetectedCountryCode] = useState<string | null>(null);
 
   // دالة الترجمة
   const t = (ar: string, en: string, fr: string) => {
@@ -30,15 +39,97 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
     return en;
   };
 
+  // جلب الموقع الجغرافي عند تحميل المكون
+  useEffect(() => {
+    const detectLocation = async () => {
+      try {
+        console.log('🌍 بدء الكشف عن الموقع الجغرافي...');
+        const location = await geolocationService.getUserLocation();
+        
+        if (location && location.countryCode) {
+          console.log('✅ تم الكشف عن الدولة:', location.country, '→', location.countryCode);
+          setDetectedCountryCode(location.countryCode);
+        } else {
+          console.warn('⚠️ لم يتم الكشف عن الموقع الجغرافي');
+        }
+      } catch (error) {
+        console.error('❌ خطأ في الكشف عن الموقع:', error);
+      }
+    };
+
+    detectLocation();
+  }, []); // تشغيل مرة واحدة فقط
+
+  // دالة تحويل اسم الدولة إلى كود ISO
+  const getCountryCode = (countryName?: string): string => {
+    // 1. إذا تم الكشف عن الموقع الجغرافي، استخدمه (الأولوية القصوى)
+    if (detectedCountryCode) {
+      console.log('🌍 استخدام الدولة المكتشفة من IP:', detectedCountryCode);
+      return detectedCountryCode;
+    }
+
+    // 2. إذا تم تمرير اسم الدولة من قاعدة البيانات
+    if (!countryName) {
+      console.warn('⚠️ لم يتم تمرير اسم الدولة ولم يتم الكشف عن الموقع، سيتم استخدام US');
+      return 'US'; // افتراضي
+    }
+    
+    console.log('📋 اسم الدولة من قاعدة البيانات:', countryName);
+    
+    const countryMap: Record<string, string> = {
+      'المغرب': 'MA', 'مصر': 'EG', 'السعودية': 'SA', 'الإمارات': 'AE',
+      'الكويت': 'KW', 'قطر': 'QA', 'البحرين': 'BH', 'عمان': 'OM',
+      'الأردن': 'JO', 'لبنان': 'LB', 'فلسطين': 'PS', 'سوريا': 'SY',
+      'العراق': 'IQ', 'اليمن': 'YE', 'ليبيا': 'LY', 'تونس': 'TN',
+      'الجزائر': 'DZ', 'السودان': 'SD', 'الصومال': 'SO', 'جيبوتي': 'DJ',
+      'موريتانيا': 'MR', 'جزر القمر': 'KM',
+      // دول أوروبية
+      'فرنسا': 'FR', 'ألمانيا': 'DE', 'إيطاليا': 'IT', 'إسبانيا': 'ES',
+      'بريطانيا': 'GB', 'المملكة المتحدة': 'GB', 'بلجيكا': 'BE', 'هولندا': 'NL',
+      'سويسرا': 'CH', 'النمسا': 'AT', 'السويد': 'SE', 'النرويج': 'NO',
+      // دول آسيوية
+      'الصين': 'CN', 'اليابان': 'JP', 'كوريا الجنوبية': 'KR', 'الهند': 'IN',
+      'باكستان': 'PK', 'بنغلاديش': 'BD', 'إندونيسيا': 'ID', 'ماليزيا': 'MY',
+      'تايلاند': 'TH', 'فيتنام': 'VN', 'الفلبين': 'PH', 'سنغافورة': 'SG',
+      'تركيا': 'TR', 'إيران': 'IR',
+      // دول أمريكية
+      'الولايات المتحدة': 'US', 'أمريكا': 'US', 'كندا': 'CA', 'المكسيك': 'MX',
+      'البرازيل': 'BR', 'الأرجنتين': 'AR', 'تشيلي': 'CL', 'كولومبيا': 'CO',
+      // دول إفريقية
+      'جنوب أفريقيا': 'ZA', 'نيجيريا': 'NG', 'كينيا': 'KE', 'إثيوبيا': 'ET',
+      'غانا': 'GH', 'تنزانيا': 'TZ', 'أوغندا': 'UG',
+      // دول أوقيانوسيا
+      'أستراليا': 'AU', 'نيوزيلندا': 'NZ'
+    };
+    
+    const countryCode = countryMap[countryName];
+    if (!countryCode) {
+      console.warn('⚠️ الدولة غير موجودة في القائمة:', countryName, '- سيتم استخدام US');
+      return 'US';
+    }
+    
+    console.log('✅ تم تحويل الدولة:', countryName, '→', countryCode);
+    return countryCode;
+  };
+
   useEffect(() => {
     let mounted = true;
 
     const initPayPal = async () => {
-      // منع إعادة التهيئة إذا تمت بالفعل
-      if (initializedRef.current) {
-        console.log('⏭️ Already initialized, skipping...');
+      // التحقق من وجود الأزرار في الـ DOM
+      const hasButtons = paypalRef.current?.children.length || cardRef.current?.children.length;
+      
+      // منع إعادة التهيئة إذا تمت بالفعل والأزرار موجودة
+      if (initializedRef.current && hasButtons) {
+        console.log('⏭️ Already initialized with buttons, skipping...');
         setLoading(false);
         return;
+      }
+      
+      // إذا كانت مهيأة لكن الأزرار غير موجودة، إعادة التهيئة
+      if (initializedRef.current && !hasButtons) {
+        console.log('🔄 Buttons missing, re-initializing...');
+        initializedRef.current = false;
       }
 
       try {
@@ -66,6 +157,22 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
         if (!window.paypal) {
           console.error('❌ PayPal SDK not available');
           throw new Error('PayPal SDK not loaded');
+        }
+        
+        // ⚡ انتظار إضافي للتأكد من تحميل window.paypal.Buttons
+        let buttonsReady = false;
+        for (let i = 0; i < 20; i++) {
+          if (window.paypal && typeof window.paypal.Buttons === 'function') {
+            buttonsReady = true;
+            console.log(`✅ PayPal.Buttons ready after ${i * 100}ms`);
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        if (!buttonsReady) {
+          console.error('❌ PayPal.Buttons not available after waiting');
+          throw new Error('PayPal.Buttons not available');
         }
         
         if (!mounted) {
@@ -111,6 +218,8 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
         }
         
         console.log('✅ Refs are ready, creating buttons...');
+        
+        // window.paypal.Buttons تم التحقق منه مسبقاً
         window.paypal.Buttons({
             fundingSource: window.paypal.FUNDING.PAYPAL,
             style: {
@@ -121,7 +230,10 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
               height: 50
             },
             createOrder: (_data: any, actions: any) => {
-              return actions.order.create({
+              const countryCode = getCountryCode(userInfo?.country);
+              console.log('🌍 Country for PayPal:', userInfo?.country, '→', countryCode);
+              
+              const orderData: any = {
                 purchase_units: [{
                   amount: {
                     value: amount.toFixed(2),
@@ -133,7 +245,29 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
                   shipping_preference: 'NO_SHIPPING',
                   user_action: 'PAY_NOW'
                 }
-              });
+              };
+
+              // إضافة معلومات المستخدم إذا كانت متوفرة
+              if (userInfo) {
+                orderData.payer = {
+                  email_address: userInfo.email,
+                  name: userInfo.fullName ? {
+                    given_name: userInfo.fullName.split(' ')[0],
+                    surname: userInfo.fullName.split(' ').slice(1).join(' ') || userInfo.fullName.split(' ')[0]
+                  } : undefined,
+                  address: {
+                    country_code: countryCode
+                  },
+                  phone: userInfo.phone ? {
+                    phone_type: 'MOBILE',
+                    phone_number: {
+                      national_number: userInfo.phone
+                    }
+                  } : undefined
+                };
+              }
+
+              return actions.order.create(orderData);
             },
             onApprove: async (_data: any, actions: any) => {
               const details = await actions.order.capture();
@@ -159,7 +293,10 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
               height: 50
             },
             createOrder: (_data: any, actions: any) => {
-              return actions.order.create({
+              const countryCode = getCountryCode(userInfo?.country);
+              console.log('💳 Country for Card:', userInfo?.country, '→', countryCode);
+              
+              const orderData: any = {
                 purchase_units: [{
                   amount: {
                     value: amount.toFixed(2),
@@ -171,7 +308,29 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
                   shipping_preference: 'NO_SHIPPING',
                   user_action: 'PAY_NOW'
                 }
-              });
+              };
+
+              // إضافة معلومات المستخدم إذا كانت متوفرة
+              if (userInfo) {
+                orderData.payer = {
+                  email_address: userInfo.email,
+                  name: userInfo.fullName ? {
+                    given_name: userInfo.fullName.split(' ')[0],
+                    surname: userInfo.fullName.split(' ').slice(1).join(' ') || userInfo.fullName.split(' ')[0]
+                  } : undefined,
+                  address: {
+                    country_code: countryCode
+                  },
+                  phone: userInfo.phone ? {
+                    phone_type: 'MOBILE',
+                    phone_number: {
+                      national_number: userInfo.phone
+                    }
+                  } : undefined
+                };
+              }
+
+              return actions.order.create(orderData);
             },
             onApprove: async (_data: any, actions: any) => {
               const details = await actions.order.capture();
@@ -209,8 +368,7 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
     // تنظيف عند إلغاء التحميل أو تغيير اللغة
     return () => {
       mounted = false;
-      initializedRef.current = false;
-      console.log('🧹 Cleanup: reset initialized flag (language changed or unmount)');
+      console.log('🧹 Cleanup: component unmounting or language changed');
       
       // تنظيف الأزرار القديمة
       if (paypalRef.current) {
@@ -219,8 +377,11 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
       if (cardRef.current) {
         cardRef.current.innerHTML = '';
       }
+      
+      // ⚠️ لا نعيد تعيين initializedRef هنا لأن PayPal SDK لا يزال محملاً
+      // سيتم إعادة استخدامه عند العودة للصفحة
     };
-  }, [language]);
+  }, [language, amount]);
 
   console.log('🎬 Render state:', { loading, error, hasPaypalRef: !!paypalRef.current, hasCardRef: !!cardRef.current });
 

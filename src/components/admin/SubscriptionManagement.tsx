@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, 
   Search, 
   RefreshCw, 
   Edit3, 
@@ -26,6 +25,7 @@ import { subscriptionService } from '../../services/subscriptionService';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
+import { supabase } from '../../config/supabaseClient';
 
 interface SubscriptionData {
   id: string;
@@ -66,8 +66,7 @@ interface Stats {
 }
 
 export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
-  isVisible, 
-  onClose 
+  isVisible
 }) => {
   const [subscriptions, setSubscriptions] = useState<SubscriptionData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -124,6 +123,25 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     if (isVisible) {
       console.log('✅ النافذة مرئية - بدء تحميل الاشتراكات');
       fetchSubscriptions();
+
+      // ✅ إعداد Realtime للاشتراكات
+      console.log('🔴 إعداد Realtime لإدارة الاشتراكات...');
+      const subscriptionsChannel = supabase
+        .channel('subscriptions-management-changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'subscriptions' },
+          (payload) => {
+            console.log('🔄 تغيير في الاشتراكات:', payload);
+            fetchSubscriptions(); // إعادة تحميل البيانات
+          }
+        )
+        .subscribe();
+
+      // تنظيف عند إخفاء النافذة
+      return () => {
+        console.log('🧹 تنظيف Realtime للاشتراكات...');
+        supabase.removeChannel(subscriptionsChannel);
+      };
     }
   }, [isVisible]);
 
@@ -161,11 +179,15 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       console.log('📊 عدد المشتركين:', data.length);
       
       setSubscriptions(data);
+      // حساب الإيرادات برقمين بعد الفاصلة
+      const totalRevenue = data.reduce((sum, sub) => sum + (sub.amount_paid || 0), 0);
+      const formattedRevenue = Math.round(totalRevenue * 100) / 100;
+      
       setStats({
         total: data.length,
         active: data.filter(sub => sub.status === 'active').length,
         expired: data.filter(sub => sub.status === 'expired').length,
-        revenue: data.reduce((sum, sub) => sum + (sub.amount_paid || 0), 0)
+        revenue: formattedRevenue
       });
     } catch (error) {
       console.error('❌ خطأ في تحميل المشتركين:', error);
@@ -293,32 +315,27 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
 
   return (
     <>
-      {/* النافذة الرئيسية */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4" dir="rtl">
-      <div className="bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-lg w-full max-w-7xl mx-2 max-h-[95vh] overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-2 sm:p-4 lg:p-6 border-b border-slate-700/50">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Users className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white truncate">إدارة المشتركين</h2>
-              <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">إدارة وتتبع جميع الاشتراكات</p>
-            </div>
-          </div>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="sm"
-            icon={<X className="w-4 h-4 sm:w-5 sm:h-5" />}
-            iconOnly
-            className="hover:bg-red-500/20 text-red-400 p-1 sm:p-2"
-          />
-        </div>
-
-        {/* Content */}
-        <div className="p-2 sm:p-4 lg:p-6 overflow-y-auto max-h-[calc(95vh-80px)] sm:max-h-[calc(95vh-120px)] pr-1 sm:pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+      {/* CSS لشريط التمرير */}
+      <style>{`
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: #1e293b;
+          border-radius: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #475569;
+          border-radius: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: #64748b;
+        }
+      `}</style>
+      
+      {/* المحتوى مباشرة بدون نافذة منبثقة */}
+      <div className="space-y-4 p-4" dir="rtl">
           {/* الإحصائيات */}
           <div className="grid grid-cols-4 gap-1 sm:gap-2 lg:gap-4 mb-3 sm:mb-4 lg:mb-6">
             <Card padding="sm" className="text-center py-1 sm:py-2">
@@ -334,7 +351,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
               <div className="text-[8px] sm:text-[10px] lg:text-sm text-gray-400">منتهي</div>
             </Card>
             <Card padding="sm" className="text-center py-1 sm:py-2">
-              <div className="text-sm sm:text-base lg:text-2xl font-bold text-yellow-400">${stats.revenue}</div>
+              <div className="text-sm sm:text-base lg:text-2xl font-bold text-yellow-400">${stats.revenue.toFixed(2)}</div>
               <div className="text-[8px] sm:text-[10px] lg:text-sm text-gray-400">إيرادات</div>
             </Card>
           </div>
@@ -372,7 +389,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
             <>
               {/* عرض الجدول للشاشات الكبيرة */}
               <div className="hidden lg:block">
-                <div className="overflow-visible rounded-lg border border-slate-700/50">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto rounded-lg border border-slate-700/50 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-800/50">
                       <tr>
@@ -556,7 +573,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
               </div>
 
               {/* عرض البطاقات للشاشات الصغيرة والمتوسطة */}
-              <div className="lg:hidden space-y-2">
+              <div className="lg:hidden space-y-2 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
                 {filteredSubscriptions.map((sub, idx) => (
                   <div key={sub.id} className={`relative ${openDropdown === sub.id ? 'z-[3000]' : ''} overflow-visible`}>
                     <Card padding="sm" className="hover:border-blue-500/30 transition-colors overflow-visible relative">
@@ -736,12 +753,9 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
               )}
             </>
           )}
-        </div>
-
-      </div>
       </div>
 
-      {/* جميع النوافذ المنبثقة خارج الحاوية الرئيسية */}
+      {/* جميع النوافذ المنبثقة */}
       
       {/* نافذة عرض التفاصيل */}
       {showDetailsModal && selectedSubscription && (

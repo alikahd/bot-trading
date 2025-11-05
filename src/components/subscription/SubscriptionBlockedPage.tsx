@@ -123,26 +123,26 @@ export const SubscriptionBlockedPage: React.FC<SubscriptionBlockedPageProps> = (
           </div>
 
           {/* الأزرار */}
-          <div className={cn("space-y-3")}>
+          <div className={cn("space-y-2.5")}>
             {/* زر التجديد */}
             <Button
               onClick={onRenewSubscription}
               variant="primary"
-              size="lg"
-              icon={<CreditCard className="w-5 h-5" />}
-              className={cn("w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700")}
+              size="md"
+              icon={<CreditCard className="w-4 h-4" />}
+              className={cn("w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-sm sm:text-base py-2.5 sm:py-3")}
             >
               {t('subscriptionBlocked.renewNow')}
             </Button>
 
             {/* أزرار ثانوية */}
-            <div className={cn("grid grid-cols-2 gap-3")}>
+            <div className={cn("grid grid-cols-2 gap-2")}>
               <Button
                 onClick={onRefresh}
                 variant="secondary"
                 size="sm"
-                icon={<RefreshCw className="w-4 h-4" />}
-                className={cn("flex-1")}
+                icon={<RefreshCw className="w-3.5 h-3.5" />}
+                className={cn("flex-1 text-[10px] sm:text-sm py-2 whitespace-nowrap")}
               >
                 {t('subscriptionBlocked.refreshStatus')}
               </Button>
@@ -151,8 +151,8 @@ export const SubscriptionBlockedPage: React.FC<SubscriptionBlockedPageProps> = (
                 onClick={onLogout}
                 variant="ghost"
                 size="sm"
-                icon={<LogOut className="w-4 h-4" />}
-                className={cn("flex-1 text-slate-400 hover:text-white")}
+                icon={<LogOut className="w-3.5 h-3.5" />}
+                className={cn("flex-1 text-slate-400 hover:text-white text-[10px] sm:text-sm py-2 whitespace-nowrap")}
               >
                 {t('subscriptionBlocked.logout')}
               </Button>

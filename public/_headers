@@ -1,0 +1,8 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: Content-Type
+  Content-Security-Policy: connect-src 'self' wss://ws.binaryws.com https://*.binaryws.com https://*.supabase.co wss://*.supabase.co https://*.tawk.to wss://*.tawk.to https://embed.tawk.to https://va.tawk.to

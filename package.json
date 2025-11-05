@@ -1,7 +1,7 @@
 {
   "name": "vite-react-typescript-starter",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.1.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +11,7 @@
     "setup": "cp .env.example .env && echo 'تم إنشاء ملف .env - يرجى إضافة مفاتيح API الخاصة بك'"
   },
   "dependencies": {
+    "@netlify/functions": "^5.0.1",
     "@paypal/agent-toolkit": "^1.8.0",
     "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.12.2",

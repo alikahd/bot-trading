@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Wallet, Copy, Check, Upload, RefreshCw, X, Shield, Coins } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import PayPalButtons from './PayPalButtons';
+import { CouponField } from './CouponField';
 
 interface PaymentPageProps {
   selectedPlan: any;
@@ -25,25 +26,36 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
   const [cryptoProof, setCryptoProof] = useState<File | null>(null);
   const [cryptoStatus, setCryptoStatus] = useState<'pending' | 'uploaded' | 'verifying'>('pending');
   const [cryptoPaymentData, setCryptoPaymentData] = useState<any>(null);
+  const [discount, setDiscount] = useState<number>(0);
+  const [couponId, setCouponId] = useState<string | null>(null);
+  const [autoAppliedCoupon, setAutoAppliedCoupon] = useState<string>('');
+  const couponFieldRef = useRef<any>(null);
+  
+  // حساب السعر النهائي بعد الخصم
+  const finalPrice = selectedPlan.price - discount;
+
+  // قراءة معامل ref من URL وتطبيق الكوبون تلقائياً
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    
+    if (refCode && !autoAppliedCoupon) {
+      console.log('🔗 تم اكتشاف رمز إحالة من URL:', refCode);
+      setAutoAppliedCoupon(refCode);
+      
+      // تطبيق الكوبون تلقائياً بعد تحميل المكون
+      setTimeout(() => {
+        if (couponFieldRef.current) {
+          couponFieldRef.current.applyCouponAutomatically(refCode);
+        }
+      }, 500);
+    }
+  }, [autoAppliedCoupon]);
 
   const usdtAddress = "TLXYH8acXRzNDPgVKrfQUGSyubL5fUkCaM";
 
-  // التحقق من وجود البيانات المطلوبة
-  if (!userInfo || !selectedPlan) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4" dir={dir}>
-        <div className="text-center">
-          <p className="text-white text-xl mb-4">{t('payment.loadingData') || 'جاري تحميل البيانات...'}</p>
-          <button
-            onClick={onBack}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
-          >
-            {t('payment.backButton')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // ملاحظة: تم نقل التحقق من البيانات إلى App.tsx
+  // الصفحة لن تظهر إلا بعد تحميل جميع البيانات المطلوبة
 
   // معالجة رفع صورة إثبات الدفع بالعملة الرقمية
   const handleCryptoProofUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +103,10 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
         // إنشاء سجل دفع بالعملة الرقمية
         const paymentData = {
           method: 'bitcoin',
-          amount: selectedPlan.price,
+          amount: finalPrice,
+          originalAmount: selectedPlan.price,
+          discount: discount,
+          couponId: couponId,
           currency: 'USD',
           walletAddress: usdtAddress,
           proofImage: base64Image,
@@ -174,9 +189,9 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
             <p className="text-sm sm:text-base text-gray-300">{t('payment.subtitle')}</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
             {/* معلومات الباقة */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-2">
               <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6">
                 <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">{t('payment.orderSummary')}</h3>
                 
@@ -200,7 +215,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
                   </div>
                   
                   <div className="flex flex-col gap-1">
-                    <span className="text-sm sm:text-base text-gray-300">{t('subscription.username')}:</span>
+                    <span className="text-sm sm:text-base text-gray-300">{t('userinfo.fullName')}:</span>
                     <span className="text-sm sm:text-base text-white font-medium break-words">{userInfo.fullName}</span>
                   </div>
                   
@@ -211,28 +226,64 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
                   
                   <hr className="border-white/20" />
                   
+                  {/* حقل الكوبون */}
+                  <CouponField
+                    ref={couponFieldRef}
+                    originalPrice={selectedPlan.price}
+                    onCouponApplied={(discountAmount, appliedCouponId) => {
+                      setDiscount(discountAmount);
+                      setCouponId(appliedCouponId);
+                    }}
+                    userId={userInfo.userId}
+                    autoApplyCoupon={autoAppliedCoupon}
+                  />
+                  
+                  {/* عرض السعر الأصلي والخصم */}
+                  {discount > 0 && (
+                    <div className="flex justify-between items-center text-sm text-gray-300">
+                      <span>{t('payment.originalPrice')}:</span>
+                      <span className="line-through">${selectedPlan.price.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  {discount > 0 && (
+                    <div className="flex justify-between items-center text-sm text-green-400">
+                      <span>{t('payment.discount')}:</span>
+                      <span>-${discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between items-center text-base sm:text-lg">
                     <span className="text-white font-bold">{t('payment.total')}:</span>
-                    <span className="text-green-400 font-bold">${selectedPlan.price}</span>
+                    <span className="text-green-400 font-bold">${finalPrice.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* طرق الدفع */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-3">
               <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6">
                 <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">{t('payment.paymentMethod')}</h3>
 
                 {/* أزرار PayPal والبطاقة */}
                 <PayPalButtons
-                  amount={selectedPlan.price}
+                  amount={finalPrice}
                   planName={selectedPlan.name}
+                  userInfo={{
+                    country: userInfo?.country,
+                    phone: userInfo?.phone,
+                    email: userInfo?.email,
+                    fullName: userInfo?.fullName
+                  }}
                   onSuccess={(details) => {
                     console.log('✅ Payment successful:', details);
                     onPaymentComplete('paypal', 'completed', {
                       method: 'paypal',
-                      amount: selectedPlan.price,
+                      amount: finalPrice,
+                      originalAmount: selectedPlan.price,
+                      discount: discount,
+                      couponId: couponId,
                       currency: 'USD',
                       status: 'completed',
                       transactionId: details.id,
@@ -344,7 +395,13 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
 
                     {/* المبلغ المطلوب */}
                     <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 text-center">
-                      <div className="text-green-400 font-bold text-2xl">${selectedPlan.price} USDT</div>
+                      <div className="text-green-400 font-bold text-2xl">${finalPrice.toFixed(2)} USDT</div>
+                      {discount > 0 && (
+                        <div className="text-gray-400 text-sm mt-1">
+                          <span className="line-through">${selectedPlan.price.toFixed(2)}</span>
+                          <span className="text-green-400 ml-2">-${discount.toFixed(2)}</span>
+                        </div>
+                      )}
                       <div className="text-gray-300 text-sm mt-1">{t('payment.amountRequired')}</div>
                     </div>
 
@@ -389,20 +446,20 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
                           <p className="text-gray-300 text-sm mb-3">
                             {t('payment.uploadSuccessDesc')}
                           </p>
-                          <div className="flex gap-3">
+                          <div className="flex gap-2 sm:gap-3">
                             <button
                               onClick={handleConfirmCryptoPayment}
                               disabled={processing}
-                              className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+                              className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 text-white font-medium text-[11px] sm:text-base py-1.5 sm:py-3 px-2.5 sm:px-6 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center gap-1 sm:gap-2"
                             >
                               {processing ? (
                                 <>
-                                  <RefreshCw className="w-5 h-5 animate-spin" />
+                                  <RefreshCw className="w-3.5 h-3.5 sm:w-5 sm:h-5 animate-spin" />
                                   {t('payment.submitting')}
                                 </>
                               ) : (
                                 <>
-                                  <Check className="w-5 h-5" />
+                                  <Check className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                                   {t('payment.submitProof')}
                                 </>
                               )}
@@ -414,7 +471,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
                                 setCryptoPaymentData(null);
                               }}
                               disabled={processing}
-                              className="bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200"
+                              className="bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white font-medium text-[11px] sm:text-base py-1.5 sm:py-3 px-2.5 sm:px-6 rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap"
                             >
                               {t('payment.changeImage')}
                             </button>

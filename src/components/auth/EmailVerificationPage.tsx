@@ -57,8 +57,13 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
         setError(error.message || 'فشل في إعادة إرسال رابط التفعيل');
       } else {
         setSuccess(true);
-        setTimeLeft(60);
-        setCanResend(false);
+        setTimeLeft(60); // إعادة تعيين العداد
+        setCanResend(false); // تعطيل الزر
+        
+        // إخفاء رسالة النجاح بعد 3 ثوانٍ
+        setTimeout(() => {
+          setSuccess(false);
+        }, 3000);
       }
     } catch (error) {
       console.error('خطأ في إعادة الإرسال:', error);
@@ -68,42 +73,8 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
     }
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex flex-col">
-        {/* خلفية متحركة */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-green-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-          <div className="absolute -bottom-20 -left-20 sm:-bottom-40 sm:-left-40 w-40 h-40 sm:w-80 sm:h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        </div>
-
-        <div className="flex-1 flex items-center justify-center p-4 relative z-10">
-          <div className="w-full max-w-md text-center">
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 shadow-2xl">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-green-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-white" />
-              </div>
-              
-              <h1 className="text-2xl font-bold text-white mb-2">
-                تم إرسال رابط التفعيل!
-              </h1>
-              
-              <p className="text-gray-300 text-sm mb-4">
-                تم إرسال رابط تفعيل جديد إلى بريدك الإلكتروني. يرجى التحقق من بريدك والنقر على الرابط.
-              </p>
-
-              <div className="w-full bg-green-500/20 rounded-full h-2 mb-4">
-                <div className="bg-green-500 h-2 rounded-full animate-pulse" style={{ width: '100%' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Footer />
-      </div>
-    );
-  }
-
+  // تم إزالة عرض صفحة النجاح الكاملة - الآن نعرض رسالة نجاح صغيرة فقط
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex flex-col">
       {/* زر تغيير اللغة */}
@@ -156,6 +127,13 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
               <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
                 <p className="text-red-300 text-xs sm:text-sm">{error}</p>
+              </div>
+            )}
+            
+            {success && (
+              <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-green-500/20 border border-green-500/30 rounded-lg flex items-center gap-2 animate-pulse">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                <p className="text-green-300 text-xs sm:text-sm">✅ تم إرسال رابط التفعيل بنجاح! تحقق من بريدك الإلكتروني.</p>
               </div>
             )}
 

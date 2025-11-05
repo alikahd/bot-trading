@@ -32,6 +32,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [plans, setPlans] = useState<any[]>([]);
 
+  // منع الرجوع للخلف باستخدام زر المتصفح/الهاتف
+  useEffect(() => {
+    // إضافة حالة جديدة للتاريخ عند تحميل الصفحة
+    window.history.pushState({ page: 'landing', preventBack: true }, '', window.location.pathname);
+
+    const handlePopState = (event: PopStateEvent) => {
+      // إذا حاول المستخدم الرجوع، نمنعه ونعيده للأمام
+      if (event.state?.preventBack) {
+        window.history.pushState({ page: 'landing', preventBack: true }, '', window.location.pathname);
+        console.log('🚫 تم منع الرجوع للخلف من الصفحة الرئيسية');
+      }
+    };
+
+    // الاستماع لحدث الرجوع
+    window.addEventListener('popstate', handlePopState);
+
+    // التنظيف عند إلغاء تحميل المكون
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // تبديل الشهادات تلقائياً
   useEffect(() => {
     const interval = setInterval(() => {

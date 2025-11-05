@@ -1,7 +1,7 @@
 /**
- * 🎯 IQ Option Connection Status Component
+ * 🎯 Connection Status Component
  * =======================================
- * مكون لعرض حالة الاتصال مع IQ Option
+ * مكون لعرض حالة الاتصال
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -17,10 +17,16 @@ export const IQOptionStatus: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [dataSource, setDataSource] = useState<string>(language === 'ar' ? 'محاكاة' : language === 'fr' ? 'Simulation' : 'Simulation');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto' | 'commodities' | 'indices' | 'synthetic' | 'exotic'>('all');
 
   useEffect(() => {
-    console.log('🚀 الاشتراك في البيانات المباشرة الفورية - IQOptionStatus');
+    console.log('🚀 الاشتراك في البيانات المباشرة الفورية');
+    
+    // بدء خدمة البيانات إذا لم تكن تعمل
+    if (!realTimeDataService.isActive()) {
+      console.log('🔌 بدء خدمة البيانات...');
+      realTimeDataService.start();
+    }
     
     // الاشتراك في خدمة البيانات المباشرة
     const unsubscribe = realTimeDataService.subscribe('iqoption-status', (realTimeQuotes) => {
@@ -43,9 +49,9 @@ export const IQOptionStatus: React.FC = () => {
       setQuotes(formattedQuotes);
       setLastUpdate(realTimeDataService.getLastUpdate());
       setIsConnected(realTimeDataService.isActive());
-      setDataSource(language === 'ar' ? 'بيانات IQ Option فورية' : 
-                   language === 'fr' ? 'Données IQ Option en temps réel' : 
-                   'IQ Option Real-Time Data');
+      setDataSource(language === 'ar' ? 'بيانات فورية' : 
+                   language === 'fr' ? 'Données en temps réel' : 
+                   'Real-Time Data');
     });
 
     return () => {
@@ -55,13 +61,13 @@ export const IQOptionStatus: React.FC = () => {
   }, [language]);
 
   const formatPrice = (price: number, symbol: string) => {
-    const decimals = symbol.includes('JPY') ? 3 : 5;
+    const decimals = symbol.includes('JPY') ? 3 : 6; // 6 خانات عشرية للدقة العالية
     return price.toFixed(decimals);
   };
 
   const formatChange = (change: number) => {
     const sign = change >= 0 ? '+' : '';
-    return `${sign}${change.toFixed(5)}`;
+    return `${sign}${change.toFixed(6)}`; // 6 خانات عشرية للدقة العالية
   };
 
   // فلترة وبحث الأسعار
@@ -71,11 +77,21 @@ export const IQOptionStatus: React.FC = () => {
     // فلترة حسب النوع
     if (filterType !== 'all') {
       filtered = filtered.filter(([symbol]) => {
+        const upperSymbol = symbol.toUpperCase();
+        
         if (filterType === 'major') {
-          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF']
-            .some(major => symbol.toUpperCase().includes(major));
+          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
+            .some(major => upperSymbol.includes(major));
         } else if (filterType === 'crypto') {
-          return ['BTC', 'ETH'].some(crypto => symbol.toUpperCase().includes(crypto));
+          return ['BTC', 'ETH', 'LTC', 'XRP', 'BCH', 'EOS', 'BNB', 'ADA', 'XLM', 'TRX', 'DOT', 'LINK', 'UNI', 'SOL', 'AVAX', 'MATIC'].some(crypto => upperSymbol.includes(crypto));
+        } else if (filterType === 'commodities') {
+          return ['XAU', 'XAG', 'XPD', 'XPT', 'BRENT', 'WTI', 'NGAS', 'GOLD', 'SILVER', 'OIL'].some(commodity => upperSymbol.includes(commodity));
+        } else if (filterType === 'indices') {
+          return ['AUS200', 'US500', 'US30', 'JPN225', 'HK50', 'UK100', 'EU50', 'GER40', 'FRA40'].some(index => upperSymbol.includes(index));
+        } else if (filterType === 'synthetic') {
+          return ['VOL', 'BOOM', 'CRASH', 'JUMP'].some(synthetic => upperSymbol.includes(synthetic));
+        } else if (filterType === 'exotic') {
+          return ['RUB', 'TRY', 'ZAR', 'MXN', 'BRL', 'SGD', 'HKD', 'KRW', 'INR', 'CNH', 'THB', 'PLN', 'SEK', 'NOK', 'DKK'].some(exotic => upperSymbol.includes(exotic));
         }
         return true;
       });
@@ -102,7 +118,7 @@ export const IQOptionStatus: React.FC = () => {
           ) : (
             <WifiOff className="w-5 h-5 text-red-400" />
           )}
-          <span className="text-white font-semibold">IQ Option</span>
+          <span className="text-white font-semibold">حالة الاتصال</span>
         </div>
         
         <div className="flex flex-col items-end gap-1">
@@ -159,25 +175,27 @@ export const IQOptionStatus: React.FC = () => {
               />
             </div>
 
-            {/* أزرار الفلترة - محسنة للهواتف */}
-            <div className="grid grid-cols-3 gap-1">
-              {[
-                { key: 'all', label: t('assets.all') },
-                { key: 'major', label: t('assets.major') },
-                { key: 'crypto', label: t('assets.crypto') }
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setFilterType(key as any)}
-                  className={`filter-btn px-1.5 py-1.5 text-[11px] sm:text-xs rounded text-center font-medium transition-colors ${
-                    filterType === key 
-                      ? 'bg-blue-600 text-white shadow-md' 
-                      : 'bg-gray-700/70 text-gray-200 hover:bg-gray-600/70 border border-gray-600/50'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            {/* قائمة الفلترة المنسدلة */}
+            <div className="relative">
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as any)}
+                className="filter-select w-full pl-3 pr-8 py-1.5 sm:py-2.5 bg-gray-700/50 border border-gray-600 rounded text-white text-sm sm:text-base focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+              >
+                <option value="all">{t('assets.all')}</option>
+                <option value="major">{t('assets.major')}</option>
+                <option value="crypto">{t('assets.crypto')}</option>
+                <option value="commodities">{t('assets.commodities')}</option>
+                <option value="indices">المؤشرات</option>
+                <option value="synthetic">التركيبية</option>
+                <option value="exotic">الناشئة</option>
+              </select>
+              {/* أيقونة السهم - مع مساحة أكبر */}
+              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
           </div>
 

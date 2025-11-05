@@ -57,33 +57,16 @@ class PaymentService {
       let error = null;
       
       try {
-        // استعلام مباشر مع حدود بسيطة وتدرج عند الفشل
+        // ✅ استعلام بسيط ومباشر - بدون retry معقد
         console.log('🚀 جلب المدفوعات مباشرة...');
 
-        const queryWithLimit = async (limit: number) => {
-          return await supabase
-            .from('payments')
-            .select('id,user_id,subscription_id,amount,currency,payment_method,status,payment_reference,admin_review_status,created_at,updated_at')
-            .order('created_at', { ascending: false })
-            .limit(limit);
-        };
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from('payments')
+          .select('id,user_id,subscription_id,amount,currency,payment_method,status,payment_reference,admin_review_status,crypto_wallet_address,admin_review_notes,reviewed_by,reviewed_at,created_at,updated_at')
+          .order('created_at', { ascending: false })
+          .limit(50); // حد معقول
 
-        const limits = [20, 10, 5, 1];
-        let paymentsData: any[] | null = null;
-        let paymentsError: any = null;
-
-        for (const lim of limits) {
-          const res = await queryWithLimit(lim);
-          if (!res.error) {
-            paymentsData = res.data || [];
-            break;
-          } else {
-            paymentsError = res.error;
-            console.warn(`⚠️ فشل جلب المدفوعات بحد ${lim}، إعادة المحاولة بحد أصغر...`, paymentsError?.message || paymentsError);
-          }
-        }
-
-        if (!paymentsData) {
+        if (paymentsError) {
           throw paymentsError;
         }
 
@@ -154,7 +137,7 @@ class PaymentService {
 
       console.log('✅ تم جلب المدفوعات:', payments.length);
 
-      // تنسيق البيانات
+      // تنسيق البيانات (بدون الصور - سيتم جلبها عند الحاجة)
       const formattedPayments = payments.map((p: any) => ({
         id: p.id,
         user_id: p.user_id,
@@ -170,10 +153,11 @@ class PaymentService {
         status: p.status || 'pending',
         transaction_id: p.transaction_id,
         payment_reference: p.payment_reference,
-        proof_image: p.crypto_proof_image || p.proof_image,
-        crypto_proof_image: p.crypto_proof_image,
         admin_review_status: p.admin_review_status || 'pending',
         admin_review_notes: p.admin_review_notes,
+        crypto_wallet_address: p.crypto_wallet_address,
+        reviewed_by: p.reviewed_by,
+        reviewed_at: p.reviewed_at,
         created_at: p.created_at,
         updated_at: p.updated_at
       }));
@@ -384,6 +368,30 @@ class PaymentService {
     } catch (error) {
       console.error('Error calculating payment stats:', error);
       throw error;
+    }
+  }
+
+  // جلب صورة إثبات الدفع لدفعة معينة
+  async getPaymentProofImage(paymentId: string): Promise<{ crypto_proof_image?: string; proof_image?: string } | null> {
+    try {
+      console.log('🖼️ جلب صورة إثبات الدفع:', paymentId);
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .select('crypto_proof_image,proof_image')
+        .eq('id', paymentId)
+        .single();
+      
+      if (error) {
+        console.error('❌ خطأ في جلب الصورة:', error);
+        return null;
+      }
+      
+      console.log('✅ تم جلب الصورة بنجاح');
+      return data;
+    } catch (error) {
+      console.error('Error fetching payment proof image:', error);
+      return null;
     }
   }
 

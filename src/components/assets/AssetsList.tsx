@@ -13,24 +13,27 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
   const { t, dir } = useLanguage();
   const [assets, setAssets] = useState<Asset[]>(propAssets || []);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto' | 'otc' | 'regular'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto' | 'commodities' | 'indices' | 'synthetic' | 'exotic'>('all');
   
-  // عدد الخانات العشرية حسب نوع الزوج
+  // عدد الخانات العشرية حسب نوع الزوج - دقة عالية
   const getDecimals = (symbol: string) => {
     const upper = symbol.toUpperCase();
     if (upper.includes('BTC') || upper.includes('ETH') || upper.includes('LTC')) return 2; // كريبتو
     if (upper.includes('JPY')) return 3; // أزواج الين
-    if (/^[A-Z]{6}$/.test(upper)) return 5; // فوركس قياسي
-    return 2; // افتراضي
+    if (/^[A-Z]{6}/.test(upper)) return 6; // فوركس قياسي - 6 خانات عشرية
+    return 6; // افتراضي - 6 خانات عشرية
   };
   
   // الاشتراك في البيانات المباشرة الفورية - يعمل دائماً (حتى لو كان البوت متوقف)
   useEffect(() => {
-    console.log('🚀 الاشتراك في البيانات المباشرة الفورية - AssetsList');
+    
+    // بدء خدمة البيانات إذا لم تكن تعمل
+    if (!realTimeDataService.isActive()) {
+      realTimeDataService.start();
+    }
     
     // الاشتراك في خدمة البيانات المباشرة
     const unsubscribe = realTimeDataService.subscribe('assets-list', (realTimeQuotes) => {
-      console.log('📊 تحديث فوري - AssetsList:', Object.keys(realTimeQuotes).length, 'أصول');
       
       // تحويل البيانات إلى تنسيق Asset
       const loadedAssets: Asset[] = Object.values(realTimeQuotes).map((quote: RealTimeQuote) => ({
@@ -42,11 +45,9 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
       }));
       
       setAssets(loadedAssets);
-      console.log(`✅ تم تحديث ${loadedAssets.length} أصل فورياً`);
     });
 
     return () => {
-      console.log('🔕 إلغاء الاشتراك - AssetsList');
       unsubscribe();
     };
   }, []); // إزالة isActive من dependencies - يعمل دائماً
@@ -63,14 +64,18 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
         const symbol = asset.symbol.toUpperCase();
         
         if (filterType === 'major') {
-          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF']
+          return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
             .some(major => symbol.includes(major));
         } else if (filterType === 'crypto') {
-          return ['BTC', 'ETH'].some(crypto => symbol.includes(crypto));
-        } else if (filterType === 'otc') {
-          return symbol.includes('OTC') || symbol.includes('_OTC');
-        } else if (filterType === 'regular') {
-          return !symbol.includes('OTC') && !symbol.includes('_OTC');
+          return ['BTC', 'ETH', 'LTC', 'XRP', 'BCH', 'EOS', 'BNB', 'ADA', 'XLM', 'TRX', 'DOT', 'LINK', 'UNI', 'SOL', 'AVAX', 'MATIC'].some(crypto => symbol.includes(crypto));
+        } else if (filterType === 'commodities') {
+          return ['XAU', 'XAG', 'XPD', 'XPT', 'BRENT', 'WTI', 'NGAS', 'GOLD', 'SILVER', 'OIL'].some(commodity => symbol.includes(commodity));
+        } else if (filterType === 'indices') {
+          return ['AUS200', 'US500', 'US30', 'JPN225', 'HK50', 'UK100', 'EU50', 'GER40', 'FRA40'].some(index => symbol.includes(index));
+        } else if (filterType === 'synthetic') {
+          return ['VOL', 'BOOM', 'CRASH', 'JUMP'].some(synthetic => symbol.includes(synthetic));
+        } else if (filterType === 'exotic') {
+          return ['RUB', 'TRY', 'ZAR', 'MXN', 'BRL', 'SGD', 'HKD', 'KRW', 'INR', 'CNH', 'THB', 'PLN', 'SEK', 'NOK', 'DKK'].some(exotic => symbol.includes(exotic));
         }
         return true;
       });
@@ -127,27 +132,27 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
             />
           </div>
 
-          {/* أزرار الفلترة - مدمجة */}
-          <div className="flex gap-0.5 sm:gap-2 justify-between">
-            {[
-              { key: 'all', label: t('assets.all'), color: 'blue' },
-              { key: 'major', label: t('assets.major'), color: 'green' },
-              { key: 'crypto', label: t('assets.crypto'), color: 'purple' },
-              { key: 'otc', label: t('assets.otc'), color: 'orange' },
-              { key: 'regular', label: t('assets.regular'), color: 'gray' }
-            ].map(({ key, label, color }) => (
-              <button
-                key={key}
-                onClick={() => setFilterType(key as any)}
-                className={`filter-btn flex-1 px-0.5 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-sm rounded text-center font-medium transition-colors ${
-                  filterType === key 
-                    ? `bg-${color}-600 text-white shadow-md` 
-                    : 'bg-gray-700/70 text-gray-200 hover:bg-gray-600/70 border border-gray-600/50'
-                }`}
-              >
-                  {label}
-                </button>
-            ))}
+          {/* قائمة الفلترة المنسدلة */}
+          <div className="relative">
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as any)}
+              className="filter-select w-full pl-3 pr-10 py-1.5 sm:py-3 bg-gray-700/50 border border-gray-600 rounded text-white text-sm sm:text-base focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+            >
+              <option value="all">{t('assets.all')}</option>
+              <option value="major">{t('assets.major')}</option>
+              <option value="crypto">{t('assets.crypto')}</option>
+              <option value="commodities">{t('assets.commodities')}</option>
+              <option value="indices">المؤشرات</option>
+              <option value="synthetic">التركيبية</option>
+              <option value="exotic">الناشئة</option>
+            </select>
+            {/* أيقونة السهم - مع مساحة أكبر */}
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
         </div>
 

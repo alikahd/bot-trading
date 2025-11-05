@@ -263,7 +263,41 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
 
   useEffect(() => {
     loadRealData();
-  }, [loadRealData]);
+
+    // ✅ إعداد Realtime للاشتراكات والمدفوعات
+    console.log('🔴 إعداد Realtime لصفحة الاشتراك والمدفوعات...');
+
+    // مزامنة الاشتراكات
+    const subscriptionsChannel = supabase
+      .channel(`user-subscription-${userId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          console.log('🔄 تغيير في الاشتراك:', payload);
+          loadRealData();
+        }
+      )
+      .subscribe();
+
+    // مزامنة المدفوعات
+    const paymentsChannel = supabase
+      .channel(`user-payments-${userId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'payments', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          console.log('🔄 تغيير في المدفوعات:', payload);
+          loadRealData();
+        }
+      )
+      .subscribe();
+
+    // تنظيف عند إلغاء التحميل
+    return () => {
+      console.log('🧹 تنظيف Realtime للاشتراك والمدفوعات...');
+      supabase.removeChannel(subscriptionsChannel);
+      supabase.removeChannel(paymentsChannel);
+    };
+  }, [loadRealData, userId]);
 
   // تحديث العد التنازلي كل ثانية
   useEffect(() => {

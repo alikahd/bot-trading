@@ -39,8 +39,8 @@ export const mcp1_execute_sql = async (query: string): Promise<SupabaseResponse>
         },
         {
           id: '3376a41b-09b2-4f6f-8449-d14bd3425ced',
-          username: 'hichamkhad00',
-          email: 'hichamkhad00@gmail.com',
+          username: 'admin_user',
+          email: 'admin@example.com',
           role: 'admin',
           subscription_status: 'active',
           subscription_end_date: '2025-09-27T22:29:30.195233+00',

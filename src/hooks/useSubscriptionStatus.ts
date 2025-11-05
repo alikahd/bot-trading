@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { executeRealQuery, calculateRealTimeRemaining } from '../services/realSupabaseService';
+import { realtimeSyncService } from '../services/realtimeSync';
 
 export interface SubscriptionStatus {
   isActive: boolean;
@@ -25,38 +26,82 @@ export const useSubscriptionStatus = (userId?: string) => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
 
-  const checkSubscriptionStatus = async () => {
+  const checkSubscriptionStatus = async (isBackground = false) => {
     if (!userId) {
+      console.log('⚠️ لا يوجد userId - إيقاف الفحص');
+      // إعادة تعيين الحالة للمستخدم غير مسجل الدخول
+      setStatus({
+        isActive: false,
+        daysRemaining: 0,
+        hoursRemaining: 0,
+        minutesRemaining: 0,
+        subscription: null,
+        isExpired: true,
+        isExpiringSoon: false,
+        timeUntilExpiry: 'غير مسجل'
+      });
       setLoading(false);
+      setError(null);
       return;
     }
 
     try {
-      setLoading(true);
+      // فقط نعرض شاشة التحميل في المرة الأولى
+      if (!isBackground && isInitialLoad) {
+        setLoading(true);
+      }
       setError(null);
 
-      // جلب بيانات المستخدم من قاعدة البيانات
-      const userQuery = `
-        SELECT id, username, email, role, subscription_status, subscription_end_date, created_at
-        FROM users 
-        WHERE id = '${userId}'
+      // ✅ استعلام واحد مدمج مع التحقق الفوري من تاريخ الانتهاء
+      const combinedQuery = `
+        SELECT 
+          u.id,
+          u.username,
+          u.email,
+          u.role,
+          u.status,
+          u.subscription_status,
+          u.subscription_end_date,
+          u.created_at,
+          s.id as subscription_id,
+          s.status as subscription_table_status,
+          s.start_date,
+          s.end_date,
+          s.plan_id,
+          sp.name as plan_name,
+          sp.name_ar as plan_name_ar,
+          sp.features_ar as features,
+          sp.plan_price as plan_price,
+          -- ✅ التحقق الفوري من صلاحية الاشتراك
+          CASE 
+            WHEN s.end_date IS NOT NULL AND s.end_date < NOW() THEN false
+            ELSE true
+          END as is_subscription_valid
+        FROM users u
+        LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
+        LEFT JOIN subscription_plans sp ON s.plan_id = sp.id
+        WHERE u.id = '${userId}'
+        ORDER BY s.created_at DESC
+        LIMIT 1
       `;
-      const userResult = await executeRealQuery(userQuery);
       
-      if (userResult.error) {
-        throw new Error(`خطأ في جلب بيانات المستخدم: ${userResult.error}`);
+      const result = await executeRealQuery(combinedQuery);
+      
+      if (result.error) {
+        throw new Error(`خطأ في جلب البيانات: ${result.error}`);
       }
       
-      if (!userResult.data || userResult.data.length === 0) {
+      if (!result.data || result.data.length === 0) {
         throw new Error('المستخدم غير موجود في قاعدة البيانات');
       }
 
-      const userData = userResult.data[0];
+      const data = result.data[0];
 
       // إذا كان المستخدم مدير، فهو معفي من فحص الاشتراك
-      if (userData.role === 'admin') {
+      if (data.role === 'admin') {
         setStatus({
           isActive: true,
           daysRemaining: 999,
@@ -70,26 +115,9 @@ export const useSubscriptionStatus = (userId?: string) => {
         return;
       }
 
-      // جلب تفاصيل الاشتراك النشط
-      const subscriptionQuery = `
-        SELECT 
-          s.*,
-          sp.name as plan_name,
-          sp.name_ar as plan_name_ar,
-          sp.features_ar as features,
-          sp.price as plan_price
-        FROM subscriptions s
-        LEFT JOIN subscription_plans sp ON s.plan_id = sp.id
-        WHERE s.user_id = '${userId}' AND s.status = 'active'
-        ORDER BY s.created_at DESC LIMIT 1
-      `;
-      const subscriptionResult = await executeRealQuery(subscriptionQuery);
-      
-      if (subscriptionResult.error) {
-        throw new Error(`خطأ في جلب بيانات الاشتراك: ${subscriptionResult.error}`);
-      }
-      
-      if (!subscriptionResult.data || subscriptionResult.data.length === 0) {
+      // ✅ التحقق الفوري من صلاحية الاشتراك من قاعدة البيانات
+      if (!data.subscription_id || !data.end_date || data.is_subscription_valid === false) {
+        console.log('⚠️ لا يوجد اشتراك نشط أو الاشتراك منتهي');
         setStatus({
           isActive: false,
           daysRemaining: 0,
@@ -103,7 +131,37 @@ export const useSubscriptionStatus = (userId?: string) => {
         return;
       }
 
-      const activeSubscription = subscriptionResult.data[0];
+      // ✅ التحقق المزدوج من تاريخ الانتهاء (من قاعدة البيانات ومن JavaScript)
+      const endDate = new Date(data.end_date);
+      const now = new Date();
+      
+      if (endDate < now) {
+        console.log('⚠️ الاشتراك منتهي - تحديث الحالة في قاعدة البيانات');
+        setStatus({
+          isActive: false,
+          daysRemaining: 0,
+          hoursRemaining: 0,
+          minutesRemaining: 0,
+          subscription: null,
+          isExpired: true,
+          isExpiringSoon: false,
+          timeUntilExpiry: 'منتهي'
+        });
+        return;
+      }
+      
+      // بناء كائن الاشتراك من البيانات المدمجة
+      const activeSubscription = {
+        id: data.subscription_id,
+        status: data.subscription_table_status,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        plan_id: data.plan_id,
+        plan_name: data.plan_name,
+        plan_name_ar: data.plan_name_ar,
+        features: data.features,
+        plan_price: data.plan_price
+      };
       
       // حساب الوقت المتبقي باستخدام الدالة الحقيقية
       const timeData = calculateRealTimeRemaining(activeSubscription.end_date);
@@ -126,44 +184,71 @@ export const useSubscriptionStatus = (userId?: string) => {
       console.error('Error checking subscription status:', err);
       setError('فشل في التحقق من حالة الاشتراك');
       
-      // عند فشل جلب البيانات، نعتبر المستخدم نشط مؤقتاً
-      // مع إعادة المحاولة التلقائية
-      console.log('⚠️ فشل جلب البيانات، سيتم إعادة المحاولة خلال 10 ثوان');
+      // عند فشل جلب البيانات، نعتبر المستخدم غير نشط للأمان
+      console.log('⚠️ فشل جلب البيانات، المستخدم يعتبر غير نشط');
       
       setStatus({
-        isActive: true, // ✅ نشط مؤقتاً 
-        daysRemaining: 365, // سنة كاملة لتجنب التنبيهات
+        isActive: false, // ❌ غير نشط للأمان
+        daysRemaining: 0,
         hoursRemaining: 0,
         minutesRemaining: 0,
-        subscription: { status: 'active', plan_name: 'جاري التحميل...' },
-        isExpired: false,
+        subscription: null,
+        isExpired: true,
         isExpiringSoon: false,
-        timeUntilExpiry: 'جاري تحميل البيانات...'
+        timeUntilExpiry: 'خطأ في التحميل'
       });
       
-      // إعادة المحاولة بعد 10 ثوان
-      setTimeout(() => {
-        console.log('🔄 إعادة محاولة جلب البيانات...');
-        checkSubscriptionStatus();
-      }, 10000);
+      // ✅ لا نعيد المحاولة إذا كان المستخدم غير موجود (تسجيل خروج)
+      // فقط نعيد المحاولة إذا كان خطأ شبكة أو خطأ مؤقت
+      if (userId && err instanceof Error && !err.message.includes('غير موجود')) {
+        setTimeout(() => {
+          console.log('🔄 إعادة محاولة جلب البيانات...');
+          checkSubscriptionStatus(true);
+        }, 30000);
+      }
     } finally {
       setLoading(false);
+      // بعد التحميل الأول، جميع التحديثات تكون في الخلفية
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+      }
     }
   };
 
   useEffect(() => {
-    checkSubscriptionStatus();
+    checkSubscriptionStatus(false); // التحميل الأولي
     
-    // تحديث كل 5 دقائق لتجنب الضغط على قاعدة البيانات
-    const interval = setInterval(checkSubscriptionStatus, 5 * 60 * 1000);
+    if (!userId) return;
     
-    return () => clearInterval(interval);
+    // ⚡ استخدام Realtime للتحديث الفوري (بدون تأخير)
+    console.log('⚡ تفعيل Realtime للاشتراك - تحديث فوري بدون تأخير');
+    
+    const unsubscribeUser = realtimeSyncService.subscribeToUserChanges(
+      userId,
+      async (_payload) => {
+        console.log('🔔 تحديث فوري - تغيير في بيانات المستخدم');
+        await checkSubscriptionStatus(true);
+      }
+    );
+    
+    const unsubscribeSub = realtimeSyncService.subscribeToSubscriptionChanges(
+      userId,
+      async (_payload) => {
+        console.log('🔔 تحديث فوري - تغيير في الاشتراك');
+        await checkSubscriptionStatus(true);
+      }
+    );
+    
+    return () => {
+      unsubscribeUser();
+      unsubscribeSub();
+    };
   }, [userId]);
 
   return {
     status,
     loading,
     error,
-    refresh: checkSubscriptionStatus
+    refresh: () => checkSubscriptionStatus(true) // التحديث اليدوي في الخلفية
   };
 };

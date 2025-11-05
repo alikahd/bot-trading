@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowLeft, Key, Globe, CheckCircle, XCircle } from 'lucide-react';
 import { passwordResetService } from '../../services/passwordResetService';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { BotLoadingAnimation } from '../common/BotLoadingAnimation';
 
 interface PasswordResetPageProps {
   onBack: () => void;
@@ -20,6 +21,28 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ onBack }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetCode, setResetCode] = useState<string>(''); // للعرض في بيئة التطوير
+
+  // منع الرجوع للخلف باستخدام زر المتصفح/الهاتف
+  useEffect(() => {
+    // إضافة حالة جديدة للتاريخ عند تحميل الصفحة
+    window.history.pushState({ page: 'password-reset', preventBack: true }, '', window.location.pathname);
+
+    const handlePopState = (event: PopStateEvent) => {
+      // إذا حاول المستخدم الرجوع، نمنعه ونعيده للأمام
+      if (event.state?.preventBack) {
+        window.history.pushState({ page: 'password-reset', preventBack: true }, '', window.location.pathname);
+        console.log('🚫 تم منع الرجوع للخلف - استخدم زر الرجوع في الصفحة');
+      }
+    };
+
+    // الاستماع لحدث الرجوع
+    window.addEventListener('popstate', handlePopState);
+
+    // التنظيف عند إلغاء تحميل المكون
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,7 +213,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ onBack }) 
                 >
                   {loading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <BotLoadingAnimation size="sm" />
                       {t('passwordReset.sending')}
                     </>
                   ) : (
@@ -235,7 +258,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ onBack }) 
                 >
                   {loading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <BotLoadingAnimation size="sm" />
                       {t('passwordReset.verifying')}
                     </>
                   ) : (
@@ -316,7 +339,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ onBack }) 
                 >
                   {loading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <BotLoadingAnimation size="sm" />
                       {t('passwordReset.resetting')}
                     </>
                   ) : (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Star, TrendingUp } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { BotLoadingAnimation } from '../common/BotLoadingAnimation';
 import { LanguageSelector } from '../ui/LanguageSelector';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -37,59 +38,83 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   hasActiveSubscription = false
 }) => {
   const { language, t, dir } = useLanguage();
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [loading, setLoading] = useState(true);
+  // بدء بالبيانات الافتراضية لعرض فوري
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([
+    {
+      id: '98c199b7-1a73-4ab6-8b32-160beff3c167',
+      name: 'Monthly Plan',
+      name_ar: 'الباقة الشهرية',
+      duration_months: 1,
+      price: 29.99,
+      original_price: 35.28,
+      discount: 15,
+      is_popular: false,
+      features: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools'],
+      features_ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر']
+    },
+    {
+      id: '8783fe43-e784-401a-9644-33bd8b81d18c',
+      name: 'Annual Plan',
+      name_ar: 'الباقة السنوية',
+      duration_months: 12,
+      price: 287.99,
+      original_price: 359.99,
+      discount: 20,
+      is_popular: true,
+      features: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools', 'Priority support', 'Advanced strategies'],
+      features_ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر', 'دعم أولوية', 'استراتيجيات متقدمة']
+    },
+    {
+      id: 'e8c4d506-9dbd-4412-8c7c-504e989653c3',
+      name: '3-Year Plan',
+      name_ar: 'باقة 3 سنوات',
+      duration_months: 36,
+      price: 647.99,
+      original_price: 1079.82,
+      discount: 40,
+      is_popular: false,
+      features: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools', 'Priority support', 'Advanced strategies', 'Personal trading advisor', 'Custom indicators'],
+      features_ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر', 'دعم أولوية', 'استراتيجيات متقدمة', 'مستشار تداول شخصي', 'مؤشرات مخصصة']
+    }
+  ]);
+  const [loading, setLoading] = useState(false); // false لأن لدينا بيانات افتراضية
 
   // جلب الباقات من قاعدة البيانات
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+    
     const fetchPlans = async () => {
       try {
+        console.log('🔄 بدء جلب الباقات من قاعدة البيانات...');
+        // فقط نعرض التحميل إذا لم تكن هناك بيانات محملة مسبقاً
+        if (plans.length === 0) {
+          setLoading(true);
+        }
+        
+        // Timeout للتأكد من عدم البقاء في حالة التحميل للأبد
+        timeoutId = setTimeout(() => {
+          if (isMounted) {
+            console.warn('⏱️ انتهت مهلة جلب الباقات، الاحتفاظ بالبيانات الافتراضية');
+            setLoading(false);
+          }
+        }, 5000); // 5 ثوانٍ - تقليل وقت الانتظار
+        
         const { data, error } = await supabase
           .from('subscription_plans')
           .select('*')
           .order('price', { ascending: true });
 
+        if (!isMounted) return;
+        
+        // إلغاء timeout إذا نجح الطلب
+        clearTimeout(timeoutId);
+
         if (error) {
-          console.error('خطأ في جلب الباقات:', error);
-          // استخدام البيانات الافتراضية مع الخصومات في حالة الخطأ
-          setPlans([
-            {
-              id: '98c199b7-1a73-4ab6-8b32-160beff3c167',
-              name: 'Monthly Plan',
-              name_ar: 'الباقة الشهرية',
-              duration_months: 1,
-              price: 29.99,
-              original_price: 35.28,
-              discount: 15,
-              is_popular: false,
-              features: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools'],
-              features_ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر']
-            },
-            {
-              id: '8783fe43-e784-401a-9644-33bd8b81d18c',
-              name: 'Annual Plan',
-              name_ar: 'الباقة السنوية',
-              duration_months: 12,
-              price: 287.99,
-              original_price: 359.99,
-              discount: 20,
-              is_popular: true,
-              features: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools', 'Priority support', 'Advanced strategies'],
-              features_ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر', 'دعم أولوية', 'استراتيجيات متقدمة']
-            },
-            {
-              id: 'e8c4d506-9dbd-4412-8c7c-504e989653c3',
-              name: '3-Year Plan',
-              name_ar: 'باقة 3 سنوات',
-              duration_months: 36,
-              price: 647.99,
-              original_price: 1079.82,
-              discount: 40,
-              is_popular: false,
-              features: ['Real-time signals', 'Advanced analytics', '24/7 support', 'Risk management tools', 'Priority support', 'Advanced strategies', 'Personal trading advisor', 'Custom indicators'],
-              features_ar: ['إشارات فورية', 'تحليلات متقدمة', 'دعم على مدار الساعة', 'أدوات إدارة المخاطر', 'دعم أولوية', 'استراتيجيات متقدمة', 'مستشار تداول شخصي', 'مؤشرات مخصصة']
-            }
-          ]);
+          console.error('❌ خطأ في جلب الباقات:', error);
+          // الاحتفاظ بالبيانات الافتراضية الموجودة مسبقاً
+          clearTimeout(timeoutId);
+          console.log('📦 استخدام البيانات الافتراضية');
         } else if (data) {
           // تحويل البيانات من قاعدة البيانات
           const formattedPlans = data.map(plan => ({
@@ -121,21 +146,55 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           setPlans(formattedPlans);
         }
       } catch (error) {
-        console.error('خطأ في جلب الباقات:', error);
+        console.error('❌ خطأ في جلب الباقات:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          console.log('✅ اكتمل جلب الباقات');
+        }
       }
     };
 
     fetchPlans();
+
+    // إعداد Realtime subscription للتحديثات الفورية
+    console.log('🔔 إعداد Realtime subscription للباقات...');
+    const channel = supabase
+      .channel('subscription_plans_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscription_plans'
+        },
+        (payload) => {
+          console.log('🔄 تحديث في الباقات:', payload);
+          // إعادة جلب الباقات عند أي تغيير
+          fetchPlans();
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 حالة Realtime subscription:', status);
+      });
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      console.log('🧹 تنظيف Realtime subscription');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white">جاري تحميل الباقات...</p>
+          <BotLoadingAnimation size="lg" />
+          <p className="text-white mt-4">جاري تحميل الباقات...</p>
         </div>
       </div>
     );

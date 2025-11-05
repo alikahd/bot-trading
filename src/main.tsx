@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { AppWithRouter } from './AppWithRouter.tsx';
 import './index.css';
 import './styles/paypal-custom.css';
+import './styles/animations.css';
 
 // تحميل React فوراً
 createRoot(document.getElementById('root')!).render(
@@ -179,26 +180,12 @@ window.installApp = async () => {
         const installEvent = new Event('beforeinstallprompt');
         window.dispatchEvent(installEvent);
         
-        // إشعار مبسط للمستخدم
+        // إرشادات مباشرة للمستخدم
         const shouldInstall = confirm('هل تريد تثبيت التطبيق على هاتفك؟\n\nسيتم إضافته إلى الشاشة الرئيسية للوصول السريع.');
         
         if (shouldInstall) {
-          // محاولة فتح نافذة التثبيت
-          if (navigator.share) {
-            // استخدام Web Share API إذا كان متاحاً
-            try {
-              await navigator.share({
-                title: 'تطبيق التداول الذكي',
-                text: 'تطبيق تداول العملات المشفرة والفوركس',
-                url: window.location.href
-              });
-            } catch (shareError) {
-              // Share cancelled
-            }
-          } else {
-            // إرشادات مبسطة
-            alert('لإكمال التثبيت:\n1. انقر على الثلاث نقاط (⋮) في المتصفح\n2. اختر "إضافة إلى الشاشة الرئيسية"');
-          }
+          // إرشادات مبسطة للتثبيت
+          alert('لإكمال التثبيت:\n\n1. انقر على الثلاث نقاط (⋮) في أعلى المتصفح\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. انقر "إضافة" أو "تثبيت"');
         }
         return;
       }

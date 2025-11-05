@@ -1,8 +1,11 @@
 {
-  "name": "BooTrading - منصة التداول الذكي",
+  "name": "BooTrading",
   "short_name": "BooTrading",
-  "description": "منصة التداول الذكي للخيارات الثنائية",
-  "start_url": "/",
+  "version": "2.1.4",
+  "version_name": "2.1.4",
+  "version_code": 214,
+  "description": "منصة التوصيات الذكية للخيارات الثنائية",
+  "start_url": "/?v=2.1.4&update=1730685000",
   "scope": "/",
   "display": "standalone",
   "background_color": "#1c357c",
@@ -11,64 +14,28 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/images/icon.svg",
-      "sizes": "16x16",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon.svg",
-      "sizes": "32x32",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon.svg",
-      "sizes": "48x48",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon.svg",
-      "sizes": "72x72",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon.svg",
-      "sizes": "96x96",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon.svg",
-      "sizes": "128x128",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon.svg",
-      "sizes": "144x144",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon.svg",
+      "src": "/images/icon.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/images/icon.svg",
+      "src": "/images/icon.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [

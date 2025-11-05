@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabaseClient';
+import { adminNotificationService } from './adminNotificationService';
 
 export interface SubscriptionPlan {
   id: string;
@@ -158,11 +159,163 @@ class SubscriptionService {
       console.log('📊 بيانات الاشتراك:', subscription);
       // Subscription created
 
-      // إنشاء سجل الدفع
+      // معالجة الكوبون والإحالة إذا وجدت
+      let couponId = paymentData?.couponId || null;
+      let discount = paymentData?.discount || 0;
+      let finalAmount = paymentData?.amount || planInfo.price;
+      
+      // إذا كان هناك كوبون، التحقق من كونه كوبون إحالة
+      if (couponId) {
+        console.log('🎫 معالجة الكوبون:', couponId);
+        
+        try {
+          // جلب معلومات الكوبون
+          const { data: couponData, error: couponError } = await supabase
+            .from('coupons')
+            .select('*, referrer_id, is_referral_coupon, commission_rate, discount_rate')
+            .eq('id', couponId)
+            .single();
+          
+          if (!couponError && couponData) {
+            let coupon = couponData;
+            console.log('✅ تم جلب الكوبون:', coupon);
+
+            // إذا كان الكوبون يستخدم النسب الديناميكية، جلب النسب الحالية من referral_settings
+            if (coupon.use_dynamic_rates) {
+              console.log('🔄 كوبون ديناميكي - جلب النسب الحالية من الإعدادات...');
+              const { data: settings, error: settingsError } = await supabase
+                .from('referral_settings')
+                .select('discount_rate, commission_rate')
+                .single();
+
+              if (!settingsError && settings) {
+                console.log('✅ تم جلب الإعدادات الحالية:', settings);
+                // تحديث النسب بالقيم الحالية من الإعدادات
+                coupon = {
+                  ...coupon,
+                  discount_rate: settings.discount_rate,
+                  commission_rate: settings.commission_rate
+                };
+                console.log('🔄 تم تحديث الكوبون بالنسب الحالية:', coupon);
+              } else {
+                console.warn('⚠️ لم يتم العثور على الإعدادات، استخدام النسب المحفوظة');
+              }
+            }
+            
+            // تسجيل استخدام الكوبون
+            await supabase
+              .from('coupon_usage')
+              .insert({
+                coupon_id: couponId,
+                user_id: userInfo.id,
+                used_at: new Date().toISOString()
+              });
+            
+            // تحديث عدد استخدامات الكوبون
+            await supabase
+              .from('coupons')
+              .update({
+                current_uses: (coupon.current_uses || 0) + 1
+              })
+              .eq('id', couponId);
+            
+            console.log('✅ تم تسجيل استخدام الكوبون');
+            
+            // إذا كان كوبون إحالة، إنشاء/تحديث سجل الإحالة
+            if (coupon.is_referral_coupon && coupon.referrer_id) {
+              console.log('🔗 كوبون إحالة - معالجة الإحالة...');
+              
+              // البحث عن إحالة موجودة
+              const { data: existingReferral } = await supabase
+                .from('referrals')
+                .select('*')
+                .eq('referrer_id', coupon.referrer_id)
+                .eq('referred_user_id', userInfo.id)
+                .single();
+              
+              let referralId: string | null = null;
+              
+              if (existingReferral) {
+                // تحديث الإحالة الموجودة
+                await supabase
+                  .from('referrals')
+                  .update({
+                    status: paymentStatus === 'completed' ? 'completed' : 'pending',
+                    subscription_amount: finalAmount,
+                    discount_amount: discount,
+                    discount_rate: coupon.discount_rate || 10,
+                    commission_rate: coupon.commission_rate || 10,
+                    completed_at: paymentStatus === 'completed' ? new Date().toISOString() : null
+                  })
+                  .eq('id', existingReferral.id);
+                
+                referralId = existingReferral.id;
+                console.log('✅ تم تحديث الإحالة الموجودة');
+              } else {
+                // إنشاء إحالة جديدة
+                const { data: newReferral, error: referralError } = await supabase
+                  .from('referrals')
+                  .insert({
+                    referrer_id: coupon.referrer_id,
+                    referred_user_id: userInfo.id,
+                    referred_email: userInfo.email,
+                    status: paymentStatus === 'completed' ? 'completed' : 'pending',
+                    subscription_amount: finalAmount,
+                    discount_amount: discount,
+                    discount_rate: coupon.discount_rate || 10,
+                    commission_rate: coupon.commission_rate || 10,
+                    completed_at: paymentStatus === 'completed' ? new Date().toISOString() : null
+                  })
+                  .select()
+                  .single();
+                
+                if (!referralError && newReferral) {
+                  referralId = newReferral.id;
+                  console.log('✅ تم إنشاء إحالة جديدة:', referralId);
+                }
+              }
+              
+              // إنشاء عمولة معلقة لصاحب الإحالة
+              if (referralId && paymentStatus === 'completed') {
+                const commissionAmount = finalAmount * ((coupon.commission_rate || 10) / 100);
+                
+                console.log('💰 إنشاء عمولة معلقة:', {
+                  referrer_id: coupon.referrer_id,
+                  referral_id: referralId,
+                  commission_amount: commissionAmount,
+                  subscription_amount: finalAmount,
+                  commission_rate: coupon.commission_rate || 10
+                });
+                
+                const { error: commissionError } = await supabase
+                  .from('pending_commissions')
+                  .insert({
+                    referrer_id: coupon.referrer_id,
+                    referral_id: referralId,
+                    commission_amount: commissionAmount,
+                    subscription_amount: finalAmount,
+                    commission_rate: coupon.commission_rate || 10,
+                    status: 'pending'
+                  });
+                
+                if (commissionError) {
+                  console.error('❌ خطأ في إنشاء العمولة:', commissionError);
+                } else {
+                  console.log('✅ تم إنشاء العمولة المعلقة بنجاح');
+                }
+              }
+            }
+          }
+        } catch (couponProcessError) {
+          console.error('⚠️ خطأ في معالجة الكوبون (غير حرج):', couponProcessError);
+        }
+      }
+
+      // إعداد سجل الدفع
       const paymentRecord = {
         user_id: userInfo.id,
         subscription_id: subscription.id,
-        amount: planInfo.price,
+        amount: finalAmount,
         currency: 'USD',
         payment_method: paymentMethod,
         status: paymentStatus,
@@ -268,6 +421,27 @@ class SubscriptionService {
         userStatus
       });
 
+      // إرسال تنبيه ترحيبي إذا كان الدفع مكتمل
+      if (paymentStatus === 'completed') {
+        console.log('🔔 إرسال تنبيه ترحيبي للمستخدم...');
+        try {
+          // التحقق إذا كان هذا اشتراك جديد أم تجديد
+          const { data: previousSubscriptions } = await supabase
+            .from('subscriptions')
+            .select('id')
+            .eq('user_id', userInfo.id)
+            .neq('id', subscription.id)
+            .limit(1);
+          
+          const isRenewal = !!(previousSubscriptions && previousSubscriptions.length > 0);
+          
+          // ✅ تم نقل إرسال الإشعارات (الترحيبي + الإحالة) إلى simpleAuthService عند أول تسجيل دخول
+          console.log('ℹ️ سيتم إرسال الإشعارات عند أول تسجيل دخول');
+        } catch (notifError) {
+          console.error('⚠️ فشل إرسال التنبيه الترحيبي (غير حرج):', notifError);
+        }
+      }
+
       return {
         success: true,
         subscription,
@@ -358,6 +532,25 @@ class SubscriptionService {
           subscription_status: updatedUser?.subscription_status,
           is_active: updatedUser?.is_active
         });
+
+        // إرسال تنبيه ترحيبي بعد الموافقة
+        console.log('🔔 إرسال تنبيه ترحيبي بعد الموافقة...');
+        try {
+          // التحقق إذا كان هذا اشتراك جديد أم تجديد
+          const { data: previousSubscriptions } = await supabase
+            .from('subscriptions')
+            .select('id')
+            .eq('user_id', payment.user_id)
+            .neq('id', payment.subscription_id)
+            .limit(1);
+          
+          const isRenewal = !!(previousSubscriptions && previousSubscriptions.length > 0);
+          
+          await adminNotificationService.sendWelcomeNotification(payment.user_id, isRenewal);
+          console.log('✅ تم إرسال التنبيه الترحيبي');
+        } catch (notifError) {
+          console.error('⚠️ فشل إرسال التنبيه الترحيبي (غير حرج):', notifError);
+        }
 
       } else {
         console.log('❌ رفض - إلغاء الاشتراك');
