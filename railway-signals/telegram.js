@@ -6,23 +6,34 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1003153068884';
 // إرسال رسالة إلى Telegram
 export async function sendTelegramMessage(recommendation) {
   try {
+    const now = new Date();
+    
+    // إعطاء المتداول دقيقة كاملة للدخول
+    const entryTime = new Date(now.getTime() + 60 * 1000); // +1 دقيقة
+    const expiryTime = new Date(entryTime.getTime() + parseInt(recommendation.timeframe) * 60 * 1000);
+    
     const isCall = recommendation.direction === 'CALL';
     const directionEmoji = isCall ? '🟢' : '🔴';
     const arrowEmoji = isCall ? '⬆️' : '⬇️';
     const directionText = isCall ? 'BUY | شراء 🟢' : 'SELL | بيع 🔴';
     
-    // تحديد الثقة والمخاطر بناءً على النظام الجديد
-    const confidenceEmoji = recommendation.confidence >= 80 ? '🟢' : 
-                           recommendation.confidence >= 70 ? '🟡' : '🟠';
-    const riskLevel = recommendation.confidence >= 80 ? 'منخفض' : 
-                     recommendation.confidence >= 70 ? 'متوسط' : 'عالي';
-    const riskEmoji = recommendation.confidence >= 80 ? '🟢' : 
-                     recommendation.confidence >= 70 ? '🟡' : '🔴';
+    const getConfidenceEmoji = (confidence) => {
+      if (confidence >= 80) return '🟢';
+      if (confidence >= 70) return '🟡';
+      return '🟠';
+    };
     
-    const now = new Date();
-    // حساب وقت الانتهاء بناءً على الإطار الزمني
-    const timeframeMinutes = parseInt(recommendation.timeframe);
-    const expiryTime = new Date(now.getTime() + timeframeMinutes * 60000);
+    const getRiskEmoji = (confidence) => {
+      if (confidence >= 80) return '🟢';
+      if (confidence >= 70) return '🟡';
+      return '🔴';
+    };
+    
+    const riskLevel = recommendation.confidence >= 80 ? 'منخفض' : 
+                      recommendation.confidence >= 70 ? 'متوسط' : 'عالي';
+    
+    const confidenceEmoji = getConfidenceEmoji(recommendation.confidence);
+    const riskEmoji = getRiskEmoji(recommendation.confidence);
     
     const formatTime = (date) => date.toLocaleTimeString('en-US', {
       hour: '2-digit',
@@ -45,10 +56,11 @@ export async function sendTelegramMessage(recommendation) {
 ${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}% | <b>Success:</b> ${Math.min(recommendation.confidence + 5, 95)}%
 ${riskEmoji} <b>Risk:</b> ${riskLevel}
 
-🕐 <b>Entry:</b> ${formatTime(now)}
-🕑 <b>Expiry:</b> ${formatTime(expiryTime)}
+⏰ <b>Signal Time:</b> ${formatTime(now)}
+🕐 <b>Entry Time:</b> ${formatTime(entryTime)} ⏳ <i>(+1min)</i>
+🕑 <b>Expiry Time:</b> ${formatTime(expiryTime)}
 
-🤖 ${formatDate(now)} ${formatTime(now)}`;
+🤖 ${formatDate(now)} | ⚡ <i>Enter within 1 minute!</i>`;
 
     
     const response = await fetch(
