@@ -52,16 +52,17 @@ async function processSignals() {
     }
   }
   
-  // إرسال أفضل توصية
+  // إرسال أفضل توصية (دائماً)
   if (recommendations.length > 0) {
     const bestSignal = recommendations.sort((a, b) => b.confidence - a.confidence)[0];
-    console.log(`📤 إرسال أفضل توصية: ${bestSignal.symbol} ${bestSignal.direction}`);
+    console.log(`📤 إرسال أفضل توصية: ${bestSignal.symbol} ${bestSignal.direction} (${bestSignal.confidence}%)`);
     await sendTelegramMessage(bestSignal);
+    console.log(`✅ تم إرسال التوصية بنجاح`);
   } else {
-    console.log('⚠️ لا توجد توصيات قوية في هذه الدورة');
+    console.log('⚠️ لا توجد توصيات في هذه الدورة - سيتم المحاولة في الدورة القادمة');
   }
   
-  console.log(`✅ اكتمل التحليل - ${recommendations.length} توصية`);
+  console.log(`✅ اكتمل التحليل - ${recommendations.length} توصية متاحة`);
 }
 
 // تشغيل كل دقيقتين

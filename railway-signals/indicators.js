@@ -96,17 +96,20 @@ export function analyzeSignal(prices, symbol) {
     }
   }
   
-  // فقط التوصيات القوية (≥50% + إشارتين)
-  if (direction && confidence >= 50 && reasons.length >= 2) {
+  // إرجاع أي توصية لديها اتجاه (حتى لو ضعيفة)
+  if (direction && reasons.length >= 1) {
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
+    
+    // ضمان حد أدنى للثقة
+    const finalConfidence = Math.max(confidence, 45);
     
     return {
       symbol: cleanSymbol + (isOTC ? ' (OTC)' : ''),
       direction,
       price: currentPrice,
       rsi: rsi.toFixed(2),
-      confidence: Math.min(confidence, 95),
+      confidence: Math.min(finalConfidence, 95),
       reasons: reasons.join(' • ')
     };
   }
