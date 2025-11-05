@@ -1,6 +1,7 @@
 import { getBinaryPrice, getHistoricalData } from './binary-websocket.js';
 import { analyzeSignal } from './indicators.js';
 import { sendTelegramMessage } from './telegram.js';
+import { isBotEnabled, updateBotStats } from './supabase-client.js';
 import http from 'http';
 
 // أزواج Binary.com - عادي + OTC المتاحة
@@ -112,17 +113,30 @@ async function processSignals() {
     const sortedSignals = recommendations.sort((a, b) => b.confidence - a.confidence);
     const bestSignal = sortedSignals[0];
     
-    console.log(`\n📤 إرسال أفضل توصية:`);
-    console.log(`   • ${bestSignal.symbol} ${bestSignal.direction}`);
-    console.log(`   • إطار زمني: ${bestSignal.timeframe}`);
-    console.log(`   • ثقة: ${bestSignal.confidence}%`);
+    console.log(`\n📤 التحقق من حالة البوت...`);
     
-    const sent = await sendTelegramMessage(bestSignal);
+    // ✅ التحقق من حالة البوت قبل الإرسال
+    const botEnabled = await isBotEnabled();
     
-    if (sent) {
-      console.log(`✅ تم الإرسال بنجاح إلى Telegram`);
+    if (!botEnabled) {
+      console.log(`⏸️ البوت متوقف مؤقتاً - لن يتم إرسال التوصيات`);
+      console.log(`   💡 يمكنك تشغيل البوت من لوحة التحكم في التطبيق`);
     } else {
-      console.log(`❌ فشل الإرسال - سيتم المحاولة في الدورة القادمة`);
+      console.log(`✅ البوت مفعّل - جاري إرسال التوصية...`);
+      console.log(`\n📤 إرسال أفضل توصية:`);
+      console.log(`   • ${bestSignal.symbol} ${bestSignal.direction}`);
+      console.log(`   • إطار زمني: ${bestSignal.timeframe}`);
+      console.log(`   • ثقة: ${bestSignal.confidence}%`);
+      
+      const sent = await sendTelegramMessage(bestSignal);
+      
+      if (sent) {
+        console.log(`✅ تم الإرسال بنجاح إلى Telegram`);
+        // تحديث إحصائيات البوت
+        await updateBotStats();
+      } else {
+        console.log(`❌ فشل الإرسال - سيتم المحاولة في الدورة القادمة`);
+      }
     }
   } else {
     console.log(`\n⚠️ لا توجد توصيات قوية في هذه الدورة`);

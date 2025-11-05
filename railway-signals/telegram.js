@@ -25,12 +25,12 @@ export async function sendTelegramMessage(recommendation) {
     
     const getRiskEmoji = (confidence) => {
       if (confidence >= 80) return '🟢';
-      if (confidence >= 60) return '🟡';
+      if (confidence >= 65) return '🟡';
       return '🔴';
     };
     
     const riskLevel = recommendation.confidence >= 80 ? 'منخفض' : 
-                      recommendation.confidence >= 60 ? 'متوسط' : 'عالي';
+                      recommendation.confidence >= 65 ? 'متوسط' : 'عالي';
     
     const confidenceEmoji = getConfidenceEmoji(recommendation.confidence);
     const riskEmoji = getRiskEmoji(recommendation.confidence);
