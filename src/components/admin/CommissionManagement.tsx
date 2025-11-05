@@ -468,7 +468,7 @@ export const CommissionManagement: React.FC = () => {
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-white mb-4">تأكيد دفع العمولات</h3>
+            <h3 className="text-base sm:text-xl font-bold text-white mb-3 sm:mb-4">تأكيد دفع العمولات</h3>
             
             <div className="space-y-4">
               <div>

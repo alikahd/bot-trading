@@ -354,11 +354,11 @@ export const CouponManagement: React.FC = () => {
     <div className="space-y-6">
       {/* رأس الصفحة */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Ticket className="w-8 h-8 text-blue-500" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Ticket className="w-5 h-5 sm:w-8 sm:h-8 text-blue-500" />
           <div>
-            <h2 className="text-2xl font-bold text-white">{t('coupon.management')}</h2>
-            <p className="text-gray-400">{t('coupon.subtitle')}</p>
+            <h2 className="text-base sm:text-2xl font-bold text-white">{t('coupon.management')}</h2>
+            <p className="text-gray-400 text-[10px] sm:text-sm">{t('coupon.subtitle')}</p>
           </div>
         </div>
         <button
@@ -367,19 +367,20 @@ export const CouponManagement: React.FC = () => {
             setFormData({
               code: '',
               discount_type: 'percentage',
-              discount_value: '',
-              max_uses: '',
-              valid_until: '',
+              discount_value: '10',
               discount_rate: '10',
               commission_rate: '10',
+              max_uses: '',
+              valid_until: '',
               use_dynamic_rates: false
             });
             setShowModal(true);
           }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm"
         >
-          <Plus className="w-5 h-5" />
-          {t('coupon.addNew')}
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">{t('coupon.addNew')}</span>
+          <span className="sm:hidden">+</span>
         </button>
       </div>
 
@@ -424,28 +425,28 @@ export const CouponManagement: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-700 sticky top-0 z-10">
               <tr>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-2 py-2 sm:px-3 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-300 uppercase tracking-wider">
                   {t('coupon.code')}
                 </th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-2 py-2 sm:px-3 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-300 uppercase tracking-wider">
                   المستخدم
                 </th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-2 py-2 sm:px-3 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-300 uppercase tracking-wider">
                   {t('coupon.discount')}
                 </th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-2 py-2 sm:px-3 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-300 uppercase tracking-wider">
                   نسبة العمولة
                 </th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-2 py-2 sm:px-3 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-300 uppercase tracking-wider">
                   {t('coupon.uses')}
                 </th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-2 py-2 sm:px-3 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-300 uppercase tracking-wider">
                   {t('coupon.validUntil')}
                 </th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-2 py-2 sm:px-3 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-300 uppercase tracking-wider">
                   {t('coupon.status')}
                 </th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-2 py-2 sm:px-3 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-300 uppercase tracking-wider">
                   {t('coupon.actions')}
                 </th>
               </tr>

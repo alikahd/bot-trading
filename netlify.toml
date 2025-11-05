@@ -8,9 +8,9 @@
   to = "/index.html"
   status = 200
 
-# Scheduled function - تعمل كل دقيقة
+# Scheduled function - تعمل كل دقيقتين
 [functions."send-telegram-signals"]
-  schedule = "* * * * *"
+  schedule = "*/2 * * * *"
 
 [[headers]]
   for = "/*"

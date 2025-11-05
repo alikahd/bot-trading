@@ -1,8 +1,16 @@
 import { Handler, schedule } from '@netlify/functions';
+import { createClient } from '@supabase/supabase-js';
 
 // تكوين البيئة
 const TELEGRAM_BOT_TOKEN = process.env.VITE_TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.VITE_TELEGRAM_CHAT_ID;
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+
+// إنشاء Supabase client
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
 interface BinaryRecommendation {
   symbol: string;
@@ -58,10 +66,29 @@ const fetchRecommendations = async (): Promise<BinaryRecommendation[]> => {
     // الاتصال بـ Binary.com WebSocket API
     const ws_url = 'wss://ws.binaryws.com/websockets/v3?app_id=1089';
     
-    // الأزواج المدعومة
+    // أزواج العملات (Binary Options - Forex Pairs)
+    // متوافق مع: IQ Option, Expert Option, Quotex, Pocket Option
     const pairs = [
-      'frxEURUSD', 'frxGBPUSD', 'frxUSDJPY', 'frxAUDUSD',
-      'frxEURGBP', 'frxUSDCHF', 'frxEURJPY', 'frxGBPJPY'
+      // الأزواج الرئيسية (Major Pairs) - عادي + OTC
+      'EURUSD', 'EURUSD_otc',  // EUR/USD
+      'GBPUSD', 'GBPUSD_otc',  // GBP/USD
+      'USDJPY', 'USDJPY_otc',  // USD/JPY
+      'USDCHF', 'USDCHF_otc',  // USD/CHF
+      'AUDUSD', 'AUDUSD_otc',  // AUD/USD
+      'USDCAD', 'USDCAD_otc',  // USD/CAD
+      'NZDUSD', 'NZDUSD_otc',  // NZD/USD
+      
+      // الأزواج المتقاطعة (Cross Pairs) - عادي + OTC
+      'EURGBP', 'EURGBP_otc',  // EUR/GBP
+      'EURJPY', 'EURJPY_otc',  // EUR/JPY
+      'EURCHF', 'EURCHF_otc',  // EUR/CHF
+      'EURAUD', 'EURAUD_otc',  // EUR/AUD
+      'GBPJPY', 'GBPJPY_otc',  // GBP/JPY
+      'GBPCHF', 'GBPCHF_otc',  // GBP/CHF
+      'AUDJPY', 'AUDJPY_otc',  // AUD/JPY
+      'AUDCAD', 'AUDCAD_otc',  // AUD/CAD
+      'CADJPY', 'CADJPY_otc',  // CAD/JPY
+      'CHFJPY', 'CHFJPY_otc'   // CHF/JPY
     ];
     
     const recommendations: BinaryRecommendation[] = [];
@@ -274,6 +301,27 @@ ${getRiskEmoji(rec.riskLevel)} <b>Risk:</b> ${rec.riskLevel}
 const mainHandler: Handler = async (event, context) => {
   console.log('🚀 بدء إرسال التوصيات إلى Telegram...');
 
+  // التحقق من حالة البوت من قاعدة البيانات
+  if (supabase) {
+    try {
+      const { data: botStatus, error } = await supabase
+        .from('telegram_bot_status')
+        .select('is_enabled')
+        .eq('id', 1)
+        .single();
+
+      if (!error && botStatus && !botStatus.is_enabled) {
+        console.log('⏸️ البوت متوقف مؤقتاً من لوحة التحكم');
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ message: 'Bot is paused by admin' }),
+        };
+      }
+    } catch (error) {
+      console.error('خطأ في التحقق من حالة البوت:', error);
+    }
+  }
+
   // التحقق من المتغيرات البيئية
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.error('❌ متغيرات Telegram غير موجودة');
@@ -306,6 +354,16 @@ const mainHandler: Handler = async (event, context) => {
     
     if (success) {
       console.log(`✅ تم إرسال التوصية: ${topRec.symbolName} ${topRec.direction}`);
+      
+      // تحديث عداد التوصيات في قاعدة البيانات
+      if (supabase) {
+        try {
+          await supabase.rpc('increment_telegram_signals');
+        } catch (error) {
+          console.error('خطأ في تحديث العداد:', error);
+        }
+      }
+      
       return {
         statusCode: 200,
         body: JSON.stringify({

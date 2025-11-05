@@ -199,16 +199,16 @@ export const AutoPayoutSettings: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
-            <Calendar className="w-6 h-6 text-white" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">الدفع التلقائي الشهري</h2>
-            <p className="text-gray-400 text-sm">إدارة ومراقبة الدفع الشهري للعمولات</p>
+            <h2 className="text-base sm:text-2xl font-bold text-white">الدفع التلقائي الشهري</h2>
+            <p className="text-gray-400 text-[10px] sm:text-sm">إدارة ومراقبة الدفع الشهري للعمولات</p>
           </div>
         </div>
         
@@ -216,7 +216,7 @@ export const AutoPayoutSettings: React.FC = () => {
         <button
           onClick={handleToggleAutoPayout}
           disabled={toggleLoading}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm ${
             autoPayoutEnabled
               ? 'bg-yellow-500/20 border border-yellow-500 text-yellow-400 hover:bg-yellow-500/30'
               : 'bg-green-500/20 border border-green-500 text-green-400 hover:bg-green-500/30'
@@ -224,13 +224,14 @@ export const AutoPayoutSettings: React.FC = () => {
         >
           {toggleLoading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-              <span>جاري التحديث...</span>
+              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-current"></div>
+              <span className="hidden sm:inline">جاري التحديث...</span>
             </>
           ) : (
             <>
-              <Power className="w-4 h-4" />
-              <span>{autoPayoutEnabled ? 'إيقاف الدفع التلقائي' : 'تفعيل الدفع التلقائي'}</span>
+              <Power className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">{autoPayoutEnabled ? 'إيقاف الدفع التلقائي' : 'تفعيل الدفع التلقائي'}</span>
+              <span className="sm:hidden">{autoPayoutEnabled ? 'إيقاف' : 'تفعيل'}</span>
             </>
           )}
         </button>
@@ -238,7 +239,7 @@ export const AutoPayoutSettings: React.FC = () => {
 
       {/* Message */}
       {message && (
-        <div className={`p-4 rounded-lg border ${
+        <div className={`p-3 sm:p-4 rounded-lg border text-xs sm:text-sm ${
           message.type === 'success' 
             ? 'bg-green-500/20 border-green-500 text-green-400' 
             : 'bg-red-500/20 border-red-500 text-red-400'
@@ -261,45 +262,45 @@ export const AutoPayoutSettings: React.FC = () => {
         </div>
 
         {summary ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gray-700/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-400 mb-2">
-                <DollarSign className="w-4 h-4" />
-                <span className="text-sm">إجمالي المبلغ</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+            <div className="bg-gray-700/50 rounded-lg p-2 sm:p-4">
+              <div className="flex items-center gap-1 sm:gap-2 text-gray-400 mb-1 sm:mb-2">
+                <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-[10px] sm:text-sm">إجمالي المبلغ</span>
               </div>
-              <p className="text-2xl font-bold text-white">${summary.total_amount?.toFixed(2) || '0.00'}</p>
-              <p className="text-xs text-gray-500 mt-1">{summary.total_users || 0} مستخدم</p>
+              <p className="text-sm sm:text-2xl font-bold text-white">${summary.total_amount?.toFixed(2) || '0.00'}</p>
+              <p className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{summary.total_users || 0} مستخدم</p>
             </div>
 
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-green-400 mb-2">
-                <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">مؤهل للدفع</span>
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 sm:p-4">
+              <div className="flex items-center gap-1 sm:gap-2 text-green-400 mb-1 sm:mb-2">
+                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-[10px] sm:text-sm">مؤهل للدفع</span>
               </div>
-              <p className="text-2xl font-bold text-white">${summary.eligible_amount?.toFixed(2) || '0.00'}</p>
-              <p className="text-xs text-gray-500 mt-1">{summary.eligible_users || 0} مستخدم</p>
+              <p className="text-sm sm:text-2xl font-bold text-white">${summary.eligible_amount?.toFixed(2) || '0.00'}</p>
+              <p className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{summary.eligible_users || 0} مستخدم</p>
             </div>
 
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-yellow-400 mb-2">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">أقل من الحد الأدنى</span>
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 sm:p-4">
+              <div className="flex items-center gap-1 sm:gap-2 text-yellow-400 mb-1 sm:mb-2">
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-[10px] sm:text-sm">أقل من الحد الأدنى</span>
               </div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm sm:text-2xl font-bold text-white">
                 ${((summary.total_amount || 0) - (summary.eligible_amount || 0)).toFixed(2)}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">
                 {(summary.total_users || 0) - (summary.eligible_users || 0)} مستخدم
               </p>
             </div>
 
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-blue-400 mb-2">
-                <DollarSign className="w-4 h-4" />
-                <span className="text-sm">الحد الأدنى</span>
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 sm:p-4">
+              <div className="flex items-center gap-1 sm:gap-2 text-blue-400 mb-1 sm:mb-2">
+                <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-[10px] sm:text-sm">الحد الأدنى</span>
               </div>
-              <p className="text-2xl font-bold text-white">${summary.minimum_payout?.toFixed(2) || '10.00'}</p>
-              <p className="text-xs text-gray-500 mt-1">للسحب</p>
+              <p className="text-sm sm:text-2xl font-bold text-white">${summary.minimum_payout?.toFixed(2) || '10.00'}</p>
+              <p className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">للسحب</p>
             </div>
           </div>
         ) : (
@@ -417,7 +418,7 @@ export const AutoPayoutSettings: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-green-400">
+                    <p className="text-base sm:text-2xl font-bold text-green-400">
                       ${record.total_paid?.toFixed(2)}
                     </p>
                   </div>

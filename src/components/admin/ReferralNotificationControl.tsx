@@ -140,46 +140,46 @@ export const ReferralNotificationControl: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* الإحصائيات */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4">
+        <Card className="p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">المستخدمين النشطين</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalActive}</p>
+              <p className="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400">المستخدمين النشطين</p>
+              <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.totalActive}</p>
             </div>
-            <Users className="w-8 h-8 text-blue-500" />
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
           </div>
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">إشعارات اليوم</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.sentToday}</p>
+              <p className="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400">إشعارات اليوم</p>
+              <p className="text-sm sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.sentToday}</p>
             </div>
-            <Bell className="w-8 h-8 text-green-500" />
+            <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
           </div>
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">آخر إرسال</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400">آخر إرسال</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
                 {stats.lastSent ? new Date(stats.lastSent).toLocaleString('ar') : 'لا يوجد'}
               </p>
             </div>
-            <Clock className="w-8 h-8 text-orange-500" />
+            <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
           </div>
         </Card>
       </div>
 
       {/* أزرار التحكم */}
-      <Card className="p-6">
+      <Card className="p-3 sm:p-6">
         {/* خيار الإرسال الإجباري */}
-        <div className="mb-4 flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+        <div className="mb-3 sm:mb-4 flex items-center gap-2 p-2 sm:p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
           <input
             type="checkbox"
             id="forceResend"
@@ -187,34 +187,34 @@ export const ReferralNotificationControl: React.FC = () => {
             onChange={(e) => setForceResend(e.target.checked)}
             className="rounded"
           />
-          <label htmlFor="forceResend" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+          <label htmlFor="forceResend" className="text-[11px] sm:text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
             ⚠️ إرسال إجباري (تجاوز قيد الـ 7 أيام)
           </label>
         </div>
 
-        <div className="flex flex-wrap gap-4 mb-6">
+        <div className="flex flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-6">
           <Button
             onClick={sendToSelected}
             disabled={loading || selectedUsers.length === 0}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex items-center gap-1 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3 h-3 sm:w-4 sm:h-4" />
             إرسال للمحددين ({selectedUsers.length})
           </Button>
 
           <Button
             onClick={sendToAll}
             disabled={loading || activeUsers.length === 0}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+            className="flex items-center gap-1 sm:gap-2 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3 h-3 sm:w-4 sm:h-4" />
             إرسال للجميع ({activeUsers.length})
           </Button>
 
           <Button
             onClick={toggleSelectAll}
             disabled={loading}
-            className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white"
+            className="flex items-center gap-1 sm:gap-2 bg-gray-600 hover:bg-gray-700 text-white text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2"
           >
             {selectedUsers.length === activeUsers.length ? 'إلغاء الكل' : 'اختيار الكل'}
           </Button>

@@ -19,7 +19,8 @@ import {
   Smartphone,
   Monitor,
   Bell,
-  Ticket
+  Ticket,
+  MessageCircle
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -34,13 +35,14 @@ import { CommissionManagement } from './CommissionManagement';
 import { ReferralSettings } from './ReferralSettings';
 import { AutoPayoutSettings } from './AutoPayoutSettings';
 import { ReferralNotificationControl } from './ReferralNotificationControl';
+import { TelegramBotControl } from './TelegramBotControl';
 import { supabase } from '../../config/supabaseClient';
 
 interface AdminPanelProps {
   currentUser: User;
 }
 
-type TabType = 'dashboard' | 'users' | 'subscriptions' | 'payments' | 'notifications' | 'coupons' | 'commissions' | 'autopayout' | 'referral-notifications' | 'settings';
+type TabType = 'dashboard' | 'users' | 'subscriptions' | 'payments' | 'notifications' | 'coupons' | 'commissions' | 'autopayout' | 'referral-notifications' | 'telegram-bot' | 'settings';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const { createUser: authCreateUser, updateUser: authUpdateUser, deleteUser: authDeleteUser } = useSimpleAuth();
@@ -358,7 +360,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   });
 
   // قائمة التبويبات
-  const tabs = [
+  const tabs: Array<{ id: TabType; label: string; icon: any; badge: number }> = [
     { id: 'dashboard', label: 'لوحة المعلومات', icon: BarChart3, badge: 0 },
     { id: 'users', label: 'إدارة المستخدمين', icon: Users, badge: notifications.newUsers },
     { id: 'subscriptions', label: 'إدارة الاشتراكات', icon: CreditCard, badge: notifications.expiringSoon },
@@ -368,6 +370,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     { id: 'commissions', label: 'إدارة العمولات', icon: TrendingUp, badge: notifications.pendingCommissions },
     { id: 'autopayout', label: 'الدفع التلقائي', icon: Calendar, badge: 0 },
     { id: 'referral-notifications', label: 'إشعارات الإحالة', icon: Bell, badge: 0 },
+    { id: 'telegram-bot', label: 'بوت Telegram', icon: MessageCircle, badge: 0 },
     { id: 'settings', label: 'الإعدادات', icon: Settings, badge: 0 }
   ];
 
@@ -1326,6 +1329,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">إدارة إشعارات الإحالة</h2>
                     <ReferralNotificationControl />
+                  </div>
+                )}
+                {activeTab === 'telegram-bot' && (
+                  <div className="space-y-6">
+                    <TelegramBotControl />
                   </div>
                 )}
                 {activeTab === 'settings' && (

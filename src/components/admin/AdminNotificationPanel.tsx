@@ -325,116 +325,118 @@ export const AdminNotificationPanel: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-3 sm:p-6 space-y-3 sm:space-y-6" dir={dir}>
+    <div className="max-w-6xl mx-auto p-2 sm:p-6 space-y-2 sm:space-y-6" dir={dir}>
       {/* الهيدر */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg">
-            <Bell className="w-8 h-8 text-purple-400" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg">
+            <Bell className="w-5 h-5 sm:w-8 sm:h-8 text-purple-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-base sm:text-2xl font-bold text-white">
               {language === 'ar' ? 'إدارة التنبيهات' : language === 'fr' ? 'Gestion des notifications' : 'Notifications Management'}
             </h1>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-400 text-[10px] sm:text-sm">
               {language === 'ar' ? 'إرسال تنبيهات للمستخدمين' : language === 'fr' ? 'Envoyer des notifications aux utilisateurs' : 'Send notifications to users'}
             </p>
           </div>
         </div>
         <button
           onClick={handleDeleteExpired}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          className="flex items-center gap-1 sm:gap-2 px-1.5 py-1 sm:px-4 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-[10px] sm:text-sm"
         >
-          <Trash2 className="w-4 h-4" />
-          {language === 'ar' ? 'حذف المنتهية' : 'Delete Expired'}
+          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">{language === 'ar' ? 'حذف المنتهية' : 'Delete Expired'}</span>
         </button>
       </div>
 
       {/* الإحصائيات */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-4">
+          <div className="bg-gray-800 rounded-lg p-2 sm:p-4 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-xs sm:text-sm">{language === 'ar' ? 'المجموع' : 'Total'}</p>
-                <p className="text-lg sm:text-2xl font-bold text-white">{stats.total}</p>
+                <p className="text-gray-400 text-[10px] sm:text-sm">{language === 'ar' ? 'المجموع' : 'Total'}</p>
+                <p className="text-sm sm:text-2xl font-bold text-white">{stats.total}</p>
               </div>
-              <Bell className="w-8 h-8 text-blue-400" />
+              <Bell className="w-5 h-5 sm:w-8 sm:h-8 text-blue-400" />
             </div>
           </div>
           <div className="bg-gray-800 rounded-lg p-2 sm:p-4 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-xs sm:text-sm">{language === 'ar' ? 'غير مقروءة' : 'Unread'}</p>
-                <p className="text-lg sm:text-2xl font-bold text-white">{stats.unread}</p>
+                <p className="text-gray-400 text-[10px] sm:text-sm">{language === 'ar' ? 'غير مقروءة' : 'Unread'}</p>
+                <p className="text-sm sm:text-2xl font-bold text-white">{stats.unread}</p>
               </div>
-              <AlertCircle className="w-8 h-8 text-yellow-400" />
+              <AlertCircle className="w-5 h-5 sm:w-8 sm:h-8 text-yellow-400" />
             </div>
           </div>
-          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div className="bg-gray-800 rounded-lg p-2 sm:p-4 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">{language === 'ar' ? 'تحذيرات' : 'Warnings'}</p>
-                <p className="text-2xl font-bold text-white">{stats.byType.warning || 0}</p>
+                <p className="text-gray-400 text-[10px] sm:text-sm">{language === 'ar' ? 'تحذيرات' : 'Warnings'}</p>
+                <p className="text-sm sm:text-2xl font-bold text-white">{stats.byType.warning || 0}</p>
               </div>
-              <AlertTriangle className="w-8 h-8 text-orange-400" />
+              <AlertTriangle className="w-5 h-5 sm:w-8 sm:h-8 text-orange-400" />
             </div>
           </div>
-          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div className="bg-gray-800 rounded-lg p-2 sm:p-4 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">{language === 'ar' ? 'عاجلة' : 'Urgent'}</p>
-                <p className="text-2xl font-bold text-white">{stats.byPriority.urgent || 0}</p>
+                <p className="text-gray-400 text-[10px] sm:text-sm">{language === 'ar' ? 'عاجلة' : 'Urgent'}</p>
+                <p className="text-sm sm:text-2xl font-bold text-white">{stats.byPriority.urgent || 0}</p>
               </div>
-              <Megaphone className="w-8 h-8 text-red-400" />
+              <Megaphone className="w-5 h-5 sm:w-8 sm:h-8 text-red-400" />
             </div>
           </div>
         </div>
       )}
 
       {/* نموذج الإرسال */}
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <Send className="w-5 h-5 text-purple-400" />
+      <div className="bg-gray-800 rounded-lg p-3 sm:p-6 border border-gray-700">
+        <h2 className="text-sm sm:text-xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
+          <Send className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
           {language === 'ar' ? 'إرسال تنبيه جديد' : language === 'fr' ? 'Envoyer une nouvelle notification' : 'Send New Notification'}
         </h2>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* نوع المستقبل */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-[11px] sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
               {language === 'ar' ? 'المستقبل' : 'Recipient'}
             </label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
               <button
                 onClick={() => {
                   setRecipientType('all_users');
                   setSelectedUserIds([]);
                 }}
-                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-colors ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 py-2 sm:px-4 sm:py-3 rounded-lg border-2 transition-colors text-xs sm:text-sm ${
                   recipientType === 'all_users'
                     ? 'border-purple-500 bg-purple-500/20 text-white'
                     : 'border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500'
                 }`}
               >
-                <Users className="w-5 h-5" />
-                {language === 'ar' ? 'جميع المستخدمين' : 'All Users'}
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">{language === 'ar' ? 'جميع المستخدمين' : 'All Users'}</span>
+                <span className="sm:hidden">{language === 'ar' ? 'الكل' : 'All'}</span>
               </button>
               <button
                 onClick={() => {
                   setRecipientType('multiple_users');
                   if (users.length === 0) loadUsers();
                 }}
-                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-colors ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-2 py-2 sm:px-4 sm:py-3 rounded-lg border-2 transition-colors text-xs sm:text-sm ${
                   recipientType === 'multiple_users'
                     ? 'border-purple-500 bg-purple-500/20 text-white'
                     : 'border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500'
                 }`}
               >
-                <User className="w-5 h-5" />
-                {language === 'ar' ? 'اختر من القائمة' : 'Select from List'}
+                <User className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">{language === 'ar' ? 'اختر من القائمة' : 'Select from List'}</span>
+                <span className="sm:hidden">{language === 'ar' ? 'اختر' : 'Select'}</span>
                 {selectedUserIds.length > 0 && (
-                  <span className="bg-purple-600 text-white text-xs px-2 py-0.5 rounded-full ml-2">
+                  <span className="bg-purple-600 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 rounded-full ml-1 sm:ml-2">
                     {selectedUserIds.length}
                   </span>
                 )}
@@ -626,15 +628,15 @@ export const AdminNotificationPanel: React.FC = () => {
 
 
           {/* النوع والأولوية */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-[11px] sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
                 {language === 'ar' ? 'النوع' : 'Type'}
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as any)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                className="w-full px-2 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none text-xs sm:text-sm"
               >
                 <option value="info">ℹ️ Info</option>
                 <option value="warning">⚠️ Warning</option>
@@ -644,13 +646,13 @@ export const AdminNotificationPanel: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-[11px] sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
                 {language === 'ar' ? 'الأولوية' : 'Priority'}
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                className="w-full px-2 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none text-xs sm:text-sm"
               >
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
@@ -661,8 +663,8 @@ export const AdminNotificationPanel: React.FC = () => {
           </div>
 
           {/* العناوين */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">
+          <div className="space-y-2 sm:space-y-3">
+            <label className="block text-[11px] sm:text-sm font-medium text-gray-300">
               {language === 'ar' ? 'العنوان' : 'Title'} *
               {recipientType === 'multiple_users' && selectedUserIds.length > 0 && (() => {
                 const selectedUsers = users.filter(u => selectedUserIds.includes(u.id));
@@ -681,14 +683,14 @@ export const AdminNotificationPanel: React.FC = () => {
               value={titleEn}
               onChange={(e) => setTitleEn(e.target.value)}
               placeholder="English Title *"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+              className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none text-xs sm:text-sm"
             />
             <input
               type="text"
               value={titleAr}
               onChange={(e) => setTitleAr(e.target.value)}
               placeholder="العنوان بالعربية *"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+              className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none text-xs sm:text-sm"
               dir="rtl"
             />
             <input
@@ -696,13 +698,13 @@ export const AdminNotificationPanel: React.FC = () => {
               value={titleFr}
               onChange={(e) => setTitleFr(e.target.value)}
               placeholder="Titre en français *"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+              className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none text-xs sm:text-sm"
             />
           </div>
 
           {/* الرسائل */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">
+          <div className="space-y-2 sm:space-y-3">
+            <label className="block text-[11px] sm:text-sm font-medium text-gray-300">
               {language === 'ar' ? 'الرسالة' : 'Message'} *
               {recipientType === 'multiple_users' && selectedUserIds.length > 0 && (() => {
                 const selectedUsers = users.filter(u => selectedUserIds.includes(u.id));
@@ -720,23 +722,23 @@ export const AdminNotificationPanel: React.FC = () => {
               value={messageEn}
               onChange={(e) => setMessageEn(e.target.value)}
               placeholder="English Message *"
-              rows={3}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none resize-none"
+              rows={2}
+              className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none resize-none text-xs sm:text-sm"
             />
             <textarea
               value={messageAr}
               onChange={(e) => setMessageAr(e.target.value)}
               placeholder="الرسالة بالعربية *"
-              rows={3}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none resize-none"
+              rows={2}
+              className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none resize-none text-xs sm:text-sm"
               dir="rtl"
             />
             <textarea
               value={messageFr}
               onChange={(e) => setMessageFr(e.target.value)}
               placeholder="Message en français *"
-              rows={3}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none resize-none"
+              rows={2}
+              className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none resize-none text-xs sm:text-sm"
             />
           </div>
 
@@ -821,16 +823,16 @@ export const AdminNotificationPanel: React.FC = () => {
           <button
             onClick={handleSend}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             {loading ? (
               <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                 {language === 'ar' ? 'جاري الإرسال...' : 'Sending...'}
               </>
             ) : (
               <>
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                 {language === 'ar' ? 'إرسال التنبيه' : language === 'fr' ? 'Envoyer' : 'Send Notification'}
               </>
             )}

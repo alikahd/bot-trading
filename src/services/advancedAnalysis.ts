@@ -1027,17 +1027,37 @@ export class AdvancedAnalysisEngine {
   async analyzeAllSymbols(): Promise<TradingSignal[]> {
     // جميع الرموز المتاحة في Binary.com - بيانات حقيقية 24/7
     const symbols = [
-      // العملات الرئيسية (Major Pairs)
-      'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD',
-      'USDCAD', 'USDCHF', 'NZDUSD',
+      // العملات الرئيسية (Major Pairs) - عادي + OTC
+      'EURUSD', 'EURUSD_otc',
+      'GBPUSD', 'GBPUSD_otc',
+      'USDJPY', 'USDJPY_otc',
+      'AUDUSD', 'AUDUSD_otc',
+      'USDCAD', 'USDCAD_otc',
+      'USDCHF', 'USDCHF_otc',
+      'NZDUSD', 'NZDUSD_otc',
       
-      // العملات المتقاطعة (Cross Pairs)
-      'EURGBP', 'EURJPY', 'EURCHF', 'EURAUD',
-      'EURCAD', 'EURNZD', 'GBPJPY', 'GBPCHF',
-      'GBPAUD', 'GBPCAD', 'GBPNZD', 'AUDJPY',
-      'AUDCHF', 'AUDCAD', 'AUDNZD', 'NZDJPY',
-      'NZDCHF', 'NZDCAD', 'CADJPY', 'CADCHF',
-      'CHFJPY',
+      // العملات المتقاطعة (Cross Pairs) - عادي + OTC
+      'EURGBP', 'EURGBP_otc',
+      'EURJPY', 'EURJPY_otc',
+      'EURCHF', 'EURCHF_otc',
+      'EURAUD', 'EURAUD_otc',
+      'EURCAD', 'EURCAD_otc',
+      'EURNZD', 'EURNZD_otc',
+      'GBPJPY', 'GBPJPY_otc',
+      'GBPCHF', 'GBPCHF_otc',
+      'GBPAUD', 'GBPAUD_otc',
+      'GBPCAD', 'GBPCAD_otc',
+      'GBPNZD', 'GBPNZD_otc',
+      'AUDJPY', 'AUDJPY_otc',
+      'AUDCHF', 'AUDCHF_otc',
+      'AUDCAD', 'AUDCAD_otc',
+      'AUDNZD', 'AUDNZD_otc',
+      'NZDJPY', 'NZDJPY_otc',
+      'NZDCHF', 'NZDCHF_otc',
+      'NZDCAD', 'NZDCAD_otc',
+      'CADJPY', 'CADJPY_otc',
+      'CADCHF', 'CADCHF_otc',
+      'CHFJPY', 'CHFJPY_otc',
       
       // العملات الناشئة (Exotic Pairs)
       'USDRUB', 'USDTRY', 'USDZAR', 'USDMXN',

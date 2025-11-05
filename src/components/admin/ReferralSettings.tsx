@@ -129,43 +129,43 @@ export const ReferralSettings: React.FC = () => {
             <Settings className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">إعدادات نظام الإحالة</h2>
-            <p className="text-gray-400 text-sm">تحكم في نسب الخصم والعمولات</p>
+            <h2 className="text-base sm:text-2xl font-bold text-white">إعدادات نظام الإحالة</h2>
+            <p className="text-gray-400 text-[10px] sm:text-sm">تحكم في نسب الخصم والعمولات</p>
           </div>
         </div>
       </div>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg">
+        <div className="bg-green-500/20 border border-green-500 text-green-400 px-3 py-2 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm">
           {successMessage}
         </div>
       )}
 
       {/* إحصائيات سريعة */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <Card padding="sm" className="text-center">
-          <Percent className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-          <div className="text-3xl font-bold text-white">{settings.discount_rate}%</div>
-          <div className="text-sm text-gray-400">خصم المستخدم الجديد</div>
+          <Percent className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-1 sm:mb-2" />
+          <div className="text-lg sm:text-3xl font-bold text-white">{settings.discount_rate}%</div>
+          <div className="text-[10px] sm:text-sm text-gray-400">خصم المستخدم الجديد</div>
         </Card>
         
         <Card padding="sm" className="text-center">
-          <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
-          <div className="text-3xl font-bold text-white">{settings.commission_rate}%</div>
-          <div className="text-sm text-gray-400">عمولة صاحب الإحالة</div>
+          <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 mx-auto mb-1 sm:mb-2" />
+          <div className="text-lg sm:text-3xl font-bold text-white">{settings.commission_rate}%</div>
+          <div className="text-[10px] sm:text-sm text-gray-400">عمولة صاحب الإحالة</div>
         </Card>
         
         <Card padding="sm" className="text-center">
-          <Calendar className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-          <div className="text-3xl font-bold text-white">{settings.payment_cycle_days}</div>
-          <div className="text-sm text-gray-400">أيام دورة الدفع</div>
+          <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mx-auto mb-1 sm:mb-2" />
+          <div className="text-lg sm:text-3xl font-bold text-white">{settings.payment_cycle_days}</div>
+          <div className="text-[10px] sm:text-sm text-gray-400">أيام دورة الدفع</div>
         </Card>
         
         <Card padding="sm" className="text-center">
-          <DollarSign className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <div className="text-3xl font-bold text-white">${settings.minimum_payout}</div>
-          <div className="text-sm text-gray-400">الحد الأدنى للسحب</div>
+          <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 mx-auto mb-1 sm:mb-2" />
+          <div className="text-lg sm:text-3xl font-bold text-white">${settings.minimum_payout}</div>
+          <div className="text-[10px] sm:text-sm text-gray-400">الحد الأدنى للسحب</div>
         </Card>
       </div>
 
@@ -272,7 +272,7 @@ export const ReferralSettings: React.FC = () => {
               <select
                 value={settings.payment_cycle_days}
                 onChange={(e) => handleChange('payment_cycle_days', parseInt(e.target.value))}
-                className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex-1 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-xs sm:text-sm"
               >
                 <option value="7">كل 7 أيام (أسبوعياً)</option>
                 <option value="15">كل 15 يوم (نصف شهري)</option>
@@ -297,7 +297,7 @@ export const ReferralSettings: React.FC = () => {
                 step="5"
                 value={settings.minimum_payout}
                 onChange={(e) => handleChange('minimum_payout', parseFloat(e.target.value))}
-                className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className="flex-1 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 text-xs sm:text-sm"
               />
               <span className="text-white font-bold">$</span>
             </div>
