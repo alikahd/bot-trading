@@ -58,17 +58,32 @@ export async function isBotEnabled() {
  */
 export async function updateBotStats() {
   try {
+    // جلب العدد الحالي
+    const { data: currentData, error: fetchError } = await supabase
+      .from('telegram_bot_status')
+      .select('total_signals_sent')
+      .eq('id', 1)
+      .single();
+
+    if (fetchError) {
+      console.error('❌ خطأ في جلب الإحصائيات:', fetchError);
+      return;
+    }
+
+    // تحديث مع زيادة العدد
     const { error } = await supabase
       .from('telegram_bot_status')
       .update({
         last_signal_sent: new Date().toISOString(),
-        total_signals_sent: supabase.raw('total_signals_sent + 1'),
+        total_signals_sent: (currentData?.total_signals_sent || 0) + 1,
         updated_at: new Date().toISOString()
       })
       .eq('id', 1);
 
     if (error) {
       console.error('❌ خطأ في تحديث إحصائيات البوت:', error);
+    } else {
+      console.log(`✅ تم تحديث الإحصائيات - إجمالي التوصيات: ${(currentData?.total_signals_sent || 0) + 1}`);
     }
   } catch (error) {
     console.error('❌ خطأ في تحديث إحصائيات البوت:', error);
