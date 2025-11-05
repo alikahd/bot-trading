@@ -140,6 +140,11 @@ async function startCronJob() {
   }, 2 * 60 * 1000); // دقيقتين
 }
 
+// Keep-Alive لمنع Sleep Mode في Render
+setInterval(() => {
+  console.log('💓 Keep-Alive ping - ' + new Date().toLocaleTimeString());
+}, 10 * 60 * 1000); // كل 10 دقائق
+
 // بدء التشغيل
 console.log('🎯 Binary.com Trading Signals - Railway');
 console.log('📡 اتصال حقيقي بـ Binary.com WebSocket');

@@ -37,35 +37,18 @@ export async function sendTelegramMessage(recommendation) {
       day: '2-digit'
     });
     
-    const message = `━━━━━━━━━━━━━━━━━━━━
-${directionEmoji} <b>BINARY OPTIONS SIGNAL</b> ${directionEmoji}
-━━━━━━━━━━━━━━━━━━━━
+    const message = `${directionEmoji} <b>${recommendation.symbol}</b> ${arrowEmoji} <b>${directionText}</b>
 
-💱 <b>PAIR:</b> <code>${recommendation.symbol}</code>
-${arrowEmoji} <b>DIRECTION:</b> <b>${directionText}</b>
-⏱️ <b>TIMEFRAME:</b> ${recommendation.timeframe}
-💰 <b>ENTRY PRICE:</b> <code>${recommendation.price.toFixed(5)}</code>
+💰 <b>Price:</b> <code>${recommendation.price.toFixed(5)}</code>
+⏱️ <b>Time:</b> ${recommendation.timeframe}
 
-━━━━━━━━━━━━━━━━━━━━
-📊 <b>TRADING INFO</b>
-━━━━━━━━━━━━━━━━━━━━
-${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}%
-✅ <b>Success Rate:</b> ${Math.min(recommendation.confidence + 5, 95)}%
-${riskEmoji} <b>Risk Level:</b> ${riskLevel}
+${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}% | <b>Success:</b> ${Math.min(recommendation.confidence + 5, 95)}%
+${riskEmoji} <b>Risk:</b> ${riskLevel}
 
-━━━━━━━━━━━━━━━━━━━━
-⏰ <b>TIMING</b>
-━━━━━━━━━━━━━━━━━━━━
-🕐 <b>Entry Time:</b> ${formatTime(now)}
-🕑 <b>Expiry Time:</b> ${formatTime(expiryTime)}
-📅 <b>Date:</b> ${formatDate(now)}
+🕐 <b>Entry:</b> ${formatTime(now)}
+🕑 <b>Expiry:</b> ${formatTime(expiryTime)}
 
-━━━━━━━━━━━━━━━━━━━━
-📝 <b>ANALYSIS</b>
-━━━━━━━━━━━━━━━━━━━━
-${recommendation.reasons}
-
-🤖 <i>Binary.com Trading Bot</i>`;
+🤖 ${formatDate(now)} ${formatTime(now)}`;
 
     
     const response = await fetch(
