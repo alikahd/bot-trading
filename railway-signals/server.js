@@ -2,45 +2,81 @@ import { getBinaryPrice, getHistoricalData } from './binary-websocket.js';
 import { analyzeSignal } from './indicators.js';
 import { sendTelegramMessage } from './telegram.js';
 
-// جميع أزواج Binary.com - عادي + OTC
+// أزواج Binary.com - عادي + OTC المتاحة
 const SYMBOLS = [
-  'frxEURUSD', 'OTC_EURUSD',
-  'frxGBPUSD', 'OTC_GBPUSD',
-  'frxUSDJPY', 'OTC_USDJPY',
-  'frxAUDUSD', 'OTC_AUDUSD',
-  'frxUSDCAD', 'OTC_USDCAD',
-  'frxUSDCHF', 'OTC_USDCHF',
-  'frxNZDUSD', 'OTC_NZDUSD',
-  'frxEURGBP', 'OTC_EURGBP',
-  'frxEURJPY', 'OTC_EURJPY',
-  'frxEURCHF', 'OTC_EURCHF',
-  'frxEURAUD', 'OTC_EURAUD',
-  'frxGBPJPY', 'OTC_GBPJPY',
-  'frxGBPCHF', 'OTC_GBPCHF',
-  'frxGBPAUD', 'OTC_GBPAUD',
-  'frxAUDJPY', 'OTC_AUDJPY',
-  'frxCADJPY', 'OTC_CADJPY',
-  'frxCHFJPY', 'OTC_CHFJPY'
+  // ═══════════════════════════════════════════════════
+  // الأزواج الرئيسية (Major Pairs) - عادي + OTC ✅
+  // ═══════════════════════════════════════════════════
+  'frxEURUSD', 'OTC_EURUSD',     // EUR/USD
+  'frxGBPUSD', 'OTC_GBPUSD',     // GBP/USD
+  'frxUSDJPY', 'OTC_USDJPY',     // USD/JPY
+  'frxAUDUSD', 'OTC_AUDUSD',     // AUD/USD
+  'frxUSDCAD', 'OTC_USDCAD',     // USD/CAD
+  'frxUSDCHF', 'OTC_USDCHF',     // USD/CHF
+  'frxNZDUSD', 'OTC_NZDUSD',     // NZD/USD
+  
+  // ═══════════════════════════════════════════════════
+  // الأزواج المتقاطعة EUR (EUR Cross Pairs) - عادي فقط
+  // ═══════════════════════════════════════════════════
+  'frxEURGBP',  // EUR/GBP
+  'frxEURJPY',  // EUR/JPY
+  'frxEURCHF',  // EUR/CHF
+  'frxEURAUD',  // EUR/AUD
+  'frxEURCAD',  // EUR/CAD
+  'frxEURNZD',  // EUR/NZD
+  
+  // ═══════════════════════════════════════════════════
+  // الأزواج المتقاطعة GBP (GBP Cross Pairs) - عادي فقط
+  // ═══════════════════════════════════════════════════
+  'frxGBPJPY',  // GBP/JPY
+  'frxGBPCHF',  // GBP/CHF
+  'frxGBPAUD',  // GBP/AUD
+  'frxGBPCAD',  // GBP/CAD
+  'frxGBPNZD',  // GBP/NZD
+  
+  // ═══════════════════════════════════════════════════
+  // الأزواج المتقاطعة AUD (AUD Cross Pairs) - عادي فقط
+  // ═══════════════════════════════════════════════════
+  'frxAUDJPY',  // AUD/JPY
+  'frxAUDCAD',  // AUD/CAD
+  'frxAUDCHF',  // AUD/CHF
+  'frxAUDNZD',  // AUD/NZD
+  
+  // ═══════════════════════════════════════════════════
+  // الأزواج المتقاطعة الأخرى (Other Cross Pairs) - عادي فقط
+  // ═══════════════════════════════════════════════════
+  'frxCADJPY',  // CAD/JPY
+  'frxCADCHF',  // CAD/CHF
+  'frxCHFJPY',  // CHF/JPY
+  'frxNZDCAD',  // NZD/CAD
+  'frxNZDCHF',  // NZD/CHF
+  'frxNZDJPY'   // NZD/JPY
 ];
 
-// معالجة التوصيات
+// معالجة التوصيات - استراتيجية صارمة
 async function processSignals() {
-  console.log('🚀 بدء تحليل الأزواج...');
+  const startTime = Date.now();
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🚀 دورة تحليل جديدة - ' + new Date().toLocaleTimeString('en-US'));
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
   const recommendations = [];
+  let analyzed = 0;
+  let errors = 0;
   
   for (const symbol of SYMBOLS) {
     try {
-      console.log(`📊 تحليل ${symbol}...`);
-      
       // جلب البيانات التاريخية الحقيقية
       const prices = await getHistoricalData(symbol, 100);
       
       if (prices && prices.length >= 100) {
+        analyzed++;
+        
         // تحليل وإنشاء توصية
         const signal = analyzeSignal(prices, symbol);
         
         if (signal) {
-          console.log(`✅ توصية: ${signal.symbol} ${signal.direction} (${signal.confidence}%)`);
+          console.log(`✅ ${signal.symbol} ${signal.direction} ${signal.timeframe} (${signal.confidence}%)`);
           recommendations.push(signal);
         }
       }
@@ -48,21 +84,46 @@ async function processSignals() {
       // تأخير صغير بين الطلبات
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
-      console.error(`❌ خطأ في ${symbol}:`, error.message);
+      errors++;
+      // تجاهل الأخطاء الصامتة (رموز غير صالحة)
+      if (!error.message.includes('invalid')) {
+        console.error(`❌ ${symbol}: ${error.message}`);
+      }
     }
   }
   
-  // إرسال أفضل توصية (دائماً)
+  console.log(`\n📊 إحصائيات التحليل:`);
+  console.log(`   • تم تحليل: ${analyzed} زوج`);
+  console.log(`   • توصيات قوية: ${recommendations.length}`);
+  console.log(`   • أخطاء: ${errors}`);
+  
+  // إرسال أفضل توصية (دائماً إذا وجدت)
   if (recommendations.length > 0) {
-    const bestSignal = recommendations.sort((a, b) => b.confidence - a.confidence)[0];
-    console.log(`📤 إرسال أفضل توصية: ${bestSignal.symbol} ${bestSignal.direction} (${bestSignal.confidence}%)`);
-    await sendTelegramMessage(bestSignal);
-    console.log(`✅ تم إرسال التوصية بنجاح`);
+    // ترتيب حسب الثقة
+    const sortedSignals = recommendations.sort((a, b) => b.confidence - a.confidence);
+    const bestSignal = sortedSignals[0];
+    
+    console.log(`\n📤 إرسال أفضل توصية:`);
+    console.log(`   • ${bestSignal.symbol} ${bestSignal.direction}`);
+    console.log(`   • إطار زمني: ${bestSignal.timeframe}`);
+    console.log(`   • ثقة: ${bestSignal.confidence}%`);
+    
+    const sent = await sendTelegramMessage(bestSignal);
+    
+    if (sent) {
+      console.log(`✅ تم الإرسال بنجاح إلى Telegram`);
+    } else {
+      console.log(`❌ فشل الإرسال - سيتم المحاولة في الدورة القادمة`);
+    }
   } else {
-    console.log('⚠️ لا توجد توصيات في هذه الدورة - سيتم المحاولة في الدورة القادمة');
+    console.log(`\n⚠️ لا توجد توصيات قوية في هذه الدورة`);
+    console.log(`   السبب: جميع الإشارات أقل من 60% ثقة`);
+    console.log(`   سيتم التحليل مجدداً بعد دقيقتين`);
   }
   
-  console.log(`✅ اكتمل التحليل - ${recommendations.length} توصية متاحة`);
+  const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log(`\n⏱️ مدة التحليل: ${duration} ثانية`);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
 // تشغيل كل دقيقتين

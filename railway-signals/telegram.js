@@ -10,12 +10,19 @@ export async function sendTelegramMessage(recommendation) {
     const directionEmoji = isCall ? '🟢' : '🔴';
     const arrowEmoji = isCall ? '⬆️' : '⬇️';
     const directionText = isCall ? 'BUY | شراء 🟢' : 'SELL | بيع 🔴';
-    const confidenceEmoji = recommendation.confidence >= 70 ? '🟡' : '🟠';
-    const riskLevel = recommendation.confidence >= 70 ? 'Low' : 'Medium';
-    const riskEmoji = recommendation.confidence >= 70 ? '🟢' : '🟡';
+    
+    // تحديد الثقة والمخاطر بناءً على النظام الجديد
+    const confidenceEmoji = recommendation.confidence >= 80 ? '🟢' : 
+                           recommendation.confidence >= 70 ? '🟡' : '🟠';
+    const riskLevel = recommendation.confidence >= 80 ? 'منخفض' : 
+                     recommendation.confidence >= 70 ? 'متوسط' : 'عالي';
+    const riskEmoji = recommendation.confidence >= 80 ? '🟢' : 
+                     recommendation.confidence >= 70 ? '🟡' : '🔴';
     
     const now = new Date();
-    const expiryTime = new Date(now.getTime() + 5 * 60000);
+    // حساب وقت الانتهاء بناءً على الإطار الزمني
+    const timeframeMinutes = parseInt(recommendation.timeframe);
+    const expiryTime = new Date(now.getTime() + timeframeMinutes * 60000);
     
     const formatTime = (date) => date.toLocaleTimeString('en-US', {
       hour: '2-digit',
@@ -30,20 +37,36 @@ export async function sendTelegramMessage(recommendation) {
       day: '2-digit'
     });
     
-    const message = `${directionEmoji} <b>${recommendation.symbol}</b> ${arrowEmoji} <b>${directionText}</b>
+    const message = `━━━━━━━━━━━━━━━━━━━━
+${directionEmoji} <b>BINARY OPTIONS SIGNAL</b> ${directionEmoji}
+━━━━━━━━━━━━━━━━━━━━
 
-💰 <b>Price:</b> <code>${recommendation.price.toFixed(5)}</code>
-⏱️ <b>Time:</b> 5min
+💱 <b>PAIR:</b> <code>${recommendation.symbol}</code>
+${arrowEmoji} <b>DIRECTION:</b> <b>${directionText}</b>
+⏱️ <b>TIMEFRAME:</b> ${recommendation.timeframe}
+💰 <b>ENTRY PRICE:</b> <code>${recommendation.price.toFixed(5)}</code>
 
-${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}% | <b>Success:</b> ${recommendation.confidence + 10}%
-${riskEmoji} <b>Risk:</b> ${riskLevel}
+━━━━━━━━━━━━━━━━━━━━
+📊 <b>TRADING INFO</b>
+━━━━━━━━━━━━━━━━━━━━
+${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}%
+✅ <b>Success Rate:</b> ${Math.min(recommendation.confidence + 5, 95)}%
+${riskEmoji} <b>Risk Level:</b> ${riskLevel}
 
-🕐 <b>Entry:</b> ${formatTime(now)}
-🕑 <b>Expiry:</b> ${formatTime(expiryTime)}
+━━━━━━━━━━━━━━━━━━━━
+⏰ <b>TIMING</b>
+━━━━━━━━━━━━━━━━━━━━
+🕐 <b>Entry Time:</b> ${formatTime(now)}
+🕑 <b>Expiry Time:</b> ${formatTime(expiryTime)}
+📅 <b>Date:</b> ${formatDate(now)}
 
-📝 ${recommendation.reasons}
+━━━━━━━━━━━━━━━━━━━━
+📝 <b>ANALYSIS</b>
+━━━━━━━━━━━━━━━━━━━━
+${recommendation.reasons}
 
-🤖 ${formatDate(now)} ${formatTime(now)}`;
+🤖 <i>Binary.com Trading Bot</i>`;
+
     
     const response = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
