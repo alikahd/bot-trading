@@ -12,25 +12,44 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  */
 export async function isBotEnabled() {
   try {
-    const { data, error } = await supabase
+    console.log('🔍 جاري التحقق من حالة البوت في Supabase...');
+    
+    // المحاولة الأولى: قراءة مباشرة من الجدول
+    let { data, error } = await supabase
       .from('telegram_bot_status')
       .select('is_enabled')
       .single();
 
+    // إذا فشلت القراءة المباشرة (بسبب RLS)، استخدم الدالة الآمنة
     if (error) {
-      // إذا لم يكن هناك سجل، افترض أن البوت مفعّل (القيمة الافتراضية)
-      if (error.code === 'PGRST116') {
-        console.log('⚠️ لا يوجد سجل لحالة البوت - سيتم اعتبار البوت مفعّل افتراضياً');
-        return true;
+      console.log('⚠️ فشل القراءة المباشرة، محاولة استخدام الدالة الآمنة...');
+      
+      const { data: functionData, error: functionError } = await supabase
+        .rpc('get_telegram_bot_status');
+      
+      if (functionError) {
+        console.error('❌ خطأ في استدعاء الدالة:', functionError);
+        console.log('⚠️ سيتم اعتبار البوت متوقف للأمان');
+        return false;
       }
-      console.error('❌ خطأ في جلب حالة البوت:', error);
-      return true; // في حالة الخطأ، نفترض أن البوت مفعّل
+      
+      if (!functionData || functionData.length === 0) {
+        console.log('⚠️ لا توجد بيانات - سيتم اعتبار البوت متوقف للأمان');
+        return false;
+      }
+      
+      data = functionData[0];
     }
 
-    return data?.is_enabled ?? true;
+    const isEnabled = data?.is_enabled ?? false;
+    console.log(`📊 حالة البوت من قاعدة البيانات: ${isEnabled ? '✅ مفعّل' : '⏸️ متوقف'}`);
+    console.log(`   آخر توصية: ${data?.last_signal_sent || 'لا توجد'}`);
+    console.log(`   إجمالي التوصيات: ${data?.total_signals_sent || 0}`);
+    return isEnabled;
   } catch (error) {
     console.error('❌ خطأ في الاتصال بـ Supabase:', error);
-    return true; // في حالة الخطأ، نفترض أن البوت مفعّل
+    console.log('⚠️ فشل الاتصال - سيتم اعتبار البوت متوقف للأمان');
+    return false;
   }
 }
 
