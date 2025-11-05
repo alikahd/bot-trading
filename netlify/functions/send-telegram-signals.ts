@@ -29,7 +29,10 @@ interface BinaryRecommendation {
 
 // تنسيق اسم الزوج
 const formatPairName = (symbol: string): string => {
-  let cleanSymbol = symbol.replace(/_OTC|_otc/gi, '');
+  // إزالة frx و OTC
+  let cleanSymbol = symbol.replace(/frx|_OTC|_otc/gi, '');
+  
+  // تنسيق الزوج: EURUSD -> EUR/USD
   if (cleanSymbol.length === 6) {
     return `${cleanSymbol.substring(0, 3)}/${cleanSymbol.substring(3, 6)}`;
   }
@@ -66,29 +69,40 @@ const fetchRecommendations = async (): Promise<BinaryRecommendation[]> => {
     // الاتصال بـ Binary.com WebSocket API
     const ws_url = 'wss://ws.binaryws.com/websockets/v3?app_id=1089';
     
-    // أزواج العملات (Binary Options - Forex Pairs)
+    // أزواج العملات - جميع الأزواج المتاحة في IQ Option
     // متوافق مع: IQ Option, Expert Option, Quotex, Pocket Option
     const pairs = [
       // الأزواج الرئيسية (Major Pairs) - عادي + OTC
-      'EURUSD', 'EURUSD_otc',  // EUR/USD
-      'GBPUSD', 'GBPUSD_otc',  // GBP/USD
-      'USDJPY', 'USDJPY_otc',  // USD/JPY
-      'USDCHF', 'USDCHF_otc',  // USD/CHF
-      'AUDUSD', 'AUDUSD_otc',  // AUD/USD
-      'USDCAD', 'USDCAD_otc',  // USD/CAD
-      'NZDUSD', 'NZDUSD_otc',  // NZD/USD
+      'frxEURUSD', 'EURUSD_otc',  // EUR/USD
+      'frxGBPUSD', 'GBPUSD_otc',  // GBP/USD
+      'frxUSDJPY', 'USDJPY_otc',  // USD/JPY
+      'frxUSDCHF', 'USDCHF_otc',  // USD/CHF
+      'frxAUDUSD', 'AUDUSD_otc',  // AUD/USD
+      'frxUSDCAD', 'USDCAD_otc',  // USD/CAD
+      'frxNZDUSD', 'NZDUSD_otc',  // NZD/USD
       
       // الأزواج المتقاطعة (Cross Pairs) - عادي + OTC
-      'EURGBP', 'EURGBP_otc',  // EUR/GBP
-      'EURJPY', 'EURJPY_otc',  // EUR/JPY
-      'EURCHF', 'EURCHF_otc',  // EUR/CHF
-      'EURAUD', 'EURAUD_otc',  // EUR/AUD
-      'GBPJPY', 'GBPJPY_otc',  // GBP/JPY
-      'GBPCHF', 'GBPCHF_otc',  // GBP/CHF
-      'AUDJPY', 'AUDJPY_otc',  // AUD/JPY
-      'AUDCAD', 'AUDCAD_otc',  // AUD/CAD
-      'CADJPY', 'CADJPY_otc',  // CAD/JPY
-      'CHFJPY', 'CHFJPY_otc'   // CHF/JPY
+      'frxEURGBP', 'EURGBP_otc',  // EUR/GBP
+      'frxEURJPY', 'EURJPY_otc',  // EUR/JPY
+      'frxEURCHF', 'EURCHF_otc',  // EUR/CHF
+      'frxEURAUD', 'EURAUD_otc',  // EUR/AUD
+      'frxEURCAD', 'EURCAD_otc',  // EUR/CAD
+      'frxEURNZD', 'EURNZD_otc',  // EUR/NZD
+      'frxGBPJPY', 'GBPJPY_otc',  // GBP/JPY
+      'frxGBPCHF', 'GBPCHF_otc',  // GBP/CHF
+      'frxGBPAUD', 'GBPAUD_otc',  // GBP/AUD
+      'frxGBPCAD', 'GBPCAD_otc',  // GBP/CAD
+      'frxGBPNZD', 'GBPNZD_otc',  // GBP/NZD
+      'frxAUDJPY', 'AUDJPY_otc',  // AUD/JPY
+      'frxAUDCHF', 'AUDCHF_otc',  // AUD/CHF
+      'frxAUDCAD', 'AUDCAD_otc',  // AUD/CAD
+      'frxAUDNZD', 'AUDNZD_otc',  // AUD/NZD
+      'frxNZDJPY', 'NZDJPY_otc',  // NZD/JPY
+      'frxNZDCHF', 'NZDCHF_otc',  // NZD/CHF
+      'frxNZDCAD', 'NZDCAD_otc',  // NZD/CAD
+      'frxCADJPY', 'CADJPY_otc',  // CAD/JPY
+      'frxCADCHF', 'CADCHF_otc',  // CAD/CHF
+      'frxCHFJPY', 'CHFJPY_otc'   // CHF/JPY
     ];
     
     const recommendations: BinaryRecommendation[] = [];
