@@ -56,11 +56,10 @@ export async function sendTelegramMessage(recommendation) {
 ${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}% | <b>Success:</b> ${Math.min(recommendation.confidence + 5, 95)}%
 ${riskEmoji} <b>Risk:</b> ${riskLevel}
 
-⏰ <b>Signal Time:</b> ${formatTime(now)}
-🕐 <b>Entry Time:</b> ${formatTime(entryTime)} ⏳ <i>(+1min)</i>
-🕑 <b>Expiry Time:</b> ${formatTime(expiryTime)}
+🕐 <b>Entry:</b> ${formatTime(entryTime)}
+🕑 <b>Expiry:</b> ${formatTime(expiryTime)}
 
-🤖 ${formatDate(now)} | ⚡ <i>Enter within 1 minute!</i>`;
+🤖 ${formatDate(now)} ${formatTime(now)}`;
 
     
     const response = await fetch(
