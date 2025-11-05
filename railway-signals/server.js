@@ -99,6 +99,14 @@ async function processSignals() {
   console.log(`   • أخطاء: ${errors}`);
   
   // إرسال أفضل توصية (دائماً إذا وجدت)
+  // عرض أفضل 5 توصيات للتشخيص
+  if (recommendations.length > 0) {
+    console.log(`\n📊 أفضل ${Math.min(5, recommendations.length)} توصيات:`);
+    recommendations.slice(0, 5).forEach((rec, i) => {
+      console.log(`   ${i+1}. ${rec.symbol} ${rec.direction} ${rec.timeframe} (${rec.confidence}%) - ${rec.reasons}`);
+    });
+  }
+  
   if (recommendations.length > 0) {
     // ترتيب حسب الثقة
     const sortedSignals = recommendations.sort((a, b) => b.confidence - a.confidence);
@@ -118,7 +126,7 @@ async function processSignals() {
     }
   } else {
     console.log(`\n⚠️ لا توجد توصيات قوية في هذه الدورة`);
-    console.log(`   السبب: جميع الإشارات أقل من 60% ثقة`);
+    console.log(`   السبب: جميع الإشارات أقل من 60% ثقة أو أقل من إشارتين`);
     console.log(`   سيتم التحليل مجدداً بعد دقيقتين`);
   }
   

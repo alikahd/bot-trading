@@ -145,22 +145,22 @@ export function analyzeSignal(prices, symbol) {
   }
   
   // ═══════════════════════════════════════════════════
-  // تحديد الاتجاه والثقة (شروط صارمة متوازنة)
+  // تحديد الاتجاه والثقة (شروط صارمة لكن عملية)
   // ═══════════════════════════════════════════════════
   let direction = null;
   let confidence = 0;
   
-  // الحد الأدنى: 60 نقطة + إشارتين قويتين
-  if (callScore > putScore && callScore >= 60) {
+  // الحد الأدنى: 50 نقطة + إشارتين
+  if (callScore > putScore && callScore >= 55) {
     direction = 'CALL';
     confidence = Math.min(callScore, 95);
-  } else if (putScore > callScore && putScore >= 60) {
+  } else if (putScore > callScore && putScore >= 55) {
     direction = 'PUT';
     confidence = Math.min(putScore, 95);
   }
   
-  // يجب أن يكون هناك اتجاه واضح + إشارتين قويتين على الأقل
-  if (direction && confidence >= 60 && reasons.length >= 2) {
+  // يجب أن يكون هناك اتجاه واضح + إشارتين على الأقل
+  if (direction && confidence >= 55 && reasons.length >= 2) {
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     
