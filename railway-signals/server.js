@@ -1,6 +1,7 @@
 import { getBinaryPrice, getHistoricalData } from './binary-websocket.js';
 import { analyzeSignal } from './indicators.js';
 import { sendTelegramMessage } from './telegram.js';
+import http from 'http';
 
 // أزواج Binary.com - عادي + OTC المتاحة
 const SYMBOLS = [
@@ -145,12 +146,33 @@ setInterval(() => {
   console.log('💓 Keep-Alive ping - ' + new Date().toLocaleTimeString());
 }, 10 * 60 * 1000); // كل 10 دقائق
 
-// بدء التشغيل
-console.log('🎯 Binary.com Trading Signals - Railway');
-console.log('📡 اتصال حقيقي بـ Binary.com WebSocket');
-console.log('🔄 تحديث كل دقيقتين');
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+// إنشاء HTTP Server لـ Render (يتطلب Port)
+const PORT = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'healthy', 
+      service: 'Binary.com Trading Signals',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    }));
+  } else {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('🤖 Binary.com Trading Bot is running!\n✅ Sending signals every 2 minutes');
+  }
+});
 
+server.listen(PORT, () => {
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🎯 Binary.com Trading Signals - Render');
+  console.log('📡 اتصال حقيقي بـ Binary.com WebSocket');
+  console.log('🔄 تحديث كل دقيقتين');
+  console.log(`🌐 HTTP Server listening on port ${PORT}`);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+});
+
+// بدء Cron Job
 startCronJob().catch(error => {
   console.error('❌ خطأ فادح:', error);
   process.exit(1);
