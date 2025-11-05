@@ -127,18 +127,31 @@ async function processSignals() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
-// تشغيل كل دقيقتين
+// تشغيل كل دقيقتين بالضبط (21:02:00, 21:04:00, إلخ)
 async function startCronJob() {
-  console.log('⏰ بدء Cron Job - كل دقيقتين');
+  console.log('⏰ بدء Cron Job - كل دقيقتين بالضبط');
   
-  // تشغيل فوري
-  await processSignals();
+  // حساب الوقت حتى الدقيقة الزوجية القادمة
+  const now = new Date();
+  const currentMinute = now.getMinutes();
+  const currentSecond = now.getSeconds();
   
-  // ثم كل دقيقتين
-  setInterval(async () => {
-    console.log('\n⏰ دورة جديدة...');
+  // حساب الدقائق المتبقية حتى الدقيقة الزوجية القادمة
+  const minutesUntilNext = currentMinute % 2 === 0 ? 0 : 1;
+  const secondsUntilNext = minutesUntilNext * 60 - currentSecond;
+  
+  console.log(`⏱️ الانتظار ${secondsUntilNext} ثانية حتى الدقيقة الزوجية القادمة...`);
+  
+  // انتظر حتى الدقيقة الزوجية القادمة
+  setTimeout(async () => {
+    // تشغيل فوري عند الدقيقة الزوجية
     await processSignals();
-  }, 2 * 60 * 1000); // دقيقتين
+    
+    // ثم كل دقيقتين بالضبط
+    setInterval(async () => {
+      await processSignals();
+    }, 2 * 60 * 1000); // دقيقتين
+  }, secondsUntilNext * 1000);
 }
 
 // Keep-Alive لمنع Sleep Mode في Render

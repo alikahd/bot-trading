@@ -61,82 +61,114 @@ export function analyzeSignal(prices, symbol) {
   const reasons = [];
   
   // ═══════════════════════════════════════════════════
-  // استراتيجية 1: RSI (وزن: 35 نقطة)
+  // استراتيجية 1: RSI (وزن: 40 نقطة)
   // ═══════════════════════════════════════════════════
-  if (rsi < 30) {
-    callScore += 35;
-    reasons.push('RSI Oversold (<30)');
-  } else if (rsi < 40) {
+  if (rsi < 25) {
+    callScore += 40;
+    reasons.push('RSI Extreme Oversold');
+  } else if (rsi < 35) {
+    callScore += 30;
+    reasons.push('RSI Oversold');
+  } else if (rsi < 45) {
     callScore += 20;
-    reasons.push('RSI Low (<40)');
-  } else if (rsi > 70) {
-    putScore += 35;
-    reasons.push('RSI Overbought (>70)');
-  } else if (rsi > 60) {
+    reasons.push('RSI Low');
+  } else if (rsi > 75) {
+    putScore += 40;
+    reasons.push('RSI Extreme Overbought');
+  } else if (rsi > 65) {
+    putScore += 30;
+    reasons.push('RSI Overbought');
+  } else if (rsi > 55) {
     putScore += 20;
-    reasons.push('RSI High (>60)');
+    reasons.push('RSI High');
   }
   
   // ═══════════════════════════════════════════════════
-  // استراتيجية 2: MACD (وزن: 30 نقطة)
+  // استراتيجية 2: MACD (وزن: 35 نقطة)
   // ═══════════════════════════════════════════════════
   const macdStrength = Math.abs(macd - macdSignal);
-  if (macd > macdSignal && macdStrength > 0.0001) {
-    callScore += 30;
-    reasons.push('MACD Bullish Cross');
-  } else if (macd < macdSignal && macdStrength > 0.0001) {
-    putScore += 30;
-    reasons.push('MACD Bearish Cross');
+  if (macd > macdSignal) {
+    if (macdStrength > 0.0005) {
+      callScore += 35;
+      reasons.push('MACD Strong Bullish');
+    } else if (macdStrength > 0.0001) {
+      callScore += 25;
+      reasons.push('MACD Bullish');
+    }
+  } else if (macd < macdSignal) {
+    if (macdStrength > 0.0005) {
+      putScore += 35;
+      reasons.push('MACD Strong Bearish');
+    } else if (macdStrength > 0.0001) {
+      putScore += 25;
+      reasons.push('MACD Bearish');
+    }
   }
   
   // ═══════════════════════════════════════════════════
-  // استراتيجية 3: EMA Trend (وزن: 25 نقطة)
+  // استراتيجية 3: EMA Trend (وزن: 30 نقطة)
   // ═══════════════════════════════════════════════════
   if (trend === 'BULLISH') {
-    callScore += 25;
+    callScore += 30;
     reasons.push('Strong Uptrend');
   } else if (trend === 'BEARISH') {
-    putScore += 25;
+    putScore += 30;
     reasons.push('Strong Downtrend');
   }
   
+  // إضافة نقاط للاتجاه المتوسط
+  if (ema12 > ema26 && trend !== 'BULLISH') {
+    callScore += 15;
+    reasons.push('EMA12 > EMA26');
+  } else if (ema12 < ema26 && trend !== 'BEARISH') {
+    putScore += 15;
+    reasons.push('EMA12 < EMA26');
+  }
+  
   // ═══════════════════════════════════════════════════
-  // استراتيجية 4: Price Action (وزن: 10 نقطة)
+  // استراتيجية 4: Price Action (وزن: 15 نقطة)
   // ═══════════════════════════════════════════════════
   const recentPrices = prices.slice(-5);
   const priceChange = ((recentPrices[4] - recentPrices[0]) / recentPrices[0]) * 100;
-  if (priceChange > 0.05) {
+  if (priceChange > 0.1) {
+    callScore += 15;
+    reasons.push('Strong Price Rise');
+  } else if (priceChange > 0.03) {
     callScore += 10;
     reasons.push('Price Rising');
-  } else if (priceChange < -0.05) {
+  } else if (priceChange < -0.1) {
+    putScore += 15;
+    reasons.push('Strong Price Fall');
+  } else if (priceChange < -0.03) {
     putScore += 10;
     reasons.push('Price Falling');
   }
   
   // ═══════════════════════════════════════════════════
-  // تحديد الاتجاه والثقة (شروط صارمة)
+  // تحديد الاتجاه والثقة (شروط صارمة محسّنة)
   // ═══════════════════════════════════════════════════
   let direction = null;
   let confidence = 0;
   
-  if (callScore > putScore && callScore >= 60) {
+  // الحد الأدنى: 55 نقطة + إشارتين
+  if (callScore > putScore && callScore >= 55) {
     direction = 'CALL';
     confidence = Math.min(callScore, 95);
-  } else if (putScore > callScore && putScore >= 60) {
+  } else if (putScore > callScore && putScore >= 55) {
     direction = 'PUT';
     confidence = Math.min(putScore, 95);
   }
   
-  // يجب أن يكون هناك اتجاه واضح + ثقة عالية
-  if (direction && confidence >= 60 && reasons.length >= 2) {
+  // يجب أن يكون هناك اتجاه واضح + إشارتين على الأقل
+  if (direction && confidence >= 55 && reasons.length >= 2) {
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     
-    // تحديد أفضل إطار زمني بناءً على قوة الإشارة
+    // تحديد أفضل إطار زمني بناءً على قوة الإشارة (معدل)
     let timeframe = '5min';
-    if (confidence >= 85) timeframe = '1min';
-    else if (confidence >= 75) timeframe = '2min';
-    else if (confidence >= 65) timeframe = '3min';
+    if (confidence >= 80) timeframe = '1min';
+    else if (confidence >= 70) timeframe = '2min';
+    else if (confidence >= 60) timeframe = '3min';
     
     return {
       symbol: cleanSymbol + (isOTC ? ' (OTC)' : ''),
