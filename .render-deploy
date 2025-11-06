@@ -1,1 +1,4 @@
-2025-11-06 01:47:00 - Force redeploy to apply bot control fixes
+2025-11-06 02:00:00 - Force redeploy to apply supabase-client.js fixes
+- Fixed bot stats update without supabase.raw()
+- Fixed RPC function for bot status check
+- Ready to send signals every 2 minutes
