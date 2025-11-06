@@ -43,6 +43,79 @@ export function calculateMACD(prices) {
   return { macd, signal, histogram: macd - signal };
 }
 
+// حساب Bollinger Bands
+export function calculateBollingerBands(prices, period = 20, stdDev = 2) {
+  if (prices.length < period) {
+    const price = prices[prices.length - 1];
+    return { upper: price * 1.02, middle: price, lower: price * 0.98 };
+  }
+  
+  const slice = prices.slice(-period);
+  const middle = slice.reduce((a, b) => a + b) / period;
+  const variance = slice.reduce((sum, price) => sum + Math.pow(price - middle, 2), 0) / period;
+  const std = Math.sqrt(variance);
+  
+  return {
+    upper: middle + (std * stdDev),
+    middle: middle,
+    lower: middle - (std * stdDev)
+  };
+}
+
+// حساب Stochastic Oscillator
+export function calculateStochastic(prices, period = 14) {
+  if (prices.length < period) return { k: 50, d: 50 };
+  
+  const slice = prices.slice(-period);
+  const high = Math.max(...slice);
+  const low = Math.min(...slice);
+  const current = prices[prices.length - 1];
+  
+  const k = ((current - low) / (high - low)) * 100;
+  const d = k; // تبسيط
+  
+  return { k, d };
+}
+
+// حساب Williams %R
+export function calculateWilliamsR(prices, period = 14) {
+  if (prices.length < period) return -50;
+  
+  const slice = prices.slice(-period);
+  const high = Math.max(...slice);
+  const low = Math.min(...slice);
+  const current = prices[prices.length - 1];
+  
+  return ((high - current) / (high - low)) * -100;
+}
+
+// حساب Momentum
+export function calculateMomentum(prices, period = 10) {
+  if (prices.length < period + 1) return 0;
+  
+  const current = prices[prices.length - 1];
+  const past = prices[prices.length - period - 1];
+  
+  return ((current - past) / past) * 100;
+}
+
+// حساب Volume Trend (محاكاة بناءً على تغيرات السعر)
+export function calculateVolumeTrend(prices) {
+  if (prices.length < 10) return 'stable';
+  
+  const recentChanges = [];
+  for (let i = prices.length - 9; i < prices.length; i++) {
+    recentChanges.push(Math.abs(prices[i] - prices[i - 1]));
+  }
+  
+  const avgChange = recentChanges.reduce((a, b) => a + b) / recentChanges.length;
+  const lastChange = Math.abs(prices[prices.length - 1] - prices[prices.length - 2]);
+  
+  if (lastChange > avgChange * 1.5) return 'increasing';
+  if (lastChange < avgChange * 0.5) return 'decreasing';
+  return 'stable';
+}
+
 // استراتيجية صارمة: تحليل متعدد الأطر الزمنية
 export function analyzeSignal(prices, symbol) {
   const rsi = calculateRSI(prices);
@@ -51,6 +124,11 @@ export function analyzeSignal(prices, symbol) {
   const ema26 = calculateEMA(prices, 26);
   const ema50 = calculateEMA(prices, 50);
   const currentPrice = prices[prices.length - 1];
+  const bollinger = calculateBollingerBands(prices);
+  const stochastic = calculateStochastic(prices);
+  const williamsR = calculateWilliamsR(prices);
+  const momentum = calculateMomentum(prices);
+  const volumeTrend = calculateVolumeTrend(prices);
   
   // حساب الاتجاه العام
   const trend = ema12 > ema26 && ema26 > ema50 ? 'BULLISH' : 
@@ -145,22 +223,141 @@ export function analyzeSignal(prices, symbol) {
   }
   
   // ═══════════════════════════════════════════════════
-  // تحديد الاتجاه والثقة (معايير متوازنة)
+  // استراتيجية 5: Bollinger Bands (وزن: 25 نقطة)
+  // ═══════════════════════════════════════════════════
+  const bbWidth = ((bollinger.upper - bollinger.lower) / bollinger.middle) * 100;
+  const pricePosition = ((currentPrice - bollinger.lower) / (bollinger.upper - bollinger.lower)) * 100;
+  
+  if (currentPrice <= bollinger.lower * 1.005) {
+    callScore += 25;
+    reasons.push('BB Lower Band Touch');
+  } else if (pricePosition < 20) {
+    callScore += 15;
+    reasons.push('BB Near Lower');
+  }
+  
+  if (currentPrice >= bollinger.upper * 0.995) {
+    putScore += 25;
+    reasons.push('BB Upper Band Touch');
+  } else if (pricePosition > 80) {
+    putScore += 15;
+    reasons.push('BB Near Upper');
+  }
+  
+  // ضغط البولينجر (Squeeze)
+  if (bbWidth < 1.5) {
+    if (trend === 'BULLISH') {
+      callScore += 10;
+      reasons.push('BB Squeeze + Uptrend');
+    } else if (trend === 'BEARISH') {
+      putScore += 10;
+      reasons.push('BB Squeeze + Downtrend');
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════
+  // استراتيجية 6: Stochastic Oscillator (وزن: 20 نقطة)
+  // ═══════════════════════════════════════════════════
+  if (stochastic.k < 20) {
+    callScore += 20;
+    reasons.push('Stochastic Oversold');
+  } else if (stochastic.k < 30) {
+    callScore += 15;
+    reasons.push('Stochastic Low');
+  }
+  
+  if (stochastic.k > 80) {
+    putScore += 20;
+    reasons.push('Stochastic Overbought');
+  } else if (stochastic.k > 70) {
+    putScore += 15;
+    reasons.push('Stochastic High');
+  }
+  
+  // ═══════════════════════════════════════════════════
+  // استراتيجية 7: Williams %R (وزن: 20 نقطة)
+  // ═══════════════════════════════════════════════════
+  if (williamsR < -80) {
+    callScore += 20;
+    reasons.push('Williams %R Oversold');
+  } else if (williamsR < -70) {
+    callScore += 15;
+    reasons.push('Williams %R Low');
+  }
+  
+  if (williamsR > -20) {
+    putScore += 20;
+    reasons.push('Williams %R Overbought');
+  } else if (williamsR > -30) {
+    putScore += 15;
+    reasons.push('Williams %R High');
+  }
+  
+  // ═══════════════════════════════════════════════════
+  // استراتيجية 8: Momentum (وزن: 20 نقطة)
+  // ═══════════════════════════════════════════════════
+  if (momentum > 0.5) {
+    callScore += 20;
+    reasons.push('Strong Bullish Momentum');
+  } else if (momentum > 0.2) {
+    callScore += 15;
+    reasons.push('Bullish Momentum');
+  }
+  
+  if (momentum < -0.5) {
+    putScore += 20;
+    reasons.push('Strong Bearish Momentum');
+  } else if (momentum < -0.2) {
+    putScore += 15;
+    reasons.push('Bearish Momentum');
+  }
+  
+  // ═══════════════════════════════════════════════════
+  // استراتيجية 9: Volume Trend (وزن: 15 نقطة)
+  // ═══════════════════════════════════════════════════
+  if (volumeTrend === 'increasing') {
+    if (trend === 'BULLISH') {
+      callScore += 15;
+      reasons.push('Volume Confirms Uptrend');
+    } else if (trend === 'BEARISH') {
+      putScore += 15;
+      reasons.push('Volume Confirms Downtrend');
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════
+  // استراتيجية 10: Reversal Detection (وزن: 20 نقطة)
+  // ═══════════════════════════════════════════════════
+  // انعكاس صعودي: RSI منخفض + MACD صاعد + السعر عند BB السفلي
+  if (rsi < 40 && macd > macdSignal && currentPrice < bollinger.middle) {
+    callScore += 20;
+    reasons.push('Bullish Reversal Pattern');
+  }
+  
+  // انعكاس هبوطي: RSI مرتفع + MACD هابط + السعر عند BB العلوي
+  if (rsi > 60 && macd < macdSignal && currentPrice > bollinger.middle) {
+    putScore += 20;
+    reasons.push('Bearish Reversal Pattern');
+  }
+  
+  // ═══════════════════════════════════════════════════
+  // تحديد الاتجاه والثقة (معايير متوازنة - 10 استراتيجيات)
   // ═══════════════════════════════════════════════════
   let direction = null;
   let confidence = 0;
   
-  // الحد الأدنى: 50 نقطة (معايير متوازنة لإرسال توصيات أكثر)
-  if (callScore > putScore && callScore >= 50) {
+  // الحد الأدنى: 55 نقطة (معايير متوازنة مع 10 استراتيجيات)
+  // الحد الأقصى النظري: 40+35+30+15+25+20+20+20+15+20 = 240 نقطة
+  if (callScore > putScore && callScore >= 55) {
     direction = 'CALL';
-    confidence = Math.min(callScore, 95);
-  } else if (putScore > callScore && putScore >= 50) {
+    confidence = Math.min(callScore, 100);
+  } else if (putScore > callScore && putScore >= 55) {
     direction = 'PUT';
-    confidence = Math.min(putScore, 95);
+    confidence = Math.min(putScore, 100);
   }
   
-  // يجب أن يكون هناك اتجاه واضح + إشارة واحدة على الأقل + ثقة 50%+
-  if (direction && confidence >= 50 && reasons.length >= 2) {
+  // يجب أن يكون هناك اتجاه واضح + 3 أسباب على الأقل + ثقة 55%+
+  if (direction && confidence >= 55 && reasons.length >= 3) {
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     

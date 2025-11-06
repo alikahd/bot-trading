@@ -44,6 +44,9 @@ export const AssetsList: React.FC<AssetsListProps> = ({ assets: propAssets, isAc
         changePercent: quote.changePercent,
       }));
       
+      console.log(`📊 AssetsList: تم تحميل ${loadedAssets.length} زوج`);
+      console.log('📋 الأزواج:', loadedAssets.map(a => a.symbol).join(', '));
+      
       setAssets(loadedAssets);
     });
 

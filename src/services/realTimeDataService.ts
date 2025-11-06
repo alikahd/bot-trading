@@ -24,10 +24,10 @@ class RealTimeDataService {
   private quotes: { [symbol: string]: RealTimeQuote } = {};
   private updateInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
-  private lastUpdate: Date | null = null;
   private binaryWS: WebSocket | null = null;
-  private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private reconnectAttempts = 0;
+  private lastUpdate: Date | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
   private subscribedSymbols = new Set<string>(); // تتبع الرموز المشترك فيها
   private receivedSymbols = new Set<string>(); // تتبع الرموز المستلمة
@@ -178,11 +178,11 @@ class RealTimeDataService {
     
     // جميع الرموز المتاحة في Binary.com - بيانات حقيقية 24/7
     const symbols = [
-      // العملات الرئيسية (Major Pairs) - أزواج الفوركس فقط
+      // العملات الرئيسية (Major Pairs)
       'frxEURUSD', 'frxGBPUSD', 'frxUSDJPY', 'frxAUDUSD', 
       'frxUSDCAD', 'frxUSDCHF', 'frxNZDUSD',
       
-      // العملات المتقاطعة (Cross Pairs) - أزواج الفوركس فقط
+      // العملات المتقاطعة (Cross Pairs)
       'frxEURGBP', 'frxEURJPY', 'frxEURCHF', 'frxEURAUD', 
       'frxEURCAD', 'frxEURNZD', 'frxGBPJPY', 'frxGBPCHF', 
       'frxGBPAUD', 'frxGBPCAD', 'frxGBPNZD', 'frxAUDJPY', 
@@ -328,32 +328,32 @@ class RealTimeDataService {
     const isMarketClosed = this.isForexMarketClosed();
     
     const symbolMap: { [key: string]: string } = {
-      // العملات الرئيسية (Major Pairs) - عادي أو OTC حسب وقت السوق
-      'frxEURUSD': isMarketClosed ? 'EURUSD_OTC' : 'EURUSD',
-      'frxGBPUSD': isMarketClosed ? 'GBPUSD_OTC' : 'GBPUSD',
-      'frxUSDJPY': isMarketClosed ? 'USDJPY_OTC' : 'USDJPY',
-      'frxAUDUSD': isMarketClosed ? 'AUDUSD_OTC' : 'AUDUSD',
-      'frxUSDCAD': isMarketClosed ? 'USDCAD_OTC' : 'USDCAD',
-      'frxUSDCHF': isMarketClosed ? 'USDCHF_OTC' : 'USDCHF',
-      'frxNZDUSD': isMarketClosed ? 'NZDUSD_OTC' : 'NZDUSD',
+      // العملات الرئيسية (Major Pairs) - يتحول تلقائياً لـ OTC عند إغلاق السوق
+      'frxEURUSD': isMarketClosed ? 'EURUSD_otc' : 'EURUSD',
+      'frxGBPUSD': isMarketClosed ? 'GBPUSD_otc' : 'GBPUSD',
+      'frxUSDJPY': isMarketClosed ? 'USDJPY_otc' : 'USDJPY',
+      'frxAUDUSD': isMarketClosed ? 'AUDUSD_otc' : 'AUDUSD',
+      'frxUSDCAD': isMarketClosed ? 'USDCAD_otc' : 'USDCAD',
+      'frxUSDCHF': isMarketClosed ? 'USDCHF_otc' : 'USDCHF',
+      'frxNZDUSD': isMarketClosed ? 'NZDUSD_otc' : 'NZDUSD',
       
-      // العملات المتقاطعة (Cross Pairs) - عادي أو OTC حسب وقت السوق
-      'frxEURGBP': isMarketClosed ? 'EURGBP_OTC' : 'EURGBP',
-      'frxEURJPY': isMarketClosed ? 'EURJPY_OTC' : 'EURJPY',
-      'frxEURCHF': isMarketClosed ? 'EURCHF_OTC' : 'EURCHF',
-      'frxEURAUD': isMarketClosed ? 'EURAUD_OTC' : 'EURAUD',
-      'frxEURCAD': isMarketClosed ? 'EURCAD_OTC' : 'EURCAD',
-      'frxEURNZD': isMarketClosed ? 'EURNZD_OTC' : 'EURNZD',
-      'frxGBPJPY': isMarketClosed ? 'GBPJPY_OTC' : 'GBPJPY',
-      'frxGBPCHF': isMarketClosed ? 'GBPCHF_OTC' : 'GBPCHF',
-      'frxGBPAUD': isMarketClosed ? 'GBPAUD_OTC' : 'GBPAUD',
-      'frxGBPCAD': isMarketClosed ? 'GBPCAD_OTC' : 'GBPCAD',
-      'frxGBPNZD': isMarketClosed ? 'GBPNZD_OTC' : 'GBPNZD',
-      'frxAUDJPY': isMarketClosed ? 'AUDJPY_OTC' : 'AUDJPY',
-      'frxAUDCHF': isMarketClosed ? 'AUDCHF_OTC' : 'AUDCHF',
-      'frxAUDCAD': isMarketClosed ? 'AUDCAD_OTC' : 'AUDCAD',
-      'frxAUDNZD': isMarketClosed ? 'AUDNZD_OTC' : 'AUDNZD',
-      'frxNZDJPY': isMarketClosed ? 'NZDJPY_OTC' : 'NZDJPY',
+      // العملات المتقاطعة (Cross Pairs) - يتحول تلقائياً لـ OTC عند إغلاق السوق
+      'frxEURGBP': isMarketClosed ? 'EURGBP_otc' : 'EURGBP',
+      'frxEURJPY': isMarketClosed ? 'EURJPY_otc' : 'EURJPY',
+      'frxEURCHF': isMarketClosed ? 'EURCHF_otc' : 'EURCHF',
+      'frxEURAUD': isMarketClosed ? 'EURAUD_otc' : 'EURAUD',
+      'frxEURCAD': isMarketClosed ? 'EURCAD_otc' : 'EURCAD',
+      'frxEURNZD': isMarketClosed ? 'EURNZD_otc' : 'EURNZD',
+      'frxGBPJPY': isMarketClosed ? 'GBPJPY_otc' : 'GBPJPY',
+      'frxGBPCHF': isMarketClosed ? 'GBPCHF_otc' : 'GBPCHF',
+      'frxGBPAUD': isMarketClosed ? 'GBPAUD_otc' : 'GBPAUD',
+      'frxGBPCAD': isMarketClosed ? 'GBPCAD_otc' : 'GBPCAD',
+      'frxGBPNZD': isMarketClosed ? 'GBPNZD_otc' : 'GBPNZD',
+      'frxAUDJPY': isMarketClosed ? 'AUDJPY_otc' : 'AUDJPY',
+      'frxAUDCHF': isMarketClosed ? 'AUDCHF_otc' : 'AUDCHF',
+      'frxAUDCAD': isMarketClosed ? 'AUDCAD_otc' : 'AUDCAD',
+      'frxAUDNZD': isMarketClosed ? 'AUDNZD_otc' : 'AUDNZD',
+      'frxNZDJPY': isMarketClosed ? 'NZDJPY_otc' : 'NZDJPY',
       'frxNZDCHF': 'NZDCHF',
       'frxNZDCAD': 'NZDCAD',
       'frxCADJPY': 'CADJPY',
