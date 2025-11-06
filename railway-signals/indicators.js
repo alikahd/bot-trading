@@ -150,17 +150,17 @@ export function analyzeSignal(prices, symbol) {
   let direction = null;
   let confidence = 0;
   
-  // الحد الأدنى: 55 نقطة (معايير متوازنة لإرسال توصيات أكثر)
-  if (callScore > putScore && callScore >= 55) {
+  // الحد الأدنى: 50 نقطة (معايير متوازنة لإرسال توصيات أكثر)
+  if (callScore > putScore && callScore >= 50) {
     direction = 'CALL';
     confidence = Math.min(callScore, 95);
-  } else if (putScore > callScore && putScore >= 55) {
+  } else if (putScore > callScore && putScore >= 50) {
     direction = 'PUT';
     confidence = Math.min(putScore, 95);
   }
   
-  // يجب أن يكون هناك اتجاه واضح + إشارة واحدة على الأقل + ثقة 55%+
-  if (direction && confidence >= 55 && reasons.length >= 2) {
+  // يجب أن يكون هناك اتجاه واضح + إشارة واحدة على الأقل + ثقة 50%+
+  if (direction && confidence >= 50 && reasons.length >= 2) {
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     

@@ -19,7 +19,6 @@ import {
 import { advancedAnalysisEngine } from '../../services/advancedAnalysis';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { notificationSound } from '../../services/notificationSound';
-import { telegramService } from '../../services/telegramService';
 
 // تعريف النوع محلياً
 interface BinaryOptionRecommendation {
@@ -90,38 +89,12 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
   useEffect(() => {
     if (!isActive || isPaused || allRecommendations.length === 0) return;
     
-    const sendInterval = setInterval(async () => {
+    const sendInterval = setInterval(() => {
       if (!isPaused && allRecommendations.length > 0) {
-        try {
-          // اختيار التوصية الحالية
-          const rec = allRecommendations[currentRecommendationIndex];
-          
-          console.log(`📤 إرسال توصية ${currentRecommendationIndex + 1}/${allRecommendations.length} إلى Telegram...`);
-          
-          await telegramService.sendBinaryRecommendation({
-            symbol: rec.symbol,
-            symbolName: rec.symbolName,
-            direction: rec.direction,
-            confidence: rec.confidence,
-            timeframe: rec.timeframe,
-            expiryMinutes: rec.expiryMinutes,
-            entryTime: rec.entryTime,
-            expiryTime: rec.expiryTime,
-            currentPrice: rec.currentPrice,
-            successProbability: rec.successProbability,
-            riskLevel: rec.riskLevel,
-            reasoning: rec.reasoning
-          });
-          
-          console.log(`✅ تم إرسال التوصية ${currentRecommendationIndex + 1} بنجاح`);
-          
-          // الانتقال للتوصية التالية (دائري)
-          setCurrentRecommendationIndex((prevIndex) => 
-            (prevIndex + 1) % allRecommendations.length
-          );
-        } catch (telegramError) {
-          console.error('❌ خطأ في إرسال التوصية إلى Telegram:', telegramError);
-        }
+        // الانتقال للتوصية التالية (دائري)
+        setCurrentRecommendationIndex((prevIndex) => 
+          (prevIndex + 1) % allRecommendations.length
+        );
       }
     }, 5000); // 5 ثواني
 

@@ -88,7 +88,7 @@ interface TradingSignal {
  *    - بيانات مُولّدة أو محاكاة
  */
 export class AdvancedAnalysisEngine {
-  private readonly MIN_CONFIDENCE = 40; // حد صارم لضمان توصيات عالية الجودة
+  private readonly MIN_CONFIDENCE = 55; // حد متوازن لضمان توصيات جيدة
   private priceCache: Map<string, {price: number, timestamp: number}> = new Map();
   private readonly CACHE_DURATION = 100; // 100ms فقط - فوري جداً!
   private dataQualityScore: number = 0; // نقاط جودة البيانات
@@ -422,9 +422,9 @@ export class AdvancedAnalysisEngine {
     const dataQuality = this.assessDataQuality(candles, indicators);
     
     // ❌ لا استراتيجيات احتياطية - فقط تحليل حقيقي ودقيق
-    // فحص الثقة - معايير متوازنة للجودة
-    if (bestStrategy.totalScore < 35) {
-      console.log(`❌ ${symbol}: رفض - ثقة ${bestStrategy.totalScore}% < 35% (الحد الأدنى)`);
+    // فحص الثقة - معايير متوازنة
+    if (bestStrategy.totalScore < this.MIN_CONFIDENCE) {
+      console.log(`❌ ${symbol}: رفض - ثقة ${bestStrategy.totalScore}% < ${this.MIN_CONFIDENCE}% (الحد الأدنى)`);
       return null;
     }
     
@@ -439,8 +439,7 @@ export class AdvancedAnalysisEngine {
     
     // إضافة معلومات جودة البيانات للاستراتيجيات الناجحة
     bestStrategy.reasons.push(`جودة البيانات: ${dataQuality}%`);
-    // تعديل الثقة بناءً على جودة البيانات
-    bestStrategy.totalScore = Math.round(bestStrategy.totalScore * (dataQuality / 100));
+    // لا نعدل الثقة - نحافظ على القيمة الأصلية
 
     // تحديد الإطار الزمني الأمثل بناءً على التحليل
     const optimalTimeframe = this.determineOptimalTimeframe(indicators, marketAnalysis);
@@ -463,9 +462,9 @@ export class AdvancedAnalysisEngine {
       return null;
     }
 
-    // 🚫 رفض التوصيات ذات ثقة أقل من 45%
-    if (bestStrategy.totalScore < 45) {
-      console.log(`❌ ${symbol}: رفض - ثقة ${bestStrategy.totalScore}% < 45%`);
+    // 🚫 رفض التوصيات ذات ثقة أقل من MIN_CONFIDENCE
+    if (bestStrategy.totalScore < this.MIN_CONFIDENCE) {
+      console.log(`❌ ${symbol}: رفض - ثقة ${bestStrategy.totalScore}% < ${this.MIN_CONFIDENCE}%`);
       return null;
     }
 
@@ -570,7 +569,7 @@ export class AdvancedAnalysisEngine {
       score -= 5;
     }
 
-    return direction && score >= 35 ? { direction, totalScore: score, reasons } : null;
+    return direction && score >= 40 ? { direction, totalScore: score, reasons } : null;
   }
 
   /**
@@ -617,7 +616,7 @@ export class AdvancedAnalysisEngine {
       reasons.push('ارتفاع الحجم يؤكد الحركة');
     }
 
-    return direction && score >= 35 ? { direction, totalScore: score, reasons } : null;
+    return direction && score >= 40 ? { direction, totalScore: score, reasons } : null;
   }
 
   /**
@@ -914,7 +913,7 @@ export class AdvancedAnalysisEngine {
    * 📊 حساب معدل النجاح المتوقع
    */
   private calculateExpectedSuccessRate(strategy: any, indicators: TechnicalIndicators, market: MarketAnalysis): number {
-    let baseRate = Math.min(95, 65 + (strategy.totalScore - this.MIN_CONFIDENCE) * 0.8);
+    let baseRate = Math.min(95, 65 + (strategy.totalScore - 40) * 0.8);
 
     // تعديلات بناءً على ظروف السوق
     if (market.strength > 50) baseRate += 5;
@@ -1089,15 +1088,15 @@ export class AdvancedAnalysisEngine {
    * 🎯 تحليل جميع الأزواج مع التركيز على الأطر القصيرة - Binary.com
    * 
    * ⚙️ معايير متوازنة للدقة والكمية:
-   * - معدل نجاح: 50%+
-   * - ثقة: 45%+
-   * - جودة بيانات: 60%+
+   * - معدل نجاح: 45%+
+   * - ثقة: 40%+
+   * - جودة بيانات: 55%+
    * - ريسك: منخفض أو متوسط فقط
    * - أزواج العملات فقط (Forex)
    */
   async analyzeAllSymbols(): Promise<TradingSignal[]> {
     console.log('🎯 نظام التوصيات الدقيقة - معايير متوازنة');
-    console.log('📊 معدل نجاح: 50%+ | ثقة: 45%+ | جودة: 60%+');
+    console.log('📊 معدل نجاح: 50%+ | ثقة: 55%+ | جودة: 60%+');
     console.log('💱 أزواج العملات فقط (28 زوج)');
     
     // أزواج العملات فقط (Forex Pairs Only) - بيانات حقيقية 24/7
@@ -1178,7 +1177,7 @@ export class AdvancedAnalysisEngine {
       console.warn('💡 السبب: جميع الأزواج لم تستوفِ المعايير المتوازنة');
       console.warn(`\n📊 المعايير المطلوبة:`);
       console.warn(`   ✓ معدل نجاح: 50%+`);
-      console.warn(`   ✓ ثقة: 45%+`);
+      console.warn(`   ✓ ثقة: 55%+`);
       console.warn(`   ✓ جودة بيانات: 60%+`);
       console.warn(`   ✓ ريسك: منخفض أو متوسط فقط`);
       console.warn(`\n📊 الإحصائيات:`);
@@ -1190,7 +1189,7 @@ export class AdvancedAnalysisEngine {
       validSignals.forEach((s, i) => {
         console.log(`   ${i+1}. ${s.symbol}: ${s.direction} | ثقة: ${s.confidence}% | نجاح: ${s.expected_success_rate}% | ${s.timeframe}م | ريسك: ${s.risk_level}`);
       });
-      console.log(`\n🎯 جميع التوصيات تستوفي المعايير (50%+ نجاح، 45%+ ثقة، 60%+ جودة)`);
+      console.log(`\n🎯 جميع التوصيات تستوفي المعايير (50%+ نجاح، 55%+ ثقة، 60%+ جودة)`);
     }
     
     return validSignals;
