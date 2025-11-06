@@ -159,7 +159,15 @@ export const TelegramBotControl: React.FC = () => {
           <span className="text-gray-600 dark:text-gray-400">آخر توصية</span>
           <p className="text-sm font-medium mt-2 text-gray-700 dark:text-gray-300">
             {botStatus.last_signal_sent
-              ? new Date(botStatus.last_signal_sent).toLocaleString('ar-SA')
+              ? new Date(botStatus.last_signal_sent).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+                })
               : 'لا توجد'}
           </p>
         </div>

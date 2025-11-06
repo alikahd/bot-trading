@@ -41,16 +41,24 @@ CREATE POLICY "Allow read referral settings for all authenticated users"
   TO authenticated
   USING (true);
 
--- السماح للأدمن فقط بالتعديل
+-- السماح للأدمن فقط بالتعديل (باستخدام role)
 CREATE POLICY "Allow admin to update referral settings"
   ON referral_settings
   FOR ALL
   TO authenticated
   USING (
-    auth.jwt() ->> 'email' = 'hichamkhad00@gmail.com'
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE users.auth_id = auth.uid() 
+        AND users.role = 'admin'
+    )
   )
   WITH CHECK (
-    auth.jwt() ->> 'email' = 'hichamkhad00@gmail.com'
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE users.auth_id = auth.uid() 
+        AND users.role = 'admin'
+    )
   );
 
 -- إضافة comments للتوضيح

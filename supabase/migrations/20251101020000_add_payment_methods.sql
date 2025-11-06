@@ -97,8 +97,8 @@ CREATE POLICY "Admin can view all payment methods"
   USING (
     EXISTS (
       SELECT 1 FROM users 
-      WHERE users.id = auth.uid() 
-        AND (users.role = 'admin' OR users.email = 'hichamkhad00@gmail.com')
+      WHERE users.auth_id = auth.uid() 
+        AND users.role = 'admin'
     )
   );
 

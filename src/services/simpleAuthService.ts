@@ -438,7 +438,7 @@ class SimpleAuthService {
         console.log('✅ تم تحميل بيانات المستخدم:', data.email, '- الحالة:', data.status);
         
         // التأكد من أن المستخدم Admin يمكنه الوصول
-        if (data.email === 'hichamkhad00@gmail.com') {
+        if (data.role === 'admin') {
           // Admin recognized
         }
         
@@ -454,7 +454,7 @@ class SimpleAuthService {
         });
         
         // Admin دائماً يدخل
-        const isAdmin = data.email === 'hichamkhad00@gmail.com';
+        const isAdmin = data.role === 'admin';
         
         // 1. إذا كان البريد غير مفعل
         if (!data.email_verified && !isAdmin) {

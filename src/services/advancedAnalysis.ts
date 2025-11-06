@@ -448,8 +448,34 @@ export class AdvancedAnalysisEngine {
     // تحديد مستوى المخاطر المحسن
     const riskLevel = this.calculateAdvancedRiskLevel(indicators, marketAnalysis);
 
+    // 🚫 رفض التوصيات ذات الريسك العالي
+    if (riskLevel === 'HIGH') {
+      console.log(`❌ ${symbol}: رفض - ريسك عالي`);
+      return null;
+    }
+
     // حساب معدل النجاح المتوقع
     const expectedSuccessRate = this.calculateExpectedSuccessRate(bestStrategy, indicators, marketAnalysis);
+
+    // 🚫 رفض التوصيات ذات معدل نجاح أقل من 50%
+    if (expectedSuccessRate < 50) {
+      console.log(`❌ ${symbol}: رفض - معدل نجاح ${expectedSuccessRate}% < 50%`);
+      return null;
+    }
+
+    // 🚫 رفض التوصيات ذات ثقة أقل من 45%
+    if (bestStrategy.totalScore < 45) {
+      console.log(`❌ ${symbol}: رفض - ثقة ${bestStrategy.totalScore}% < 45%`);
+      return null;
+    }
+
+    // 🚫 رفض إذا كانت جودة البيانات منخفضة جداً
+    if (dataQuality < 60) {
+      console.log(`❌ ${symbol}: رفض - جودة ${dataQuality}% < 60%`);
+      return null;
+    }
+    
+    console.log(`✅ ${symbol}: مقبول نهائياً - ثقة ${bestStrategy.totalScore}%, نجاح ${expectedSuccessRate}%, جودة ${dataQuality}%`);
 
     return {
       symbol,
@@ -499,81 +525,99 @@ export class AdvancedAnalysisEngine {
   }
 
   /**
-   * 📊 استراتيجية RSI المتقدمة
+   * 📊 استراتيجية RSI المتقدمة - دقة عالية جداً
    */
   private rsiAdvancedStrategy(indicators: TechnicalIndicators, market: MarketAnalysis) {
     const reasons: string[] = [];
     let score = 0;
     let direction: 'CALL' | 'PUT' | null = null;
 
-    // RSI العادي - معايير مرنة لضمان ظهور التوصيات
-    if (indicators.rsi < 45) {
+    // RSI العادي - معايير متوازنة للدقة والكمية
+    if (indicators.rsi < 40) {
       direction = 'CALL';
-      score += indicators.rsi < 25 ? 35 : indicators.rsi < 30 ? 30 : indicators.rsi < 35 ? 25 : 20;
-      reasons.push(indicators.rsi < 25 ? 'RSI في منطقة تشبع بيعي قوية جداً' : 
+      score += indicators.rsi < 20 ? 40 : indicators.rsi < 25 ? 35 : indicators.rsi < 30 ? 30 : indicators.rsi < 35 ? 25 : 20;
+      reasons.push(indicators.rsi < 20 ? 'RSI في منطقة تشبع بيعي حاد جداً' : 
+                   indicators.rsi < 25 ? 'RSI في منطقة تشبع بيعي قوية جداً' : 
                    indicators.rsi < 30 ? 'RSI في منطقة تشبع بيعي قوية' : 
                    indicators.rsi < 35 ? 'RSI في منطقة تشبع بيعي' : 'RSI أقل من المتوسط');
-    } else if (indicators.rsi > 55) {
+    } else if (indicators.rsi > 60) {
       direction = 'PUT';
-      score += indicators.rsi > 75 ? 35 : indicators.rsi > 70 ? 30 : indicators.rsi > 65 ? 25 : 20;
-      reasons.push(indicators.rsi > 75 ? 'RSI في منطقة تشبع شرائي قوية جداً' : 
+      score += indicators.rsi > 80 ? 40 : indicators.rsi > 75 ? 35 : indicators.rsi > 70 ? 30 : indicators.rsi > 65 ? 25 : 20;
+      reasons.push(indicators.rsi > 80 ? 'RSI في منطقة تشبع شرائي حاد جداً' : 
+                   indicators.rsi > 75 ? 'RSI في منطقة تشبع شرائي قوية جداً' : 
                    indicators.rsi > 70 ? 'RSI في منطقة تشبع شرائي قوية' : 
                    indicators.rsi > 65 ? 'RSI في منطقة تشبع شرائي' : 'RSI أعلى من المتوسط');
     }
 
-    // RSI السريع للتأكيد
+    // RSI السريع للتأكيد - معايير متوازنة
     if (direction === 'CALL' && indicators.rsi_fast < 30) {
-      score += 15;
+      score += 20;
       reasons.push('RSI السريع يؤكد التشبع البيعي');
     } else if (direction === 'PUT' && indicators.rsi_fast > 70) {
-      score += 15;
+      score += 20;
       reasons.push('RSI السريع يؤكد التشبع الشرائي');
     }
 
     // تأكيد من الاتجاه الدقيق
     if (direction === 'CALL' && market.micro_trend === 'bullish') {
-      score += 10;
+      score += 15;
       reasons.push('الاتجاه الدقيق يدعم الصعود');
     } else if (direction === 'PUT' && market.micro_trend === 'bearish') {
-      score += 10;
+      score += 15;
       reasons.push('الاتجاه الدقيق يدعم الهبوط');
+    } else if (direction) {
+      // خصم بسيط للاتجاه المعاكس
+      score -= 5;
     }
 
-    return direction ? { direction, totalScore: score, reasons } : null;
+    return direction && score >= 35 ? { direction, totalScore: score, reasons } : null;
   }
 
   /**
-   * 📈 استراتيجية تقاطع المتوسطات السريعة
+   * 📈 استراتيجية تقاطع المتوسطات السريعة - دقة عالية جداً
    */
   private emaScalpingStrategy(indicators: TechnicalIndicators, market: MarketAnalysis) {
     const reasons: string[] = [];
     let score = 0;
     let direction: 'CALL' | 'PUT' | null = null;
 
-    // تقاطع EMA5 و EMA8 - معايير مرنة
+    // تقاطع EMA5 و EMA8 - معايير متوازنة
     if (indicators.ema5 > indicators.ema8) {
       direction = 'CALL';
-      score += indicators.ema8 > indicators.ema12 ? 25 : 20;
-      reasons.push(indicators.ema8 > indicators.ema12 ? 'تقاطع صاعد قوي للمتوسطات السريعة' : 'تقاطع صاعد للمتوسطات السريعة');
+      score += indicators.ema8 > indicators.ema12 ? 30 : 25;
+      if (indicators.ema12 > indicators.ema26) {
+        score += 10;
+        reasons.push('تقاطع صاعد قوي - جميع المتوسطات متوافقة');
+      } else {
+        reasons.push('تقاطع صاعد للمتوسطات السريعة');
+      }
     } else if (indicators.ema5 < indicators.ema8) {
       direction = 'PUT';
-      score += indicators.ema8 < indicators.ema12 ? 25 : 20;
-      reasons.push(indicators.ema8 < indicators.ema12 ? 'تقاطع هابط قوي للمتوسطات السريعة' : 'تقاطع هابط للمتوسطات السريعة');
+      score += indicators.ema8 < indicators.ema12 ? 30 : 25;
+      if (indicators.ema12 < indicators.ema26) {
+        score += 10;
+        reasons.push('تقاطع هابط قوي - جميع المتوسطات متوافقة');
+      } else {
+        reasons.push('تقاطع هابط للمتوسطات السريعة');
+      }
     }
 
-    // تأكيد من قوة الزخم - معايير مرنة
-    if (direction && market.momentum_strength > 10) {
-      score += market.momentum_strength > 20 ? 20 : 15;
-      reasons.push(market.momentum_strength > 20 ? 'قوة زخم عالية تدعم الإشارة' : 'قوة زخم متوسطة تدعم الإشارة');
+    // تأكيد من قوة الزخم - معايير متوازنة
+    if (direction && market.momentum_strength > 20) {
+      score += market.momentum_strength > 35 ? 25 : 20;
+      reasons.push(market.momentum_strength > 35 ? 'قوة زخم عالية جداً تدعم الإشارة' : 'قوة زخم عالية تدعم الإشارة');
+    } else if (direction && market.momentum_strength < 10) {
+      // خصم بسيط للزخم الضعيف
+      score -= 5;
     }
 
     // تأكيد من الحجم
     if (direction && market.volume_trend === 'increasing') {
-      score += 10;
+      score += 15;
       reasons.push('ارتفاع الحجم يؤكد الحركة');
     }
 
-    return direction ? { direction, totalScore: score, reasons } : null;
+    return direction && score >= 35 ? { direction, totalScore: score, reasons } : null;
   }
 
   /**
@@ -753,27 +797,47 @@ export class AdvancedAnalysisEngine {
   }
 
   /**
-   * ⚠️ حساب مستوى المخاطر المتقدم
+   * ⚠️ حساب مستوى المخاطر المتقدم - دقيق ومتوازن
    */
-  private calculateAdvancedRiskLevel(_indicators: TechnicalIndicators, market: MarketAnalysis): 'LOW' | 'MEDIUM' | 'HIGH' {
+  private calculateAdvancedRiskLevel(indicators: TechnicalIndicators, market: MarketAnalysis): 'LOW' | 'MEDIUM' | 'HIGH' {
     let riskScore = 0;
 
-    // التقلبات
-    if (market.volatility > 1.2) riskScore += 3;
-    else if (market.volatility > 0.8) riskScore += 2;
-    else riskScore += 1;
+    // 1. التقلبات (0-3 نقاط)
+    if (market.volatility > 1.5) riskScore += 3;
+    else if (market.volatility > 1.0) riskScore += 2;
+    else if (market.volatility > 0.6) riskScore += 1;
+    // volatility <= 0.6 = 0 نقاط (منخفض جداً)
 
-    // احتمالية الانعكاس
-    if (market.reversal_probability > 60) riskScore += 2;
-    else if (market.reversal_probability > 40) riskScore += 1;
+    // 2. احتمالية الانعكاس (0-3 نقاط)
+    if (market.reversal_probability > 60) riskScore += 3;
+    else if (market.reversal_probability > 40) riskScore += 2;
+    else if (market.reversal_probability > 25) riskScore += 1;
+    // reversal <= 25% = 0 نقاط (احتمال ضعيف)
 
-    // قوة الاتجاه
-    if (market.strength < 20) riskScore += 2;
+    // 3. قوة الاتجاه (0-2 نقاط - عكسي)
+    if (market.strength < 25) riskScore += 2;
     else if (market.strength < 40) riskScore += 1;
+    // strength >= 40 = 0 نقاط (اتجاه قوي)
 
-    if (riskScore <= 3) return 'LOW';
-    if (riskScore <= 5) return 'MEDIUM';
-    return 'HIGH';
+    // 4. RSI المتطرف (0-2 نقاط)
+    if (indicators.rsi < 15 || indicators.rsi > 85) riskScore += 2;
+    else if (indicators.rsi < 20 || indicators.rsi > 80) riskScore += 1;
+    // RSI في نطاق معقول = 0 نقاط
+
+    // تصنيف متوازن (من 0 إلى 10 نقاط)
+    let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+    if (riskScore <= 3) {
+      riskLevel = 'LOW';      // 0-3: ريسك منخفض
+    } else if (riskScore <= 6) {
+      riskLevel = 'MEDIUM';   // 4-6: ريسك متوسط
+    } else {
+      riskLevel = 'HIGH';     // 7+: ريسك عالي
+    }
+    
+    // Logging للتشخيص (اختياري)
+    // console.log(`📊 حساب الريسك: نقاط=${riskScore}, تقلب=${market.volatility.toFixed(2)}, انعكاس=${market.reversal_probability}%, قوة=${market.strength}%, RSI=${indicators.rsi.toFixed(1)} → ${riskLevel}`);
+    
+    return riskLevel;
   }
 
   /**
@@ -1023,9 +1087,20 @@ export class AdvancedAnalysisEngine {
 
   /**
    * 🎯 تحليل جميع الأزواج مع التركيز على الأطر القصيرة - Binary.com
+   * 
+   * ⚙️ معايير متوازنة للدقة والكمية:
+   * - معدل نجاح: 50%+
+   * - ثقة: 45%+
+   * - جودة بيانات: 60%+
+   * - ريسك: منخفض أو متوسط فقط
+   * - أزواج العملات فقط (Forex)
    */
   async analyzeAllSymbols(): Promise<TradingSignal[]> {
-    // جميع الرموز المتاحة في Binary.com - بيانات حقيقية 24/7
+    console.log('🎯 نظام التوصيات الدقيقة - معايير متوازنة');
+    console.log('📊 معدل نجاح: 50%+ | ثقة: 45%+ | جودة: 60%+');
+    console.log('💱 أزواج العملات فقط (28 زوج)');
+    
+    // أزواج العملات فقط (Forex Pairs Only) - بيانات حقيقية 24/7
     const symbols = [
       // العملات الرئيسية (Major Pairs) - عادي + OTC
       'EURUSD', 'EURUSD_otc',
@@ -1057,32 +1132,7 @@ export class AdvancedAnalysisEngine {
       'NZDCAD', 'NZDCAD_otc',
       'CADJPY', 'CADJPY_otc',
       'CADCHF', 'CADCHF_otc',
-      'CHFJPY', 'CHFJPY_otc',
-      
-      // العملات الناشئة (Exotic Pairs)
-      'USDRUB', 'USDTRY', 'USDZAR', 'USDMXN',
-      'USDBRL', 'USDSGD', 'USDHKD', 'USDKRW',
-      'USDINR', 'USDCNH', 'USDTHB', 'USDPLN',
-      'USDSEK', 'USDNOK', 'USDDKK',
-      
-      // المؤشرات (Indices) - OTC دائماً
-      'AUS200_OTC', 'US500_OTC', 'US30_OTC', 'JPN225_OTC',
-      'HK50_OTC', 'UK100_OTC', 'EU50_OTC', 'GER40_OTC', 'FRA40_OTC',
-      
-      // السلع (Commodities)
-      'XAUUSD', 'XAGUSD', 'XPDUSD', 'XPTUSD',
-      'BRENT_OTC', 'WTI_OTC', 'NGAS_OTC',
-      
-      // العملات الرقمية (Cryptocurrencies)
-      'BTCUSD', 'ETHUSD', 'LTCUSD', 'XRPUSD',
-      'BCHUSD', 'EOSUSD', 'BNBUSD', 'ADAUSD',
-      'XLMUSD', 'TRXUSD', 'DOTUSD', 'LINKUSD',
-      'UNIUSD', 'SOLUSD', 'AVAXUSD', 'MATICUSD',
-      
-      // المؤشرات التركيبية (Synthetic Indices) - متاحة 24/7
-      'VOL10', 'VOL25', 'VOL50', 'VOL75', 'VOL100',
-      'BOOM1000', 'CRASH1000', 'BOOM500', 'CRASH500',
-      'JUMP10', 'JUMP25', 'JUMP50', 'JUMP75', 'JUMP100'
+      'CHFJPY', 'CHFJPY_otc'
     ];
 
     // الحصول على الرموز المتاحة فعلياً
@@ -1125,19 +1175,22 @@ export class AdvancedAnalysisEngine {
 
     if (validSignals.length === 0) {
       console.warn('\n⚠️ ========== لا توجد توصيات ==========');
-      console.warn('💡 السبب: جميع الرموز لم تستوفِ المعايير');
-      console.warn(`   - الحد الأدنى للثقة: ${this.MIN_CONFIDENCE}%`);
-      console.warn(`   - الحد الأدنى لجودة البيانات: 70%`);
+      console.warn('💡 السبب: جميع الأزواج لم تستوفِ المعايير المتوازنة');
+      console.warn(`\n📊 المعايير المطلوبة:`);
+      console.warn(`   ✓ معدل نجاح: 50%+`);
+      console.warn(`   ✓ ثقة: 45%+`);
+      console.warn(`   ✓ جودة بيانات: 60%+`);
+      console.warn(`   ✓ ريسك: منخفض أو متوسط فقط`);
       console.warn(`\n📊 الإحصائيات:`);
-      console.warn(`   - رموز متاحة: ${availableSymbols.length}`);
-      console.warn(`   - رموز تم تحليلها: ${symbolsToAnalyze.length}`);
+      console.warn(`   - أزواج عملات: ${symbolsToAnalyze.length}`);
       console.warn(`   - توصيات مقبولة: 0`);
-      console.warn(`\n💡 نصيحة: انتظر قليلاً وسيتم التحليل مرة أخرى`);
+      console.warn(`\n💡 نصيحة: راجع رسائل الرفض أعلاه لمعرفة السبب`);
     } else {
-      console.log(`\n✅ تم العثور على ${validSignals.length} توصية عالية الجودة`);
-      validSignals.forEach(s => {
-        console.log(`   • ${s.symbol}: ${s.direction} (${s.confidence}%) - ${s.timeframe}م`);
+      console.log(`\n✅ ========== ${validSignals.length} توصية جيدة ==========`);
+      validSignals.forEach((s, i) => {
+        console.log(`   ${i+1}. ${s.symbol}: ${s.direction} | ثقة: ${s.confidence}% | نجاح: ${s.expected_success_rate}% | ${s.timeframe}م | ريسك: ${s.risk_level}`);
       });
+      console.log(`\n🎯 جميع التوصيات تستوفي المعايير (50%+ نجاح، 45%+ ثقة، 60%+ جودة)`);
     }
     
     return validSignals;

@@ -210,9 +210,10 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
     return `${window.location.origin}/register?ref=${referralCode}`;
   };
 
-  // دالة لتنسيق التاريخ بالترجمة مع الأرقام اللاتينية
+  // دالة لتنسيق التاريخ حسب لغة التطبيق مع أرقام لاتينية دائماً
   const formatDate = (date: Date, format: 'long' | 'short' = 'long') => {
-    const locale = language === 'ar' ? 'ar-SA' : language === 'fr' ? 'fr-FR' : 'en-US';
+    // تحديد اللغة حسب لغة التطبيق
+    const locale = language === 'ar' ? 'ar-EG' : language === 'fr' ? 'fr-FR' : 'en-US';
     const options: Intl.DateTimeFormatOptions = format === 'long' 
       ? { year: 'numeric', month: 'long', day: 'numeric' }
       : { year: 'numeric', month: 'short' };
@@ -282,7 +283,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
       const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
       
       console.log('📅 جلب كشف شهري:', { 
-        month: date.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long' }),
+        month: formatDate(date, 'long'),
         startDate, 
         endDate 
       });
@@ -897,7 +898,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
                     {referral.referred_email || t('referral.pendingUser')}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                    {new Date(referral.created_at).toLocaleDateString('ar-SA')}
+                    {formatDate(new Date(referral.created_at), 'long')}
                   </p>
                 </div>
 

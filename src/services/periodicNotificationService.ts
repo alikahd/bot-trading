@@ -3,7 +3,7 @@ import { adminNotificationService } from './adminNotificationService';
 
 /**
  * خدمة الإشعارات الدورية
- * ترسل تذكيرات دورية للمستخدمين النشطين
+ * ترسل تذكيرات أسبوعية للمستخدمين النشطين
  */
 class PeriodicNotificationService {
   private intervalId: NodeJS.Timeout | null = null;
@@ -11,7 +11,7 @@ class PeriodicNotificationService {
 
   /**
    * بدء خدمة الإشعارات الدورية
-   * يتم فحص المستخدمين كل 6 ساعات
+   * يتم فحص المستخدمين كل أسبوع (7 أيام)
    */
   start() {
     if (this.isRunning) {
@@ -19,16 +19,16 @@ class PeriodicNotificationService {
       return;
     }
 
-    console.log('🚀 بدء خدمة الإشعارات الدورية');
+    console.log('🚀 بدء خدمة الإشعارات الدورية (تذكير أسبوعي)');
     this.isRunning = true;
 
     // تشغيل فوري
     this.checkAndSendReminders();
 
-    // تشغيل كل 6 ساعات
+    // تشغيل كل أسبوع (7 أيام)
     this.intervalId = setInterval(() => {
       this.checkAndSendReminders();
-    }, 6 * 60 * 60 * 1000); // 6 ساعات
+    }, 7 * 24 * 60 * 60 * 1000); // 7 أيام
   }
 
   /**

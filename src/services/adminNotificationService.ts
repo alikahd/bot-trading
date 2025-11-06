@@ -258,6 +258,37 @@ class AdminNotificationService {
     try {
       console.log('📧 إرسال إشعار ترحيبي للمستخدم:', userId);
       
+      // ✅ منع إرسال الإشعارات الترحيبية للأدمن
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (userData?.role === 'admin') {
+        console.log('⏭️ تخطي إرسال الإشعار الترحيبي للأدمن');
+        return { success: true };
+      }
+      
+      // ✅ التحقق من عدم وجود إشعار ترحيبي سابق لنفس النوع (اشتراك جديد أو تجديد)
+      const { data: existingNotification } = await supabase
+        .from('notifications')
+        .select('id, created_at')
+        .eq('recipient_id', userId)
+        .eq('type', 'success')
+        .or(isRenewal 
+          ? 'title_ar.eq.تم تجديد اشتراكك بنجاح!'
+          : 'title_ar.eq.مرحباً بك في BooTrading المميز!')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (existingNotification) {
+        console.log(`ℹ️ إشعار ترحيبي ${isRenewal ? '(تجديد)' : '(اشتراك جديد)'} موجود بالفعل - تخطي الإرسال`);
+        console.log('📅 تاريخ الإشعار السابق:', existingNotification.created_at);
+        return { success: true };
+      }
+      
       const notificationData = {
         sender_id: null, // تنبيه من النظام
         sender_type: 'system' as const,
@@ -313,6 +344,18 @@ class AdminNotificationService {
   async sendReferralReminder(userId: string, forceResend: boolean = false): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('📧 إرسال تذكير بنظام الإحالة للمستخدم:', userId);
+      
+      // ✅ منع إرسال إشعارات الإحالة للأدمن
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (userData?.role === 'admin') {
+        console.log('⏭️ تخطي إرسال إشعار الإحالة للأدمن');
+        return { success: true };
+      }
       
       // التحقق من آخر إشعار إحالة (إلا إذا كان forceResend)
       if (!forceResend) {

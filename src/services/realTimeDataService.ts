@@ -178,41 +178,17 @@ class RealTimeDataService {
     
     // جميع الرموز المتاحة في Binary.com - بيانات حقيقية 24/7
     const symbols = [
-      // العملات الرئيسية (Major Pairs)
+      // العملات الرئيسية (Major Pairs) - أزواج الفوركس فقط
       'frxEURUSD', 'frxGBPUSD', 'frxUSDJPY', 'frxAUDUSD', 
       'frxUSDCAD', 'frxUSDCHF', 'frxNZDUSD',
       
-      // العملات المتقاطعة (Cross Pairs)
+      // العملات المتقاطعة (Cross Pairs) - أزواج الفوركس فقط
       'frxEURGBP', 'frxEURJPY', 'frxEURCHF', 'frxEURAUD', 
       'frxEURCAD', 'frxEURNZD', 'frxGBPJPY', 'frxGBPCHF', 
       'frxGBPAUD', 'frxGBPCAD', 'frxGBPNZD', 'frxAUDJPY', 
       'frxAUDCHF', 'frxAUDCAD', 'frxAUDNZD', 'frxNZDJPY', 
       'frxNZDCHF', 'frxNZDCAD', 'frxCADJPY', 'frxCADCHF', 
-      'frxCHFJPY',
-      
-      // العملات الناشئة (Exotic Pairs)
-      'frxUSDRUB', 'frxUSDTRY', 'frxUSDZAR', 'frxUSDMXN',
-      'frxUSDBRL', 'frxUSDSGD', 'frxUSDHKD', 'frxUSDKRW',
-      'frxUSDINR', 'frxUSDCNH', 'frxUSDTHB', 'frxUSDPLN',
-      'frxUSDSEK', 'frxUSDNOK', 'frxUSDDKK',
-      
-      // المؤشرات (Indices) - OTC متاحة 24/7
-      'OTC_AS51', 'OTC_SPC', 'OTC_DJI', 'OTC_N225',
-      'OTC_FTSE', 'OTC_SX5E',
-      
-      // السلع (Commodities)
-      'frxXAUUSD', 'frxXAGUSD', 'frxXPDUSD', 'frxXPTUSD',
-      
-      // العملات الرقمية (Cryptocurrencies)
-      'cryBTCUSD', 'cryETHUSD', 'cryLTCUSD', 'cryXRPUSD',
-      'cryBCHUSD', 'cryEOSUSD', 'cryBNBUSD', 'cryADAUSD',
-      'cryXLMUSD', 'cryTRXUSD', 'cryDOTUSD', 'cryLINKUSD',
-      'cryUNIUSD', 'crySOLUSD', 'cryAVAXUSD', 'cryMATICUSD',
-      
-      // المؤشرات التركيبية (Synthetic Indices) - متاحة 24/7
-      'R_10', 'R_25', 'R_50', 'R_75', 'R_100',
-      'BOOM1000', 'CRASH1000', 'BOOM500', 'CRASH500',
-      'JD10', 'JD25', 'JD50', 'JD75', 'JD100'
+      'frxCHFJPY'
     ];
     
     console.log(`📡 بدء الاشتراك في ${symbols.length} رمز...`);
@@ -382,72 +358,7 @@ class RealTimeDataService {
       'frxNZDCAD': 'NZDCAD',
       'frxCADJPY': 'CADJPY',
       'frxCADCHF': 'CADCHF',
-      'frxCHFJPY': 'CHFJPY',
-      
-      // العملات الناشئة (Exotic Pairs)
-      'frxUSDRUB': 'USDRUB',
-      'frxUSDTRY': 'USDTRY',
-      'frxUSDZAR': 'USDZAR',
-      'frxUSDMXN': 'USDMXN',
-      'frxUSDBRL': 'USDBRL',
-      'frxUSDSGD': 'USDSGD',
-      'frxUSDHKD': 'USDHKD',
-      'frxUSDKRW': 'USDKRW',
-      'frxUSDINR': 'USDINR',
-      'frxUSDCNH': 'USDCNH',
-      'frxUSDTHB': 'USDTHB',
-      'frxUSDPLN': 'USDPLN',
-      'frxUSDSEK': 'USDSEK',
-      'frxUSDNOK': 'USDNOK',
-      'frxUSDDKK': 'USDDKK',
-      
-      // المؤشرات (Indices) - OTC متاحة 24/7
-      'OTC_AS51': 'AUS200_OTC',
-      'OTC_SPC': 'US500_OTC',
-      'OTC_DJI': 'US30_OTC',
-      'OTC_N225': 'JPN225_OTC',
-      'OTC_FTSE': 'UK100_OTC',
-      'OTC_SX5E': 'EU50_OTC',
-      
-      // السلع (Commodities)
-      'frxXAUUSD': 'XAUUSD',
-      'frxXAGUSD': 'XAGUSD',
-      'frxXPDUSD': 'XPDUSD',
-      'frxXPTUSD': 'XPTUSD',
-      
-      // العملات المشفرة (Cryptocurrencies)
-      'cryBTCUSD': 'BTCUSD',
-      'cryETHUSD': 'ETHUSD',
-      'cryLTCUSD': 'LTCUSD',
-      'cryXRPUSD': 'XRPUSD',
-      'cryBCHUSD': 'BCHUSD',
-      'cryEOSUSD': 'EOSUSD',
-      'cryBNBUSD': 'BNBUSD',
-      'cryADAUSD': 'ADAUSD',
-      'cryXLMUSD': 'XLMUSD',
-      'cryTRXUSD': 'TRXUSD',
-      'cryDOTUSD': 'DOTUSD',
-      'cryLINKUSD': 'LINKUSD',
-      'cryUNIUSD': 'UNIUSD',
-      'crySOLUSD': 'SOLUSD',
-      'cryAVAXUSD': 'AVAXUSD',
-      'cryMATICUSD': 'MATICUSD',
-      
-      // المؤشرات التركيبية (Synthetic Indices) - متاحة 24/7
-      'R_10': 'VOL10',
-      'R_25': 'VOL25',
-      'R_50': 'VOL50',
-      'R_75': 'VOL75',
-      'R_100': 'VOL100',
-      'BOOM1000': 'BOOM1000',
-      'CRASH1000': 'CRASH1000',
-      'BOOM500': 'BOOM500',
-      'CRASH500': 'CRASH500',
-      'JD10': 'JUMP10',
-      'JD25': 'JUMP25',
-      'JD50': 'JUMP50',
-      'JD75': 'JUMP75',
-      'JD100': 'JUMP100'
+      'frxCHFJPY': 'CHFJPY'
     };
     
     return symbolMap[sourceSymbol] || null;
