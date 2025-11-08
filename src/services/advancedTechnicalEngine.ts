@@ -107,7 +107,7 @@ class AdvancedTechnicalEngine {
    */
   generatePreciseSignal(candles: CandleData[], currentPrice: number): SignalAnalysis | null {
     if (candles.length < 200) {
-      console.warn('⚠️ يحتاج التحليل إلى 200 شمعة على الأقل للحصول على دقة عالية');
+
       return null;
     }
 

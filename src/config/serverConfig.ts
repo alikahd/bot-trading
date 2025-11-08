@@ -35,7 +35,6 @@ export const checkServerHealth = async (): Promise<boolean> => {
     clearTimeout(timeoutId);
     return response.ok;
   } catch (error) {
-    console.error('❌ السيرفر غير متاح:', error);
     return false;
   }
 };

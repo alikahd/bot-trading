@@ -7,8 +7,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Wifi, WifiOff, Activity, DollarSign, TrendingUp, Search } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { IQOptionQuote } from '../services/iqOptionTypes';
 import { realTimeDataService, RealTimeQuote } from '../services/realTimeDataService';
+
+// تعريف محلي لـ IQOptionQuote
+interface IQOptionQuote {
+  symbol: string;
+  bid: number;
+  ask: number;
+  price: number;
+  timestamp: number;
+  change: number;
+  changePercent: number;
+}
 
 export const IQOptionStatus: React.FC = () => {
   const { language, t } = useLanguage();
@@ -20,18 +30,16 @@ export const IQOptionStatus: React.FC = () => {
   const [filterType, setFilterType] = useState<'all' | 'major' | 'crypto' | 'commodities' | 'indices' | 'synthetic' | 'exotic'>('all');
 
   useEffect(() => {
-    console.log('🚀 الاشتراك في البيانات المباشرة الفورية');
-    
+
     // بدء خدمة البيانات إذا لم تكن تعمل
     if (!realTimeDataService.isActive()) {
-      console.log('🔌 بدء خدمة البيانات...');
+
       realTimeDataService.start();
     }
     
     // الاشتراك في خدمة البيانات المباشرة
     const unsubscribe = realTimeDataService.subscribe('iqoption-status', (realTimeQuotes) => {
-      console.log('📊 تحديث فوري - IQOptionStatus:', Object.keys(realTimeQuotes).length, 'أسعار');
-      
+
       // تحويل البيانات إلى تنسيق IQOptionQuote
       const formattedQuotes: { [key: string]: IQOptionQuote } = {};
       Object.entries(realTimeQuotes).forEach(([symbol, quote]: [string, RealTimeQuote]) => {
@@ -55,7 +63,7 @@ export const IQOptionStatus: React.FC = () => {
     });
 
     return () => {
-      console.log('🔕 إلغاء الاشتراك - IQOptionStatus');
+
       unsubscribe();
     };
   }, [language]);

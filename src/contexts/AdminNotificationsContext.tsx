@@ -57,13 +57,12 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
     const updated = { ...lastViewedPages, [page]: now };
     setLastViewedPages(updated);
     localStorage.setItem('admin_last_viewed_pages', JSON.stringify(updated));
-    console.log(`✅ تم تحديث آخر مشاهدة لصفحة ${page}:`, now);
+
   };
 
   const loadNotifications = async () => {
     try {
-      console.log('🔔 بدء تحميل إشعارات الأدمن...');
-      
+
       // 1. المستخدمين الجدد (بعد آخر مشاهدة)
       const lastViewedUsers = lastViewedPages['users'] || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
@@ -101,14 +100,8 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
         expiringSoon: expiringSubscriptions?.length || 0
       });
 
-      console.log('✅ إشعارات الأدمن:', {
-        newUsers: newUsersData?.length || 0,
-        pendingPayments: pendingPaymentsData?.length || 0,
-        pendingCommissions: pendingCommissionsData?.length || 0,
-        expiringSoon: expiringSubscriptions?.length || 0
-      });
     } catch (error) {
-      console.error('❌ خطأ في تحميل إشعارات الأدمن:', error);
+
     }
   };
 

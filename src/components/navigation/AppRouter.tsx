@@ -33,7 +33,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
 
   // دوال محسنة للعودة للصفحة الرئيسية ثم فتح صفحات التسجيل
   const handleLoginFromSubPage = () => {
-    console.log('Navigating to main page then login');
+
     onNavigate('main');
     // تأخير بسيط للتأكد من تحديث الصفحة
     setTimeout(() => {
@@ -42,7 +42,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
   };
 
   const handleRegisterFromSubPage = () => {
-    console.log('Navigating to main page then register');
+
     onNavigate('main');
     // تأخير بسيط للتأكد من تحديث الصفحة
     setTimeout(() => {

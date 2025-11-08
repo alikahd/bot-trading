@@ -8,8 +8,7 @@ interface SupabaseResponse {
 
 // استدعاء حقيقي لقاعدة البيانات باستخدام MCP
 export const mcp1_execute_sql = async (query: string): Promise<SupabaseResponse> => {
-  console.log('🔍 تنفيذ استعلام SQL حقيقي:', query);
-  
+
   // محاولة استخدام MCP إذا كان متوفراً
   try {
     // استدعاء MCP مباشرة إذا كان متوفراً في النافذة
@@ -22,8 +21,7 @@ export const mcp1_execute_sql = async (query: string): Promise<SupabaseResponse>
     }
     throw new Error('MCP غير متوفر');
   } catch (mcpError) {
-    console.log('⚠️ MCP غير متوفر، استخدام البيانات الحقيقية المحفوظة');
-    
+
     // استخدام البيانات الحقيقية من قاعدة البيانات
     if (query.includes('users')) {
       // بيانات المستخدمين الحقيقية

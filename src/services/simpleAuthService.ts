@@ -100,8 +100,7 @@ class SimpleAuthService {
         error = result.error;
       } catch (timeoutError) {
         // Timeout - نحاول مرة أخرى للهاتف
-        console.warn('⏱️ Session timeout - محاولة ثانية...');
-        
+
         if (isMobile()) {
           try {
             const { data, error: retryError } = await supabase.auth.getSession();
@@ -151,22 +150,39 @@ class SimpleAuthService {
 
       // الاستماع لتغييرات المصادقة
       supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔔 Auth state changed:', event, session?.user?.email);
         
+        // ⚠️ تجاهل PASSWORD_RECOVERY - يتم معالجته في ResetPasswordPage
+        if (event === 'PASSWORD_RECOVERY') {
+          return;
+        }
+        
+        // ⚠️ تجاهل SIGNED_IN إذا كنا في عملية إعادة تعيين كلمة المرور
+        if (event === 'SIGNED_IN' && sessionStorage.getItem('in_password_reset_flow') === 'true') {
+          return;
+        }
+        
+        // ⚠️ تجاهل USER_UPDATED إذا كنا في عملية إعادة تعيين كلمة المرور
+        if (event === 'USER_UPDATED' && sessionStorage.getItem('in_password_reset_flow') === 'true') {
+          return;
+        }
+
         if (event === 'SIGNED_IN' && session?.user) {
           // Signed in
-          console.log('✅ تسجيل دخول ناجح عبر:', session.user.app_metadata?.provider || 'email');
-          
+
           // ⚡ التحقق من وجود المستخدم في public.users (خاصة لـ OAuth)
-          const { data: existingUser } = await supabase
+          const { data: existingUser, error: checkError } = await supabase
             .from('users')
             .select('id')
             .eq('auth_id', session.user.id)
             .maybeSingle();
           
+          // تجاهل أخطاء 406 (Not Acceptable) بصمت
+          if (checkError && checkError.code !== 'PGRST116') {
+            // فقط نسجل الأخطاء الحقيقية
+          }
+          
           if (!existingUser) {
-            console.log('⚠️ المستخدم غير موجود في public.users - إنشاء سجل جديد...');
-            
+
             // إنشاء سجل للمستخدم (OAuth users)
             const { error: insertError } = await supabase
               .from('users')
@@ -183,9 +199,9 @@ class SimpleAuthService {
               });
             
             if (insertError) {
-              console.error('❌ خطأ في إنشاء المستخدم:', insertError);
+
             } else {
-              console.log('✅ تم إنشاء سجل المستخدم بنجاح');
+
             }
           }
           
@@ -227,17 +243,15 @@ class SimpleAuthService {
                     .limit(2);
                   
                   const isRenewal = !!(previousSubs && previousSubs.length > 1);
-                  
-                  console.log('📧 إرسال إشعار ترحيبي فوري (OAuth)...');
+
                   const { adminNotificationService } = await import('./adminNotificationService');
                   await adminNotificationService.sendWelcomeNotification(userData.id, isRenewal);
-                  console.log(`✅ تم إرسال الإشعار الترحيبي ${isRenewal ? '(تجديد)' : '(جديد)'}`);
-                  
+
                   // ✅ إرسال إشعار نظام الإحالة بعد 30 ثانية (للمستخدمين الجدد فقط)
                   if (!isRenewal) {
                     setTimeout(async () => {
                       try {
-                        console.log('📧 إرسال إشعار نظام الإحالة (بعد 30 ثانية - OAuth)...');
+
                         await supabase
                           .from('notifications')
                           .insert({
@@ -259,28 +273,26 @@ class SimpleAuthService {
                               potential_earnings: 5000
                             }
                           });
-                        
-                        console.log('✅ تم إرسال إشعار نظام الإحالة (OAuth)');
+
                       } catch (referralError) {
-                        console.error('⚠️ فشل إرسال إشعار الإحالة (غير حرج):', referralError);
+
                       }
                     }, 30000); // 30 ثانية
                   }
                 }
               } catch (notifError) {
-                console.error('⚠️ فشل إرسال الإشعار الترحيبي (غير حرج):', notifError);
+
               }
             })();
           }
           
           // ⚡ تفعيل Realtime فوراً
           if (this.authState.user?.id) {
-            console.log('⚡ تفعيل Realtime للمزامنة الفورية...');
-            
+
             realtimeSyncService.subscribeToUserChanges(
               this.authState.user.id,
               async (_payload) => {
-                console.log('🔔 تحديث فوري - تغيير في بيانات المستخدم');
+
                 await this.refreshUserData();
               }
             );
@@ -288,7 +300,7 @@ class SimpleAuthService {
             realtimeSyncService.subscribeToSubscriptionChanges(
               this.authState.user.id,
               async (_payload) => {
-                console.log('🔔 تحديث فوري - تغيير في الاشتراك');
+
                 await this.refreshUserData();
               }
             );
@@ -296,12 +308,10 @@ class SimpleAuthService {
         } 
         else if (event === 'USER_UPDATED' && session?.user) {
           // تحديث المستخدم - قد يكون بسبب تفعيل البريد
-          console.log('👤 User updated, checking email verification...');
-          
+
           // التحقق من تفعيل البريد
           if (session.user.email_confirmed_at) {
-            console.log('✅ Email confirmed at:', session.user.email_confirmed_at);
-            
+
             // تحديث قاعدة البيانات
             const { error: updateError } = await supabase
               .from('users')
@@ -314,15 +324,14 @@ class SimpleAuthService {
               .eq('auth_id', session.user.id);
             
             if (updateError) {
-              console.error('❌ Error updating user:', updateError);
+
             } else {
-              console.log('✅ User updated successfully');
+
               // إعادة تحميل بيانات المستخدم
               await this.loadUserData(session.user.id);
               
               // ⚡ توجيه المستخدم مباشرة لصفحة الاشتراك بعد تفعيل البريد
-              console.log('🎯 توجيه المستخدم لصفحة الاشتراك...');
-              
+
               // تعيين علامة في localStorage للتوجيه
               localStorage.setItem('email_just_verified', 'true');
               
@@ -370,8 +379,7 @@ class SimpleAuthService {
   private async loadUserData(authId: string): Promise<void> {
     try {
       // Load user data
-      console.log('📥 جاري تحميل بيانات المستخدم...', authId);
-      
+
       // للهاتف: محاولة مع timeout
       const isMobileDevice = isMobile();
       let data, error;
@@ -393,7 +401,7 @@ class SimpleAuthService {
           data = result.data;
           error = result.error;
         } catch (timeoutError) {
-          console.warn('⏱️ Timeout في تحميل البيانات - محاولة ثانية...');
+
           const retryResult = await supabase
             .from('users')
             .select('*')
@@ -414,7 +422,7 @@ class SimpleAuthService {
       }
 
       if (error) {
-        console.error('❌ خطأ في تحميل بيانات المستخدم:', error);
+
         // إذا كان المستخدم محذوف من جدول users، نسجل خروجه من Auth أيضاً
         await supabase.auth.signOut();
         this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
@@ -424,7 +432,7 @@ class SimpleAuthService {
 
       // إذا لم يوجد المستخدم في جدول users (محذوف)
       if (!data) {
-        console.warn('⚠️ المستخدم موجود في Auth لكن محذوف من جدول users');
+
         // تسجيل خروج من Auth
         await supabase.auth.signOut();
         this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
@@ -435,8 +443,7 @@ class SimpleAuthService {
 
       if (data) {
         // User data loaded successfully
-        console.log('✅ تم تحميل بيانات المستخدم:', data.email, '- الحالة:', data.status);
-        
+
         // التأكد من أن المستخدم Admin يمكنه الوصول
         if (data.role === 'admin') {
           // Admin recognized
@@ -444,31 +451,23 @@ class SimpleAuthService {
         
         // تحديد إلى أين يجب توجيه المستخدم بناءً على حالته
         let redirectTo = null;
-        
-        console.log('🔍 تحديد redirectTo للمستخدم:', {
-          email: data.email,
-          email_verified: data.email_verified,
-          status: data.status,
-          subscription_status: data.subscription_status,
-          is_active: data.is_active
-        });
-        
+
         // Admin دائماً يدخل
         const isAdmin = data.role === 'admin';
         
         // 1. إذا كان البريد غير مفعل
         if (!data.email_verified && !isAdmin) {
-          console.log('❌ البريد غير مفعل → email_verification');
+
           redirectTo = 'email_verification';
         }
         // 2. إذا كان الحساب محظور
         else if ((data.status === 'suspended' || data.status === 'cancelled') && !isAdmin) {
-          console.log('🚫 الحساب محظور → blocked');
+
           redirectTo = 'blocked';
         }
         // 3. إذا كان الدفع في انتظار المراجعة
         else if (data.status === 'payment_pending_review' && !isAdmin) {
-          console.log('⏳ الدفع قيد المراجعة → payment_pending');
+
           redirectTo = 'payment_pending';
         }
         // 4. إذا كان المستخدم مشترك ونشط → دخول مباشر للوحة التحكم
@@ -476,7 +475,7 @@ class SimpleAuthService {
                  data.status === 'active' || 
                  data.subscription_status === 'active' || 
                  (data.is_active && data.status !== 'pending_subscription')) {
-          console.log('✅ المستخدم نشط → دخول مباشر للوحة التحكم');
+
           redirectTo = null; // دخول مباشر
           
           // مسح أي بيانات اشتراك قديمة من localStorage
@@ -487,17 +486,15 @@ class SimpleAuthService {
         // 5. فقط المستخدمين الذين يحتاجون فعلاً للاشتراك
         else if (data.status === 'pending_subscription' || 
                  (data.subscription_status !== 'active' && data.status !== 'active' && !data.is_active)) {
-          console.log('📦 يحتاج اشتراك → subscription');
+
           redirectTo = 'subscription';
         }
         // 6. حالة احتياطية للمستخدمين الذين لا يتطابقون مع الشروط
         else {
-          console.log('🔄 حالة احتياطية → دخول مباشر للوحة التحكم');
+
           redirectTo = null; // دخول مباشر
         }
-        
-        console.log('✅ redirectTo النهائي:', redirectTo);
-        
+
         const userWithRedirect = { ...data, redirectTo } as User;
         const newState = { 
           isAuthenticated: true, 
@@ -558,7 +555,7 @@ class SimpleAuthService {
           .rpc('get_user_email_by_username', { p_username: credentials.username });
         
         if (emailError || !emailData) {
-          console.error('❌ اسم المستخدم غير موجود');
+
           return { success: false, error: 'اسم المستخدم غير موجود', errorType: 'username_not_found' };
         }
         
@@ -604,13 +601,7 @@ class SimpleAuthService {
       }
 
       if (authError || !authData?.user) {
-        console.error('❌ فشل في المصادقة:', {
-          message: authError?.message,
-          status: authError?.status,
-          userAgent: navigator.userAgent,
-          isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        });
-        
+
         // معالجة خاصة لخطأ "Email not confirmed"
         if (authError?.message?.includes('Email not confirmed')) {
           // إطلاق حدث مخصص لإخبار التطبيق أن البريد غير مفعل
@@ -640,8 +631,7 @@ class SimpleAuthService {
             });
             
             if (retryError || !retryData.user) {
-              console.error('❌ فشل في إعادة المحاولة:', retryError?.message);
-              
+
               // محاولة ثالثة للهاتف المحمول
               await new Promise(resolve => setTimeout(resolve, 500));
               
@@ -651,7 +641,7 @@ class SimpleAuthService {
               });
               
               if (finalError || !finalData.user) {
-                console.error('❌ فشل نهائي في المصادقة:', finalError?.message);
+
                 if (finalError?.message?.includes('Invalid login credentials')) {
                   return { success: false, error: 'كلمة المرور غير صحيحة', errorType: 'invalid_password' };
                 }
@@ -665,7 +655,7 @@ class SimpleAuthService {
             // Retry success
             return { success: true };
           } catch (retryError) {
-            console.error('❌ خطأ في إعادة المحاولة:', retryError);
+
             return { success: false, error: 'فشل في الاتصال. يرجى المحاولة مرة أخرى.', errorType: 'network_error' };
           }
         }
@@ -674,8 +664,7 @@ class SimpleAuthService {
       }
 
       // Login successful
-      console.log('✅ تسجيل دخول ناجح - تحميل بيانات المستخدم مع التحقق من الاشتراك...');
-      
+
       // ⚡ تحميل فوري لبيانات المستخدم
       if (authData.user) {
         // ⚡ تحميل البيانات وإرسال الإشعار بشكل متوازي لتسريع العملية
@@ -715,16 +704,15 @@ class SimpleAuthService {
               const isRenewal = !!(previousSubs && previousSubs.length > 1);
               
               if (!existingWelcome || existingWelcome.length === 0) {
-                console.log('📧 إرسال إشعار ترحيبي فوري...');
+
                 const { adminNotificationService } = await import('./adminNotificationService');
                 await adminNotificationService.sendWelcomeNotification(userData.id, isRenewal);
-                console.log(`✅ تم إرسال الإشعار الترحيبي ${isRenewal ? '(تجديد)' : '(جديد)'}`);
-                
+
                 // ✅ إرسال إشعار نظام الإحالة بعد 30 ثانية (للمستخدمين الجدد فقط)
                 if (!isRenewal) {
                   setTimeout(async () => {
                     try {
-                      console.log('📧 إرسال إشعار نظام الإحالة (بعد 30 ثانية)...');
+
                       await supabase
                         .from('notifications')
                         .insert({
@@ -746,19 +734,18 @@ class SimpleAuthService {
                             potential_earnings: 5000
                           }
                         });
-                      
-                      console.log('✅ تم إرسال إشعار نظام الإحالة');
+
                     } catch (referralError) {
-                      console.error('⚠️ فشل إرسال إشعار الإحالة (غير حرج):', referralError);
+
                     }
                   }, 30000); // 30 ثانية
                 }
               } else {
-                console.log('ℹ️ الإشعار الترحيبي تم إرساله مسبقاً');
+
               }
             }
           } catch (notifError) {
-            console.error('⚠️ فشل إرسال الإشعار الترحيبي (غير حرج):', notifError);
+
           }
         })();
 
@@ -767,12 +754,11 @@ class SimpleAuthService {
         
         // ⚡ تفعيل Realtime فوراً بعد تسجيل الدخول للمزامنة الفورية
         if (this.authState.user?.id) {
-          console.log('⚡ تفعيل Realtime للمزامنة الفورية...');
-          
+
           realtimeSyncService.subscribeToUserChanges(
             this.authState.user.id,
             async (_payload) => {
-              console.log('🔔 تحديث فوري - تغيير في بيانات المستخدم');
+
               await this.refreshUserData();
             }
           );
@@ -780,7 +766,7 @@ class SimpleAuthService {
           realtimeSyncService.subscribeToSubscriptionChanges(
             this.authState.user.id,
             async (_payload) => {
-              console.log('🔔 تحديث فوري - تغيير في الاشتراك');
+
               await this.refreshUserData();
             }
           );
@@ -790,7 +776,7 @@ class SimpleAuthService {
       return { success: true };
 
     } catch (error) {
-      console.error('❌ خطأ عام في تسجيل الدخول:', error);
+
       return { success: false, error: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.', errorType: 'unexpected_error' };
     }
   }
@@ -798,8 +784,7 @@ class SimpleAuthService {
   // تسجيل الخروج
   async logout(): Promise<void> {
     try {
-      console.log('🚪 بدء عملية تسجيل الخروج...');
-      
+
       // تحديث الحالة أولاً لإظهار حالة التحميل
       this.updateAuthState({ isAuthenticated: false, user: null, isLoading: true });
       
@@ -811,9 +796,9 @@ class SimpleAuthService {
       
       try {
         await Promise.race([logoutPromise, timeoutPromise]);
-        console.log('✅ تم تسجيل الخروج من Supabase');
+
       } catch (logoutError) {
-        console.warn('⚠️ خطأ في تسجيل الخروج من Supabase، سيتم المتابعة:', logoutError);
+
       }
       
       // مسح جميع مفاتيح Supabase من localStorage
@@ -825,9 +810,9 @@ class SimpleAuthService {
       supabaseKeys.forEach(key => {
         try {
           localStorage.removeItem(key);
-          console.log('🗑️ تم حذف مفتاح:', key);
+
         } catch (e) {
-          console.warn('⚠️ فشل في حذف مفتاح:', key, e);
+
         }
       });
       
@@ -848,36 +833,32 @@ class SimpleAuthService {
         try {
           localStorage.removeItem(key);
         } catch (e) {
-          console.warn('⚠️ فشل في حذف مفتاح التطبيق:', key, e);
+
         }
       });
       
       // مسح sessionStorage
       try {
         sessionStorage.clear();
-        console.log('✅ تم مسح sessionStorage');
+
       } catch (e) {
-        console.warn('⚠️ فشل في مسح sessionStorage:', e);
+
       }
       
       // تحديث الحالة النهائية
       this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
-      console.log('✅ تم تحديث حالة المصادقة');
-      
+
       // انتظار قصير للتأكد من تطبيق التغييرات
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      console.log('✅ تم تسجيل الخروج بنجاح');
-      
+
     } catch (error) {
-      console.error('❌ خطأ في تسجيل الخروج:', error);
-      
+
       // حتى لو حدث خطأ، نمسح البيانات المحلية
       try {
         localStorage.clear();
         sessionStorage.clear();
       } catch (clearError) {
-        console.error('❌ فشل في مسح البيانات المحلية:', clearError);
+
       }
       
       // تحديث الحالة في جميع الأحوال
@@ -898,31 +879,25 @@ class SimpleAuthService {
   // جلب جميع المستخدمين (للمديرين فقط)
   async getAllUsers(): Promise<User[]> {
     try {
-      console.log('🔍 جلب جميع المستخدمين...');
-      console.log('👤 المستخدم الحالي:', this.authState.user?.username, 'الدور:', this.authState.user?.role);
 
       if (!this.hasRole('admin')) {
-        console.error('❌ المستخدم ليس admin:', this.authState.user?.role);
-        console.warn('⚠️ إرجاع مصفوفة فارغة بدلاً من رمي خطأ');
+
         return [];
       }
 
-      console.log('✅ المستخدم admin - جلب البيانات...');
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ خطأ في قاعدة البيانات:', error);
-        console.error('تفاصيل الخطأ:', error.message);
+
         return [];
       }
-      
-      console.log('✅ تم جلب المستخدمين:', data?.length || 0);
+
       return data || [];
     } catch (error) {
-      console.error('❌ خطأ في جلب المستخدمين:', error);
+
       return [];
     }
   }
@@ -985,8 +960,7 @@ class SimpleAuthService {
       if (authError) {
         // معالجة خطأ المستخدم الموجود في Auth
         if (authError.message.includes('already registered') || authError.message.includes('User already registered')) {
-          console.log('⚠️ المستخدم موجود في Auth');
-          
+
           // التحقق من وجود السجل في جدول users
           const { data: existingInDb } = await supabase
             .from('users')
@@ -996,7 +970,7 @@ class SimpleAuthService {
           
           // إذا لم يكن موجوداً في جدول users، نحتاج لحذفه من Auth أولاً
           if (!existingInDb) {
-            console.log('⚠️ المستخدم موجود في Auth لكن محذوف من جدول users');
+
             return {
               success: false,
               error: 'هذا البريد مسجل سابقاً. يرجى التواصل مع الدعم لإعادة تفعيل الحساب، أو استخدام بريد إلكتروني آخر.'
@@ -1005,7 +979,7 @@ class SimpleAuthService {
           
           // إذا كان موجوداً لكن البريد غير مفعّل، نعيد إرسال بريد التفعيل
           if (!existingInDb.email_verified) {
-            console.log('📧 إعادة إرسال بريد التفعيل...');
+
             try {
               const { error: resendError } = await supabase.auth.resend({
                 type: 'signup',
@@ -1016,16 +990,16 @@ class SimpleAuthService {
               });
               
               if (!resendError) {
-                console.log('✅ تم إرسال بريد التفعيل');
+
                 return {
                   success: false,
                   error: 'هذا الحساب موجود بالفعل. تم إرسال رابط تفعيل جديد إلى بريدك الإلكتروني.'
                 };
               } else {
-                console.error('❌ فشل في إعادة الإرسال:', resendError);
+
               }
             } catch (resendErr) {
-              console.error('❌ خطأ في إعادة الإرسال:', resendErr);
+
             }
           }
           
@@ -1038,8 +1012,7 @@ class SimpleAuthService {
       }
 
       if (authData.user) {
-        console.log('✅ تم إنشاء حساب Auth بنجاح:', authData.user.id);
-        
+
         // ✅ إنشاء سجل في جدول users باستخدام دالة آمنة (تتجاوز RLS)
         // نحاول الإنشاء مباشرة، وإذا كان موجود سنعالج الخطأ
         const { data: newUserArray, error: userError } = await supabase
@@ -1052,18 +1025,16 @@ class SimpleAuthService {
           });
         
         const newUser = Array.isArray(newUserArray) ? newUserArray[0] : newUserArray;
-        console.log('✅ تم إنشاء السجل:', newUser?.id);
 
         if (userError) {
-          console.error('❌ خطأ في إنشاء السجل:', userError);
-          
+
           // حذف المستخدم من Auth لأن الإنشاء فشل
-          console.log('🧹 تنظيف - حذف المستخدم من Auth...');
+
           try {
             await supabase.auth.admin.deleteUser(authData.user.id);
-            console.log('✅ تم حذف المستخدم من Auth');
+
           } catch (deleteErr) {
-            console.error('❌ فشل حذف المستخدم من Auth:', deleteErr);
+
           }
           
           return {
@@ -1074,13 +1045,12 @@ class SimpleAuthService {
         
         // ✅ التحقق من أن السجل تم إنشاؤه أو إرجاعه
         if (!newUser || !newUser.id) {
-          console.error('❌ لم يتم إرجاع بيانات المستخدم');
-          
+
           // حذف من Auth
           try {
             await supabase.auth.admin.deleteUser(authData.user.id);
           } catch (deleteErr) {
-            console.error('❌ فشل حذف المستخدم من Auth:', deleteErr);
+
           }
           
           return {
@@ -1088,18 +1058,16 @@ class SimpleAuthService {
             error: 'حدث خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى.'
           };
         }
-        
-        console.log('✅ تم إنشاء/جلب السجل بنجاح:', newUser.id);
-        
+
         // ملاحظة: Supabase يرسل بريد التفعيل تلقائياً عند signUp
         // لا حاجة لإعادة الإرسال هنا لتجنب خطأ 429 (Too Many Requests)
         if (!newUser.email_verified) {
-          console.log('📧 تم إرسال بريد التفعيل تلقائياً من Supabase');
+
         }
 
         // تسجيل خروج المستخدم مباشرة بعد التسجيل
         // لأننا نريد أن يفعّل بريده أولاً قبل تسجيل الدخول
-        console.log('🚪 تسجيل خروج المستخدم بعد التسجيل...');
+
         await supabase.auth.signOut();
         
         return { 
@@ -1110,8 +1078,7 @@ class SimpleAuthService {
 
       return { success: false, error: 'فشل في إنشاء الحساب' };
     } catch (error: any) {
-      console.error('❌ خطأ في تسجيل المستخدم:', error);
-      
+
       // معالجة أخطاء محددة
       if (error.code === '23505') {
         return {
@@ -1149,7 +1116,7 @@ class SimpleAuthService {
         user: newUser as User
       };
     } catch (error) {
-      console.error('❌ خطأ في إنشاء المستخدم:', error);
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'حدث خطأ في الإنشاء'
@@ -1185,7 +1152,7 @@ class SimpleAuthService {
 
       return { success: true };
     } catch (error) {
-      console.error('❌ خطأ في تحديث المستخدم:', error);
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'حدث خطأ في التحديث'
@@ -1200,32 +1167,30 @@ class SimpleAuthService {
         throw new Error('غير مصرح لك بحذف المستخدمين');
       }
 
-      console.log('🗑️ حذف المستخدم بالكامل:', userId);
-
       // استدعاء الدالة لحذف المستخدم من Auth و users
       const { data, error } = await supabase.rpc('delete_user_completely', {
         user_id_to_delete: userId
       });
 
       if (error) {
-        console.error('❌ خطأ في حذف المستخدم:', error);
+
         throw error;
       }
 
       // التحقق من النتيجة
       if (data && typeof data === 'object' && 'success' in data) {
         if (data.success) {
-          console.log('✅ تم حذف المستخدم بالكامل:', data.deleted_email);
+
           return { success: true };
         } else {
-          console.error('❌ فشل الحذف:', data.error);
+
           return { success: false, error: data.error };
         }
       }
 
       return { success: true };
     } catch (error) {
-      console.error('❌ خطأ في حذف المستخدم:', error);
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'حدث خطأ في الحذف'
@@ -1236,8 +1201,7 @@ class SimpleAuthService {
   // إعادة تحميل بيانات المستخدم الحالي (مسح الـ cache وإعادة التحميل)
   async refreshUserData(): Promise<void> {
     try {
-      console.log('🔄 إعادة تحميل بيانات المستخدم...');
-      
+
       // مسح الـ cache
       localStorage.removeItem('auth_state_cache');
       
@@ -1245,16 +1209,16 @@ class SimpleAuthService {
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error || !session?.user) {
-        console.error('❌ لا توجد جلسة نشطة');
+
         this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
         return;
       }
       
       // إعادة تحميل بيانات المستخدم من قاعدة البيانات
       await this.loadUserData(session.user.id);
-      console.log('✅ تم إعادة تحميل بيانات المستخدم');
+
     } catch (error) {
-      console.error('❌ خطأ في إعادة تحميل بيانات المستخدم:', error);
+
     }
   }
 
@@ -1268,7 +1232,7 @@ class SimpleAuthService {
       });
 
       if (signInError || !authData.user) {
-        console.error('❌ كلمة المرور الحالية غير صحيحة');
+
         return false;
       }
 
@@ -1278,14 +1242,13 @@ class SimpleAuthService {
       });
 
       if (error) {
-        console.error('❌ خطأ في تحديث كلمة المرور:', error);
+
         return false;
       }
 
-      console.log('✅ تم تغيير كلمة المرور بنجاح');
       return true;
     } catch (error) {
-      console.error('❌ خطأ في تغيير كلمة المرور:', error);
+
       return false;
     }
   }

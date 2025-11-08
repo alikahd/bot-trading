@@ -61,8 +61,6 @@
         document.documentElement.style.setProperty('--text-direction', lang === 'ar' ? 'rtl' : 'ltr');
         document.documentElement.style.setProperty('--text-align-start', lang === 'ar' ? 'right' : 'left');
         document.documentElement.style.setProperty('--text-align-end', lang === 'ar' ? 'left' : 'right');
-        
-        console.log(`🌐 تم تحديث اتجاه النص إلى: ${lang === 'ar' ? 'RTL' : 'LTR'}`);
       }
       
       // تحديث manifest عند تحميل الصفحة
@@ -79,7 +77,7 @@
       
       // تسجيل نجاح التثبيت
       window.addEventListener('appinstalled', (evt) => {
-        console.log('🎉 تم تثبيت التطبيق بنجاح!');
+        // تم تثبيت التطبيق بنجاح
       });
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />

@@ -6,50 +6,88 @@ const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsI
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// ═══════════════════════════════════════════════════
+// Cache محلي لحفظ آخر حالة معروفة
+// ═══════════════════════════════════════════════════
+let lastKnownStatus = {
+  isEnabled: true,  // القيمة الافتراضية الأولى
+  timestamp: null,
+  hasEverConnected: false  // هل نجح الاتصال مرة واحدة على الأقل؟
+};
+
 /**
- * التحقق من حالة بوت Telegram
- * @returns {Promise<boolean>} true إذا كان البوت مفعّل، false إذا كان متوقف
+ * دالة مساعدة لإضافة timeout للطلبات
  */
+function withTimeout(promise, timeoutMs = 5000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
+}
+
 export async function isBotEnabled() {
   try {
-    console.log('🔍 جاري التحقق من حالة البوت في Supabase...');
-    
-    // المحاولة الأولى: قراءة مباشرة من الجدول
-    let { data, error } = await supabase
+
+    // المحاولة الأولى: قراءة مباشرة من الجدول مع timeout
+    const queryPromise = supabase
       .from('telegram_bot_status')
-      .select('is_enabled')
+      .select('is_enabled, last_signal_sent, total_signals_sent')
+      .eq('id', 1)
       .single();
+    
+    let { data, error } = await withTimeout(queryPromise, 5000);
 
     // إذا فشلت القراءة المباشرة (بسبب RLS)، استخدم الدالة الآمنة
     if (error) {
-      console.log('⚠️ فشل القراءة المباشرة، محاولة استخدام الدالة الآمنة...');
-      
-      const { data: functionData, error: functionError } = await supabase
-        .rpc('get_telegram_bot_status');
+
+      const rpcPromise = supabase.rpc('get_telegram_bot_status');
+      const { data: functionData, error: functionError } = await withTimeout(rpcPromise, 5000);
       
       if (functionError) {
-        console.error('❌ خطأ في استدعاء الدالة:', functionError);
-        console.log('⚠️ سيتم اعتبار البوت متوقف للأمان');
-        return false;
+
+        // استخدام آخر حالة معروفة
+        if (lastKnownStatus.hasEverConnected) {
+
+          return lastKnownStatus.isEnabled;
+        } else {
+
+          return true;
+        }
       }
       
       if (!functionData || functionData.length === 0) {
-        console.log('⚠️ لا توجد بيانات - سيتم اعتبار البوت متوقف للأمان');
-        return false;
+
+        if (lastKnownStatus.hasEverConnected) {
+
+          return lastKnownStatus.isEnabled;
+        }
+        return true;
       }
       
       data = functionData[0];
     }
 
-    const isEnabled = data?.is_enabled ?? false;
-    console.log(`📊 حالة البوت من قاعدة البيانات: ${isEnabled ? '✅ مفعّل' : '⏸️ متوقف'}`);
-    console.log(`   آخر توصية: ${data?.last_signal_sent || 'لا توجد'}`);
-    console.log(`   إجمالي التوصيات: ${data?.total_signals_sent || 0}`);
+    // ✅ نجح الاتصال - حفظ الحالة في cache
+    const isEnabled = data?.is_enabled ?? true;
+    lastKnownStatus = {
+      isEnabled: isEnabled,
+      timestamp: new Date().toISOString(),
+      hasEverConnected: true
+    };
+
     return isEnabled;
   } catch (error) {
-    console.error('❌ خطأ في الاتصال بـ Supabase:', error);
-    console.log('⚠️ فشل الاتصال - سيتم اعتبار البوت متوقف للأمان');
-    return false;
+
+    // استخدام آخر حالة معروفة
+    if (lastKnownStatus.hasEverConnected) {
+
+      return lastKnownStatus.isEnabled;
+    } else {
+
+      return true;
+    }
   }
 }
 
@@ -66,7 +104,7 @@ export async function updateBotStats() {
       .single();
 
     if (fetchError) {
-      console.error('❌ خطأ في جلب الإحصائيات:', fetchError);
+
       return;
     }
 
@@ -81,11 +119,11 @@ export async function updateBotStats() {
       .eq('id', 1);
 
     if (error) {
-      console.error('❌ خطأ في تحديث إحصائيات البوت:', error);
+
     } else {
-      console.log(`✅ تم تحديث الإحصائيات - إجمالي التوصيات: ${(currentData?.total_signals_sent || 0) + 1}`);
+
     }
   } catch (error) {
-    console.error('❌ خطأ في تحديث إحصائيات البوت:', error);
+
   }
 }

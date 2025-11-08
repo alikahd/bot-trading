@@ -8,7 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "setup": "cp .env.example .env && echo 'تم إنشاء ملف .env - يرجى إضافة مفاتيح API الخاصة بك'"
+    "setup": "cp .env.example .env && echo 'تم إنشاء ملف .env - يرجى إضافة مفاتيح API الخاصة بك'",
+    "clean:console": "node clean-console-logs.cjs",
+    "restore:backup": "node restore-from-backup.cjs",
+    "build:clean": "node clean-console-logs.cjs && vite build"
   },
   "dependencies": {
     "@netlify/functions": "^5.0.1",

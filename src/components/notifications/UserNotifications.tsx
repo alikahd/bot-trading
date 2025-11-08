@@ -62,31 +62,28 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
         // timeout للأمان - إيقاف loading بعد 5 ثوانٍ كحد أقصى
         setTimeout(() => {
           setLoading(false);
-          console.log('⏱️ انتهى وقت التحميل (timeout)');
+
         }, 5000);
       }
-      
-      console.log('📥 جلب التنبيهات...');
-      
+
       const result = await userNotificationService.getUserNotifications({ limit: 20 });
-      console.log('📊 نتيجة جلب التنبيهات:', result);
-      
+
       if (result.success && result.notifications) {
         const filteredNotifications = result.notifications.filter(n => n);
-        console.log('✅ تم جلب', filteredNotifications.length, 'تنبيه من قاعدة البيانات');
+
         setNotifications(filteredNotifications);
       } else {
-        console.error('❌ فشل جلب التنبيهات:', result.error);
+
         setNotifications([]); // تعيين مصفوفة فارغة
       }
     } catch (error) {
-      console.error('❌ خطأ في جلب التنبيهات:', error);
+
       setNotifications([]); // تعيين مصفوفة فارغة
     } finally {
       // تأكد من إيقاف loading في جميع الحالات
       if (showLoading) {
         setLoading(false);
-        console.log('✅ تم إيقاف loading');
+
       }
     }
   };
@@ -101,7 +98,7 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
 
   // تحميل عند البداية (مع loading)
   useEffect(() => {
-    console.log('🚀 تحميل أولي للإشعارات...');
+
     loadNotifications(true);
     loadUnreadCount();
   }, []);
@@ -110,14 +107,12 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
   useEffect(() => {
     if (!showPanel) return;
 
-    console.log('🔔 فتح نافذة الإشعارات - تحديد الكل كمقروء');
-    
     // تحديد جميع الإشعارات كمقروءة تلقائياً عند فتح النافذة
     const markAsReadOnOpen = async () => {
       if (unreadCount > 0) {
         const result = await userNotificationService.markAllAsRead();
         if (result.success) {
-          console.log('✅ تم تحديد جميع الإشعارات كمقروءة');
+
           // تحديث الحالة المحلية
           setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
           setUnreadCount(0);
@@ -133,8 +128,7 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
     let unsubscribe: (() => void) | null = null;
     
     userNotificationService.subscribeToNotifications((notification) => {
-      console.log('🔔 تنبيه وصل فوراً!', notification);
-      
+
       // تحديث القائمة فوراً
       setNotifications(prev => {
         // إذا كان موجوداً، حدثه (UPDATE)
@@ -142,11 +136,11 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
         if (existingIndex !== -1) {
           const updated = [...prev];
           updated[existingIndex] = notification;
-          console.log('🔄 تحديث إشعار موجود');
+
           return updated;
         }
         // إذا كان جديداً، أضفه (INSERT)
-        console.log('➕ إضافة إشعار جديد');
+
         return [notification, ...prev];
       });
       
@@ -159,9 +153,9 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
           // تحديث Badge فوراً (مزامنة)
           if ('setAppBadge' in navigator) {
             (navigator as any).setAppBadge(newCount).then(() => {
-              console.log('✅ Badge محدث فوراً إلى:', newCount);
-            }).catch((err: any) => {
-              console.error('❌ فشل تحديث Badge:', err);
+
+            }).catch((_err: any) => {
+
             });
           }
           
@@ -206,11 +200,11 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
       if ('setAppBadge' in navigator) {
         if (newCount > 0) {
           (navigator as any).setAppBadge(newCount).then(() => {
-            console.log('✅ Badge محدث فوراً إلى:', newCount);
+
           });
         } else {
           (navigator as any).clearAppBadge().then(() => {
-            console.log('✅ Badge تم مسحه فوراً');
+
           });
         }
       }
@@ -229,7 +223,7 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
       // مسح Badge فوراً (مزامنة)
       if ('clearAppBadge' in navigator) {
         (navigator as any).clearAppBadge().then(() => {
-          console.log('✅ Badge تم مسحه فوراً (الكل مقروء)');
+
         });
       }
     }
@@ -531,7 +525,7 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
                               setTimeout(() => setImageModal({ show: true, url: notification.image_url || null }), 100);
                             }}
                             onError={(e) => { 
-                              console.error('❌ فشل تحميل الصورة:', notification.image_url);
+
                               (e.target as HTMLImageElement).style.display = 'none'; 
                             }}
                           />
@@ -751,7 +745,7 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
                                 setTimeout(() => setImageModal({ show: true, url: notification.image_url || null }), 100);
                               }}
                               onError={(e) => { 
-                                console.error('❌ فشل تحميل الصورة:', notification.image_url);
+
                                 (e.target as HTMLImageElement).style.display = 'none'; 
                               }}
                             />
@@ -797,7 +791,7 @@ export const UserNotifications: React.FC<UserNotificationsProps> = ({
             className="max-w-full max-h-full object-contain cursor-pointer"
             onClick={() => setImageModal({ show: false, url: null })}
             onError={() => { 
-              console.error('❌ فشل تحميل الصورة:', imageModal.url);
+
               setImageModal({ show: false, url: null });
               alert(language === 'ar' ? 'فشل تحميل الصورة' : 'Failed to load image');
             }}

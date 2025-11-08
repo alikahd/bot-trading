@@ -61,7 +61,6 @@ ${riskEmoji} <b>Risk:</b> ${riskLevel}
 
 🤖 ${formatDate(now)} ${formatTime(now)}`;
 
-    
     const response = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
@@ -78,14 +77,14 @@ ${riskEmoji} <b>Risk:</b> ${riskLevel}
     const result = await response.json();
     
     if (result.ok) {
-      console.log('✅ تم إرسال التوصية إلى Telegram');
+
       return true;
     } else {
-      console.error('❌ فشل إرسال التوصية:', result);
+
       return false;
     }
   } catch (error) {
-    console.error('❌ خطأ في إرسال رسالة Telegram:', error);
+
     return false;
   }
 }

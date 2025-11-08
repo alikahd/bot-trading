@@ -45,7 +45,7 @@ export const AdminNotificationBanner: React.FC = () => {
     let unsubscribe: (() => void) | null = null;
     
     userNotificationService.subscribeToNotifications((notification) => {
-      console.log('🔔 تنبيه جديد في البانر - عرض فوري!', notification);
+
       // عرض التنبيه فوراً
       setLatestNotification(notification);
       setDismissed(null); // إعادة تعيين الإخفاء للتنبيه الجديد
@@ -209,7 +209,7 @@ export const AdminNotificationBanner: React.FC = () => {
               className="w-full max-h-48 sm:max-h-64 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => setImageModal({ show: true, url: latestNotification.image_url || null })}
               onError={(e) => { 
-                console.error('❌ فشل تحميل الصورة في البانر:', latestNotification.image_url);
+
                 (e.target as HTMLImageElement).style.display = 'none'; 
               }}
             />
@@ -229,7 +229,7 @@ export const AdminNotificationBanner: React.FC = () => {
             className="max-w-full max-h-full object-contain cursor-pointer"
             onClick={() => setImageModal({ show: false, url: null })}
             onError={() => { 
-              console.error('❌ فشل تحميل الصورة:', imageModal.url);
+
               setImageModal({ show: false, url: null });
               alert(language === 'ar' ? 'فشل تحميل الصورة' : 'Failed to load image');
             }}

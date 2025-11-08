@@ -87,8 +87,6 @@ export const ContactPage: React.FC<ContactPageProps> = ({
     }
   ];
 
-
-
   return (
     <div className={cn(
       designSystem.colors.background.primary,
@@ -130,7 +128,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                     <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg blur-sm opacity-40 group-hover:opacity-70 animate-pulse transition-opacity duration-300"></div>
                     <button 
                       onClick={() => {
-                        console.log('ContactPage Mobile Login clicked');
+
                         onNavigateToLogin && onNavigateToLogin();
                       }}
                       className="relative overflow-hidden px-2.5 text-xs font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-500 hover:via-purple-500 hover:to-indigo-500 text-white rounded-md shadow-xl hover:shadow-2xl hover:shadow-blue-500/50 border border-blue-400/30 hover:border-blue-300/60 backdrop-blur-lg transition-all duration-500 transform hover:scale-105 active:scale-95 flex items-center justify-center" style={{height: '20px', lineHeight: '1', minHeight: '20px'}}>
@@ -145,7 +143,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                   <div className="flex items-center gap-3">
                     <button 
                       onClick={() => {
-                        console.log('ContactPage Desktop Login clicked');
+
                         onNavigateToLogin && onNavigateToLogin();
                       }}
                       className="relative group px-5 py-2.5 text-sm font-semibold text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg">
@@ -155,7 +153,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg blur opacity-40 group-hover:opacity-70 transition duration-300 animate-pulse"></div>
                       <button 
                         onClick={() => {
-                          console.log('ContactPage Register clicked');
+
                           onNavigateToRegister && onNavigateToRegister();
                         }}
                         className="relative px-6 py-2.5 text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border border-blue-400/50">

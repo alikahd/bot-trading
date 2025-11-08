@@ -41,7 +41,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       // إذا حاول المستخدم الرجوع، نمنعه ونعيده للأمام
       if (event.state?.preventBack) {
         window.history.pushState({ page: 'landing', preventBack: true }, '', window.location.pathname);
-        console.log('🚫 تم منع الرجوع للخلف من الصفحة الرئيسية');
+
       }
     };
 
@@ -103,7 +103,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           .order('price', { ascending: true });
 
         if (error) {
-          console.error('خطأ في جلب الباقات:', error);
+
           // استخدام البيانات الافتراضية في حالة الخطأ
           setPlans([
             {
@@ -178,7 +178,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           setPlans(formattedPlans);
         }
       } catch (error) {
-        console.error('خطأ في الاتصال بقاعدة البيانات:', error);
+
         setPlans([]);
       }
     };

@@ -43,17 +43,17 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
   useEffect(() => {
     const detectLocation = async () => {
       try {
-        console.log('🌍 بدء الكشف عن الموقع الجغرافي...');
+
         const location = await geolocationService.getUserLocation();
         
         if (location && location.countryCode) {
-          console.log('✅ تم الكشف عن الدولة:', location.country, '→', location.countryCode);
+
           setDetectedCountryCode(location.countryCode);
         } else {
-          console.warn('⚠️ لم يتم الكشف عن الموقع الجغرافي');
+
         }
       } catch (error) {
-        console.error('❌ خطأ في الكشف عن الموقع:', error);
+
       }
     };
 
@@ -64,18 +64,16 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
   const getCountryCode = (countryName?: string): string => {
     // 1. إذا تم الكشف عن الموقع الجغرافي، استخدمه (الأولوية القصوى)
     if (detectedCountryCode) {
-      console.log('🌍 استخدام الدولة المكتشفة من IP:', detectedCountryCode);
+
       return detectedCountryCode;
     }
 
     // 2. إذا تم تمرير اسم الدولة من قاعدة البيانات
     if (!countryName) {
-      console.warn('⚠️ لم يتم تمرير اسم الدولة ولم يتم الكشف عن الموقع، سيتم استخدام US');
+
       return 'US'; // افتراضي
     }
-    
-    console.log('📋 اسم الدولة من قاعدة البيانات:', countryName);
-    
+
     const countryMap: Record<string, string> = {
       'المغرب': 'MA', 'مصر': 'EG', 'السعودية': 'SA', 'الإمارات': 'AE',
       'الكويت': 'KW', 'قطر': 'QA', 'البحرين': 'BH', 'عمان': 'OM',
@@ -104,11 +102,10 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
     
     const countryCode = countryMap[countryName];
     if (!countryCode) {
-      console.warn('⚠️ الدولة غير موجودة في القائمة:', countryName, '- سيتم استخدام US');
+
       return 'US';
     }
-    
-    console.log('✅ تم تحويل الدولة:', countryName, '→', countryCode);
+
     return countryCode;
   };
 
@@ -121,14 +118,14 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
       
       // منع إعادة التهيئة إذا تمت بالفعل والأزرار موجودة
       if (initializedRef.current && hasButtons) {
-        console.log('⏭️ Already initialized with buttons, skipping...');
+
         setLoading(false);
         return;
       }
       
       // إذا كانت مهيأة لكن الأزرار غير موجودة، إعادة التهيئة
       if (initializedRef.current && !hasButtons) {
-        console.log('🔄 Buttons missing, re-initializing...');
+
         initializedRef.current = false;
       }
 
@@ -137,9 +134,7 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
         
         setLoading(true);
         setError(null);
-        
-        console.log('🔄 Starting PayPal initialization...');
-        
+
         // تحديد اللغة لـ PayPal حسب لغة الموقع
         let paypalLocale = 'en_US';
         if (language === 'ar') {
@@ -149,13 +144,12 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
         } else {
           paypalLocale = 'en_US'; // الإنجليزية (افتراضي)
         }
-        console.log('🌐 Locale:', paypalLocale, '(language:', language + ')');
-        
+
         // تحميل PayPal SDK
         await loadPayPalScript(paypalLocale);
         
         if (!window.paypal) {
-          console.error('❌ PayPal SDK not available');
+
           throw new Error('PayPal SDK not loaded');
         }
         
@@ -164,35 +158,33 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
         for (let i = 0; i < 20; i++) {
           if (window.paypal && typeof window.paypal.Buttons === 'function') {
             buttonsReady = true;
-            console.log(`✅ PayPal.Buttons ready after ${i * 100}ms`);
+
             break;
           }
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         if (!buttonsReady) {
-          console.error('❌ PayPal.Buttons not available after waiting');
+
           throw new Error('PayPal.Buttons not available');
         }
         
         if (!mounted) {
-          console.log('⚠️ Component unmounted, stopping...');
+
           return;
         }
-        
-        console.log('✅ PayPal SDK ready');
 
         // انتظار حتى تكون الـ refs جاهزة (مع retry)
         let retries = 0;
         const maxRetries = 10;
         while ((!paypalRef.current || !cardRef.current) && retries < maxRetries && mounted) {
-          console.log(`⏳ Waiting for refs... (${retries + 1}/${maxRetries})`);
+
           await new Promise(resolve => setTimeout(resolve, 200));
           retries++;
         }
 
         if (!mounted) {
-          console.log('⚠️ Component unmounted during wait');
+
           return;
         }
 
@@ -205,20 +197,16 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
         }
 
         // إنشاء زر PayPal
-        console.log('🎨 Creating PayPal button...');
-        console.log('📍 PayPal ref:', !!paypalRef.current, 'Card ref:', !!cardRef.current);
-        
+
         if (!paypalRef.current || !cardRef.current) {
-          console.error('❌ Refs still not ready after waiting');
+
           if (mounted) {
             setError('Payment buttons failed to load. Please refresh the page.');
             setLoading(false);
           }
           return;
         }
-        
-        console.log('✅ Refs are ready, creating buttons...');
-        
+
         // window.paypal.Buttons تم التحقق منه مسبقاً
         window.paypal.Buttons({
             fundingSource: window.paypal.FUNDING.PAYPAL,
@@ -231,8 +219,7 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
             },
             createOrder: (_data: any, actions: any) => {
               const countryCode = getCountryCode(userInfo?.country);
-              console.log('🌍 Country for PayPal:', userInfo?.country, '→', countryCode);
-              
+
               const orderData: any = {
                 purchase_units: [{
                   amount: {
@@ -274,14 +261,13 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
               onSuccess(details);
             },
             onError: (err: any) => {
-              console.error('❌ PayPal error:', err);
+
               onError(err);
             }
           }).render(paypalRef.current);
-        console.log('✅ PayPal button rendered');
 
         // إنشاء زر البطاقة
-        console.log('🎨 Creating Card button...');
+
         if (cardRef.current && window.paypal.FUNDING.CARD) {
           window.paypal.Buttons({
             fundingSource: window.paypal.FUNDING.CARD,
@@ -294,8 +280,7 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
             },
             createOrder: (_data: any, actions: any) => {
               const countryCode = getCountryCode(userInfo?.country);
-              console.log('💳 Country for Card:', userInfo?.country, '→', countryCode);
-              
+
               const orderData: any = {
                 purchase_units: [{
                   amount: {
@@ -337,17 +322,15 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
               onSuccess(details);
             },
             onError: (err: any) => {
-              console.error('❌ Card payment error:', err);
+
               onError(err);
             }
           }).render(cardRef.current);
-        console.log('✅ Card button rendered');
+
         } else {
-          console.warn('⚠️ Card button not available');
+
         }
 
-        console.log('✅ All buttons initialized successfully');
-        
         // تعيين initialized flag
         initializedRef.current = true;
         
@@ -355,7 +338,7 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
           setLoading(false);
         }
       } catch (err: any) {
-        console.error('❌ Error initializing PayPal:', err);
+
         if (mounted) {
           setError(err.message);
           setLoading(false);
@@ -368,8 +351,7 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
     // تنظيف عند إلغاء التحميل أو تغيير اللغة
     return () => {
       mounted = false;
-      console.log('🧹 Cleanup: component unmounting or language changed');
-      
+
       // تنظيف الأزرار القديمة
       if (paypalRef.current) {
         paypalRef.current.innerHTML = '';
@@ -382,8 +364,6 @@ export const PayPalButtons: React.FC<PayPalButtonsProps> = ({
       // سيتم إعادة استخدامه عند العودة للصفحة
     };
   }, [language, amount]);
-
-  console.log('🎬 Render state:', { loading, error, hasPaypalRef: !!paypalRef.current, hasCardRef: !!cardRef.current });
 
   if (error) {
     return (

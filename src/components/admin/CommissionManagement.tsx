@@ -43,13 +43,13 @@ export const CommissionManagement: React.FC = () => {
     loadCommissions();
 
     // ✅ إعداد Realtime للعمولات
-    console.log('🔴 إعداد Realtime لإدارة العمولات...');
+
     const commissionsChannel = supabase
       .channel('commissions-management-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'referrals' },
-        (payload) => {
-          console.log('🔄 تغيير في العمولات:', payload);
+        (_payload) => {
+
           loadCommissions(); // إعادة تحميل البيانات
         }
       )
@@ -57,7 +57,7 @@ export const CommissionManagement: React.FC = () => {
 
     // تنظيف عند إلغاء التحميل
     return () => {
-      console.log('🧹 تنظيف Realtime للعمولات...');
+
       supabase.removeChannel(commissionsChannel);
     };
   }, []);
@@ -99,7 +99,7 @@ export const CommissionManagement: React.FC = () => {
 
       setCommissions(commissionsWithUser);
     } catch (error) {
-      console.error('Error loading commissions:', error);
+
     } finally {
       setLoading(false);
     }
@@ -266,7 +266,7 @@ export const CommissionManagement: React.FC = () => {
           });
 
         if (paymentError) {
-          console.error('خطأ في إنشاء سجل الدفع:', paymentError);
+
         }
 
         // إرسال إشعار للمستخدم
@@ -289,10 +289,9 @@ export const CommissionManagement: React.FC = () => {
                 commission_count: userComms.length
               }
             });
-          
-          console.log(`✅ تم إرسال إشعار للمستخدم ${referrerId}`);
+
         } catch (notifError) {
-          console.error('خطأ في إرسال الإشعار:', notifError);
+
         }
       }
 
@@ -303,7 +302,7 @@ export const CommissionManagement: React.FC = () => {
       setPaymentDetails({ method: 'bank_transfer', notes: '' });
       await loadCommissions();
     } catch (error) {
-      console.error('Error paying commissions:', error);
+
       alert('حدث خطأ أثناء دفع العمولات');
     }
   };

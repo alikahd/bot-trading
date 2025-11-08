@@ -55,7 +55,7 @@ class SubscriptionService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('خطأ في جلب باقات الاشتراك:', error);
+
       return [];
     }
   }
@@ -69,38 +69,22 @@ class SubscriptionService {
     paymentData?: any
   ): Promise<{ success: boolean; subscription?: any; payment?: any; paymentData?: any; error?: string }> {
     try {
-      console.log('🔄 subscriptionService.createSubscription بدأ...', {
-        userId: userInfo.id,
-        planId: planInfo.id,
-        paymentMethod,
-        paymentStatus
-      });
 
       // إنشاء الاشتراك
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + (planInfo.duration === 'شهري' ? 1 : 12));
 
       const subscriptionStatus = paymentStatus === 'completed' ? 'active' : 'pending';
-      console.log('📝 إنشاء اشتراك بحالة:', subscriptionStatus);
-      console.log('📤 بيانات الاشتراك المرسلة:', {
-        user_id: userInfo.id,
-        plan_id: planInfo.id,
-        status: subscriptionStatus,
-        start_date: new Date().toISOString(),
-        end_date: endDate.toISOString()
-      });
 
       // استخدام INSERT مباشر مع timeout protection
       const startDate = new Date().toISOString();
       const endDateStr = endDate.toISOString();
-      
-      console.log('🚀 استخدام INSERT مباشر...');
-      
+
       // إنشاء promise مع timeout
       const insertWithTimeout = async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.log('⏰ Timeout بعد 15 ثانية - إلغاء الطلب');
+
           controller.abort();
         }, 15000); // 15 ثانية
         
@@ -131,13 +115,9 @@ class SubscriptionService {
       let subscriptionResult;
       try {
         subscriptionResult = await insertWithTimeout();
-        console.log('📥 رد Supabase:', { 
-          hasData: !!subscriptionResult.data, 
-          dataLength: subscriptionResult.data?.length || 0,
-          hasError: !!subscriptionResult.error 
-        });
+
       } catch (error: any) {
-        console.error('❌ Exception في insertWithTimeout:', error.message);
+
         throw error;
       }
       
@@ -145,18 +125,15 @@ class SubscriptionService {
       const subscription = subscriptions?.[0];
 
       if (subscriptionError) {
-        console.error('❌ خطأ في إنشاء الاشتراك:', subscriptionError);
-        console.error('❌ تفاصيل الخطأ:', JSON.stringify(subscriptionError, null, 2));
+
         throw subscriptionError;
       }
       
       if (!subscription) {
-        console.error('❌ لم يتم إرجاع بيانات الاشتراك');
+
         throw new Error('فشل في إنشاء الاشتراك - لا توجد بيانات');
       }
-      
-      console.log('✅ تم إنشاء الاشتراك:', subscription.id);
-      console.log('📊 بيانات الاشتراك:', subscription);
+
       // Subscription created
 
       // معالجة الكوبون والإحالة إذا وجدت
@@ -166,8 +143,7 @@ class SubscriptionService {
       
       // إذا كان هناك كوبون، التحقق من كونه كوبون إحالة
       if (couponId) {
-        console.log('🎫 معالجة الكوبون:', couponId);
-        
+
         try {
           // جلب معلومات الكوبون
           const { data: couponData, error: couponError } = await supabase
@@ -178,27 +154,26 @@ class SubscriptionService {
           
           if (!couponError && couponData) {
             let coupon = couponData;
-            console.log('✅ تم جلب الكوبون:', coupon);
 
             // إذا كان الكوبون يستخدم النسب الديناميكية، جلب النسب الحالية من referral_settings
             if (coupon.use_dynamic_rates) {
-              console.log('🔄 كوبون ديناميكي - جلب النسب الحالية من الإعدادات...');
+
               const { data: settings, error: settingsError } = await supabase
                 .from('referral_settings')
                 .select('discount_rate, commission_rate')
                 .single();
 
               if (!settingsError && settings) {
-                console.log('✅ تم جلب الإعدادات الحالية:', settings);
+
                 // تحديث النسب بالقيم الحالية من الإعدادات
                 coupon = {
                   ...coupon,
                   discount_rate: settings.discount_rate,
                   commission_rate: settings.commission_rate
                 };
-                console.log('🔄 تم تحديث الكوبون بالنسب الحالية:', coupon);
+
               } else {
-                console.warn('⚠️ لم يتم العثور على الإعدادات، استخدام النسب المحفوظة');
+
               }
             }
             
@@ -218,13 +193,10 @@ class SubscriptionService {
                 current_uses: (coupon.current_uses || 0) + 1
               })
               .eq('id', couponId);
-            
-            console.log('✅ تم تسجيل استخدام الكوبون');
-            
+
             // إذا كان كوبون إحالة، إنشاء/تحديث سجل الإحالة
             if (coupon.is_referral_coupon && coupon.referrer_id) {
-              console.log('🔗 كوبون إحالة - معالجة الإحالة...');
-              
+
               // البحث عن إحالة موجودة
               const { data: existingReferral } = await supabase
                 .from('referrals')
@@ -250,7 +222,7 @@ class SubscriptionService {
                   .eq('id', existingReferral.id);
                 
                 referralId = existingReferral.id;
-                console.log('✅ تم تحديث الإحالة الموجودة');
+
               } else {
                 // إنشاء إحالة جديدة
                 const { data: newReferral, error: referralError } = await supabase
@@ -271,22 +243,14 @@ class SubscriptionService {
                 
                 if (!referralError && newReferral) {
                   referralId = newReferral.id;
-                  console.log('✅ تم إنشاء إحالة جديدة:', referralId);
+
                 }
               }
               
               // إنشاء عمولة معلقة لصاحب الإحالة
               if (referralId && paymentStatus === 'completed') {
                 const commissionAmount = finalAmount * ((coupon.commission_rate || 10) / 100);
-                
-                console.log('💰 إنشاء عمولة معلقة:', {
-                  referrer_id: coupon.referrer_id,
-                  referral_id: referralId,
-                  commission_amount: commissionAmount,
-                  subscription_amount: finalAmount,
-                  commission_rate: coupon.commission_rate || 10
-                });
-                
+
                 const { error: commissionError } = await supabase
                   .from('pending_commissions')
                   .insert({
@@ -299,15 +263,15 @@ class SubscriptionService {
                   });
                 
                 if (commissionError) {
-                  console.error('❌ خطأ في إنشاء العمولة:', commissionError);
+
                 } else {
-                  console.log('✅ تم إنشاء العمولة المعلقة بنجاح');
+
                 }
               }
             }
           }
         } catch (couponProcessError) {
-          console.error('⚠️ خطأ في معالجة الكوبون (غير حرج):', couponProcessError);
+
         }
       }
 
@@ -325,18 +289,12 @@ class SubscriptionService {
         admin_review_status: paymentMethod.includes('crypto') || paymentMethod === 'bitcoin' ? 'pending' : 'approved'
       };
 
-      console.log('💾 حفظ سجل الدفع:', {
-        ...paymentRecord,
-        crypto_proof_image: paymentRecord.crypto_proof_image ? `${paymentRecord.crypto_proof_image.substring(0, 50)}...` : null
-      });
-
       // استخدام INSERT مباشر مع timeout protection
-      console.log('🚀 استخدام INSERT مباشر للدفع...');
-      
+
       const insertPaymentWithTimeout = async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.log('⏰ Timeout للدفع بعد 15 ثانية - إلغاء الطلب');
+
           controller.abort();
         }, 15000); // 15 ثانية
         
@@ -361,13 +319,9 @@ class SubscriptionService {
       let paymentResult;
       try {
         paymentResult = await insertPaymentWithTimeout();
-        console.log('📥 رد Supabase للدفع:', { 
-          hasData: !!paymentResult.data, 
-          dataLength: paymentResult.data?.length || 0,
-          hasError: !!paymentResult.error 
-        });
+
       } catch (error: any) {
-        console.error('❌ Exception في insertPaymentWithTimeout:', error.message);
+
         throw error;
       }
       
@@ -375,18 +329,15 @@ class SubscriptionService {
       const payment = payments?.[0];
 
       if (paymentError) {
-        console.error('❌ خطأ في حفظ الدفع:', paymentError);
-        console.error('❌ تفاصيل الخطأ:', JSON.stringify(paymentError, null, 2));
+
         throw paymentError;
       }
       
       if (!payment) {
-        console.error('❌ لم يتم إرجاع بيانات الدفع');
+
         throw new Error('فشل في حفظ الدفع - لا توجد بيانات');
       }
-      
-      console.log('✅ تم حفظ الدفع:', payment.id);
-      console.log('📊 بيانات الدفع:', payment);
+
       // Payment record created
 
       // تحديث حالة المستخدم
@@ -409,36 +360,28 @@ class SubscriptionService {
         .eq('id', userInfo.id);
 
       if (userUpdateError) {
-        console.warn('⚠️ تحذير: فشل في تحديث حالة المستخدم:', userUpdateError);
-        console.warn('⚠️ تفاصيل الخطأ:', JSON.stringify(userUpdateError, null, 2));
-      } else {
-        console.log('✅ تم تحديث حالة المستخدم بنجاح');
-      }
 
-      console.log('✅ subscriptionService.createSubscription نجح!', {
-        subscriptionId: subscription.id,
-        paymentId: payment.id,
-        userStatus
-      });
+      } else {
+
+      }
 
       // إرسال تنبيه ترحيبي إذا كان الدفع مكتمل
       if (paymentStatus === 'completed') {
-        console.log('🔔 إرسال تنبيه ترحيبي للمستخدم...');
+
         try {
-          // التحقق إذا كان هذا اشتراك جديد أم تجديد
-          const { data: previousSubscriptions } = await supabase
-            .from('subscriptions')
-            .select('id')
-            .eq('user_id', userInfo.id)
-            .neq('id', subscription.id)
-            .limit(1);
-          
-          const isRenewal = !!(previousSubscriptions && previousSubscriptions.length > 0);
+          // التحقق إذا كان هذا اشتراك جديد أم تجديد - محجوز للاستخدام المستقبلي
+          // const { data: previousSubscriptions } = await supabase
+          //   .from('subscriptions')
+          //   .select('id')
+          //   .eq('user_id', userInfo.id)
+          //   .neq('id', subscription.id)
+          //   .limit(1);
+          // const isRenewal = !!(previousSubscriptions && previousSubscriptions.length > 0);
           
           // ✅ تم نقل إرسال الإشعارات (الترحيبي + الإحالة) إلى simpleAuthService عند أول تسجيل دخول
-          console.log('ℹ️ سيتم إرسال الإشعارات عند أول تسجيل دخول');
+
         } catch (notifError) {
-          console.error('⚠️ فشل إرسال التنبيه الترحيبي (غير حرج):', notifError);
+
         }
       }
 
@@ -449,9 +392,7 @@ class SubscriptionService {
         paymentData: payment
       };
     } catch (error) {
-      console.error('❌ خطأ في إنشاء الاشتراك:', error);
-      console.error('❌ نوع الخطأ:', typeof error);
-      console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'N/A');
+
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error) || 'حدث خطأ غير متوقع'
@@ -462,7 +403,6 @@ class SubscriptionService {
   // تأكيد الدفع (للمديرين)
   async confirmPayment(paymentId: string, adminId: string, approved: boolean, notes?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('🔄 confirmPayment بدأ:', { paymentId, adminId, approved, notes });
 
       // تحديث حالة الدفع
       const updateData: any = {
@@ -485,15 +425,12 @@ class SubscriptionService {
         .single();
 
       if (paymentError) {
-        console.error('❌ خطأ في تحديث الدفع:', paymentError);
+
         throw paymentError;
       }
-      
-      console.log('✅ تم تحديث الدفع:', payment);
 
       if (approved) {
-        console.log('✅ موافقة - تفعيل الاشتراك والمستخدم');
-        
+
         // تفعيل الاشتراك
         const { error: subscriptionError } = await supabase
           .from('subscriptions')
@@ -503,14 +440,13 @@ class SubscriptionService {
           .eq('id', payment.subscription_id);
 
         if (subscriptionError) {
-          console.error('❌ خطأ في تفعيل الاشتراك:', subscriptionError);
+
           throw subscriptionError;
         }
-        console.log('✅ تم تفعيل الاشتراك');
 
         // تفعيل المستخدم
-        console.log('🔄 تحديث المستخدم:', payment.user_id);
-        const { data: updatedUser, error: userError } = await supabase
+
+        const { error: userError } = await supabase
           .from('users')
           .update({
             status: 'active',
@@ -523,18 +459,12 @@ class SubscriptionService {
           .single();
 
         if (userError) {
-          console.error('❌ خطأ في تفعيل المستخدم:', userError);
+
           throw userError;
         }
-        console.log('✅ تم تفعيل المستخدم:', {
-          id: updatedUser?.id,
-          status: updatedUser?.status,
-          subscription_status: updatedUser?.subscription_status,
-          is_active: updatedUser?.is_active
-        });
 
         // إرسال تنبيه ترحيبي بعد الموافقة
-        console.log('🔔 إرسال تنبيه ترحيبي بعد الموافقة...');
+
         try {
           // التحقق إذا كان هذا اشتراك جديد أم تجديد
           const { data: previousSubscriptions } = await supabase
@@ -547,14 +477,13 @@ class SubscriptionService {
           const isRenewal = !!(previousSubscriptions && previousSubscriptions.length > 0);
           
           await adminNotificationService.sendWelcomeNotification(payment.user_id, isRenewal);
-          console.log('✅ تم إرسال التنبيه الترحيبي');
+
         } catch (notifError) {
-          console.error('⚠️ فشل إرسال التنبيه الترحيبي (غير حرج):', notifError);
+
         }
 
       } else {
-        console.log('❌ رفض - إلغاء الاشتراك');
-        
+
         // رفض الدفع - إلغاء الاشتراك
         const { error: subscriptionError } = await supabase
           .from('subscriptions')
@@ -564,10 +493,9 @@ class SubscriptionService {
           .eq('id', payment.subscription_id);
 
         if (subscriptionError) {
-          console.error('❌ خطأ في إلغاء الاشتراك:', subscriptionError);
+
           throw subscriptionError;
         }
-        console.log('✅ تم إلغاء الاشتراك');
 
         // تحديث حالة المستخدم
         const { error: userError } = await supabase
@@ -580,16 +508,15 @@ class SubscriptionService {
           .eq('id', payment.user_id);
 
         if (userError) {
-          console.error('❌ خطأ في تحديث المستخدم:', userError);
+
           throw userError;
         }
-        console.log('✅ تم تحديث المستخدم');
+
       }
 
-      console.log('✅ confirmPayment نجح!');
       return { success: true };
     } catch (error) {
-      console.error('❌ خطأ في تأكيد الدفع:', error);
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'حدث خطأ في تأكيد الدفع'
@@ -613,7 +540,7 @@ class SubscriptionService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('خطأ في جلب المدفوعات المعلقة:', error);
+
       return [];
     }
   }
@@ -633,7 +560,7 @@ class SubscriptionService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('خطأ في جلب اشتراكات المستخدم:', error);
+
       return [];
     }
   }
@@ -656,7 +583,7 @@ class SubscriptionService {
         subscription: data || undefined
       };
     } catch (error) {
-      console.error('خطأ في التحقق من صحة الاشتراك:', error);
+
       return { isValid: false };
     }
   }
@@ -664,8 +591,7 @@ class SubscriptionService {
   // جلب جميع الاشتراكات (للمديرين)
   async getAllSubscriptions(): Promise<any[]> {
     try {
-      console.log('🔍 جلب جميع الاشتراكات...');
-      
+
       // استعلام مباشر مع join للحصول على بيانات المستخدمين والباقات
       const { data, error } = await supabase
         .from('subscriptions')
@@ -687,15 +613,11 @@ class SubscriptionService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ subscriptionService: خطأ في الاستعلام:', error);
-        console.error('تفاصيل الخطأ:', error.message);
+
         // إرجاع مصفوفة فارغة بدلاً من رمي خطأ
         return [];
       }
-      
-      console.log('✅ تم جلب الاشتراكات:', data?.length || 0);
-      console.log('📊 البيانات:', data);
-      
+
       // تنسيق البيانات
       const formattedData = data?.map((item: any) => ({
         id: item.id,
@@ -716,11 +638,10 @@ class SubscriptionService {
         users: item.users,
         subscription_plans: item.subscription_plans
       })) || [];
-      
-      console.log('✅ البيانات المنسقة:', formattedData.length);
+
       return formattedData;
     } catch (error) {
-      console.error('❌ subscriptionService: خطأ في جلب جميع الاشتراكات:', error);
+
       // إرجاع مصفوفة فارغة بدلاً من رمي خطأ لتجنب توقف التطبيق
       return [];
     }
@@ -750,7 +671,7 @@ class SubscriptionService {
       // Subscription updated
       return { success: true };
     } catch (error) {
-      console.error('❌ خطأ في تحديث الاشتراك:', error);
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'حدث خطأ في تحديث الاشتراك'
@@ -774,7 +695,7 @@ class SubscriptionService {
       // Subscription cancelled
       return { success: true };
     } catch (error) {
-      console.error('❌ خطأ في إلغاء الاشتراك:', error);
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'حدث خطأ في إلغاء الاشتراك'

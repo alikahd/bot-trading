@@ -23,7 +23,7 @@ const saveFormData = (data: any) => {
   try {
     localStorage.setItem(USER_INFO_STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
-    console.warn('فشل في حفظ بيانات النموذج:', error);
+
   }
 };
 
@@ -32,7 +32,7 @@ const loadFormData = () => {
     const saved = localStorage.getItem(USER_INFO_STORAGE_KEY);
     return saved ? JSON.parse(saved) : { fullName: '', email: '', phone: '' };
   } catch (error) {
-    console.warn('فشل في استعادة بيانات النموذج:', error);
+
     return { fullName: '', email: '', phone: '' };
   }
 };

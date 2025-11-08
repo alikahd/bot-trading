@@ -14,7 +14,8 @@ import {
   MessageCircle,
   RotateCcw,
   Star,
-  Mail
+  Mail,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -33,11 +34,11 @@ interface SubscriptionAndPaymentsPageProps {
 }
 
 export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPageProps> = ({
-  status: _status,
-  userInfo: _userInfo,
+  status: _status, // محجوز للاستخدام المستقبلي - حالياً نجلب البيانات من قاعدة البيانات
+  userInfo: _userInfo, // محجوز للاستخدام المستقبلي - حالياً نستخدم realUserData
   userId,
-  onBack: _onBack,
-  onRenew: _onRenew
+  onBack,
+  onRenew
 }) => {
   const { t, language } = useLanguage();
   const isRTL = language === 'ar';
@@ -52,7 +53,7 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
   // تحميل البيانات الحقيقية من قاعدة البيانات
   const loadRealData = useCallback(async () => {
     if (!userId) {
-      console.warn('⚠️ userId غير متوفر في SubscriptionAndPaymentsPage');
+
       setLoading(false);
       return;
     }
@@ -73,7 +74,7 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
       `;
       const userResult = await executeRealQuery(userQuery);
       if (userResult.error) {
-        console.error('خطأ في جلب بيانات المستخدم:', userResult.error);
+
       } else if (userResult.data && userResult.data.length > 0) {
         setRealUserData(userResult.data[0]);
       }
@@ -187,8 +188,7 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
         const featuresEn = parseFeatures(subscription.features_en);
         const featuresAr = parseFeatures(subscription.features_ar);
         const featuresFr = parseFeatures(subscription.features_fr);
-        
-        
+
         setSubscriptionDetails({
           ...subscription,
           plan_name_en: subscription.plan_name_en || 'Monthly Plan',
@@ -265,15 +265,14 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
     loadRealData();
 
     // ✅ إعداد Realtime للاشتراكات والمدفوعات
-    console.log('🔴 إعداد Realtime لصفحة الاشتراك والمدفوعات...');
 
     // مزامنة الاشتراكات
     const subscriptionsChannel = supabase
       .channel(`user-subscription-${userId}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          console.log('🔄 تغيير في الاشتراك:', payload);
+        (_payload) => {
+
           loadRealData();
         }
       )
@@ -284,8 +283,8 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
       .channel(`user-payments-${userId}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'payments', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          console.log('🔄 تغيير في المدفوعات:', payload);
+        (_payload) => {
+
           loadRealData();
         }
       )
@@ -293,7 +292,7 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
 
     // تنظيف عند إلغاء التحميل
     return () => {
-      console.log('🧹 تنظيف Realtime للاشتراك والمدفوعات...');
+
       supabase.removeChannel(subscriptionsChannel);
       supabase.removeChannel(paymentsChannel);
     };
@@ -410,9 +409,18 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
       <div className="max-w-6xl mx-auto">
         {/* الهيدر المضغوط */}
         <div className="flex items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-6">
-          <h1 className="text-base sm:text-lg md:text-xl font-bold text-white">
-            {t('subscriptionPage.title')}
-          </h1>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={onBack}
+              variant="ghost"
+              className="text-gray-400 hover:text-white p-1 sm:p-2"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </Button>
+            <h1 className="text-base sm:text-lg md:text-xl font-bold text-white">
+              {t('subscriptionPage.title')}
+            </h1>
+          </div>
         </div>
 
         {/* التبويبات المضغوطة */}
@@ -569,9 +577,8 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
                 </Button>
                 <Button
                   onClick={() => {
-                    // تنفيذ منطق التجديد
-                    if (typeof _onRenew === 'function') {
-                      _onRenew();
+                    if (typeof onRenew === 'function') {
+                      onRenew();
                     }
                   }}
                   variant="ghost"
@@ -598,8 +605,7 @@ export const SubscriptionAndPaymentsPage: React.FC<SubscriptionAndPaymentsPagePr
                     const features = language === 'ar' ? subscriptionDetails?.features_ar : 
                                    language === 'fr' ? subscriptionDetails?.features_fr : 
                                    subscriptionDetails?.features_en;
-                    
-                    
+
                     if (!features || features.length === 0) {
                       return (
                         <div className="col-span-full text-center text-gray-400 text-sm">

@@ -45,11 +45,11 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
             schema: 'public',
             table: 'payments'
           },
-          (payload) => {
-            console.log('🔔 تحديث فوري في المدفوعات:', payload);
+          (_payload) => {
+
             // مسح الـ cache لضمان جلب البيانات الجديدة
             paymentService.clearCache();
-            console.log('🧹 تم مسح cache المدفوعات');
+
             loadPayments(); // إعادة تحميل البيانات
           }
         )
@@ -66,7 +66,7 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
     // ✅ إلغاء التحديث المتكرر - Realtime يكفي!
     // تحديث احتياطي فقط كل دقيقة واحدة (بدلاً من 10 ثوانٍ)
     const interval = setInterval(() => {
-      console.log('🔄 تحديث احتياطي للمدفوعات...');
+
       paymentService.clearCache();
       loadPayments();
     }, 60000); // دقيقة واحدة فقط
@@ -83,12 +83,9 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
     try {
       setLoading(true);
       setError(null);
-      console.log('🔍 جلب المدفوعات من قاعدة البيانات...');
-      
+
       const paymentsData = await paymentService.getAllPayments(true);
-      console.log('✅ تم جلب المدفوعات:', paymentsData.length);
-      console.log('📊 بيانات المدفوعات:', paymentsData);
-      
+
       setPayments(paymentsData);
       
       // إذا كانت البيانات فارغة ولكن لا يوجد خطأ، نعتبرها حالة طبيعية
@@ -96,7 +93,7 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
         setError(null);
       }
     } catch (err) {
-      console.error('❌ خطأ في جلب المدفوعات:', err);
+
       setError('حدث خطأ في تحميل المدفوعات. يرجى المحاولة مرة أخرى.');
       setPayments([]);
     } finally {
@@ -139,8 +136,7 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
 
   const handleApprovePayment = async (paymentId: string) => {
     try {
-      console.log('✅ موافقة على الدفع:', paymentId);
-      
+
       // العثور على الدفع للحصول على معلومات المستخدم
       const payment = payments.find(p => p.id === paymentId);
       
@@ -166,21 +162,19 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
         
         // إشعار نجاح للمدير
         alert(`✅ تم قبول الدفع بنجاح!\n👤 المستخدم: ${payment?.user_name}\n💰 المبلغ: $${payment?.amount}\n🎯 تم تفعيل الاشتراك تلقائياً`);
-        
-        console.log('✅ تم قبول الدفع وتفعيل الاشتراك والمستخدم');
+
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('❌ خطأ في قبول الدفع:', error);
+
       alert('فشل في قبول الدفع. يرجى المحاولة مرة أخرى.');
     }
   };
 
   const handleRejectPayment = async (paymentId: string) => {
     try {
-      console.log('❌ رفض الدفع:', paymentId);
-      
+
       // العثور على الدفع للحصول على معلومات المستخدم
       const payment = payments.find(p => p.id === paymentId);
       
@@ -213,13 +207,12 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
         
         // إشعار للمدير
         alert(`❌ تم رفض الدفع!\n👤 المستخدم: ${payment?.user_name}\n💰 المبلغ: $${payment?.amount}\n📧 سيتم إشعار المستخدم بالرفض`);
-        
-        console.log('✅ تم رفض الدفع بنجاح');
+
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('❌ خطأ في رفض الدفع:', error);
+
       alert('فشل في رفض الدفع. يرجى المحاولة مرة أخرى.');
     }
   };
@@ -357,20 +350,17 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
                     variant="ghost"
                     className="px-2 py-1"
                     onClick={async () => {
-                      console.log('🖼️ عرض صورة الدفع:', payment.id);
-                      
+
                       // جلب الصورة من قاعدة البيانات
                       const proofData = await paymentService.getPaymentProofImage(payment.id);
-                      console.log('📸 بيانات الصورة:', proofData);
-                      
+
                       // تحديث بيانات الدفع بالصورة
                       const paymentWithProof = {
                         ...payment,
                         crypto_proof_image: proofData?.crypto_proof_image,
                         proof_image: proofData?.proof_image
                       };
-                      
-                      console.log('📋 بيانات الدفع مع الصورة:', paymentWithProof);
+
                       setSelectedPayment(paymentWithProof);
                       setShowProofModal(true);
                     }}
@@ -471,7 +461,7 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  console.log('❌ إغلاق نافذة الصورة');
+
                   setShowProofModal(false);
                 }}
               >
@@ -531,10 +521,10 @@ export const PaymentManagement: React.FC<PaymentManagementProps> = ({ currentUse
                           }
                         }}
                         onLoad={() => {
-                          console.log('✅ تم تحميل الصورة بنجاح');
+
                         }}
                         onError={(e) => {
-                          console.error('❌ فشل تحميل الصورة');
+
                           e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect width="400" height="300" fill="%231e293b"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="20" fill="%2394a3b8"%3Eفشل تحميل الصورة%3C/text%3E%3C/svg%3E';
                         }}
                       />

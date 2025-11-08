@@ -38,7 +38,7 @@ export const ReferralNotificationControl: React.FC = () => {
       setActiveUsers(data || []);
       setStats(prev => ({ ...prev, totalActive: data?.length || 0 }));
     } catch (error) {
-      console.error('❌ خطأ في جلب المستخدمين:', error);
+
     }
   };
 
@@ -62,7 +62,7 @@ export const ReferralNotificationControl: React.FC = () => {
         lastSent: data && data.length > 0 ? data[0].created_at : null
       }));
     } catch (error) {
-      console.error('❌ خطأ في جلب الإحصائيات:', error);
+
     }
   };
 
@@ -80,7 +80,7 @@ export const ReferralNotificationControl: React.FC = () => {
         setSendingStatus(prev => ({ ...prev, [userId]: 'error' }));
       }
     } catch (error) {
-      console.error('❌ خطأ في الإرسال:', error);
+
       setSendingStatus(prev => ({ ...prev, [userId]: 'error' }));
     }
   };

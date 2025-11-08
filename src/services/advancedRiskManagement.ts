@@ -413,16 +413,14 @@ class AdvancedRiskManagementService {
     
     const startTime = startHour * 60 + startMinute;
     const endTime = endHour * 60 + endMinute;
-    
-    console.debug(`Trading hours check: Current ${currentHour}:${currentMinute} UTC, Allowed ${this.settings.tradingHours.start}-${this.settings.tradingHours.end}`);
-    
+
     return currentTime >= startTime && currentTime <= endTime;
   }
 
   // الحصول على رمز الأصل من معرف الصفقة (يجب تنفيذها حسب نظام معرفات الصفقات)
-  private getTradeSymbol(tradeId: string): string | null {
+  private getTradeSymbol(_tradeId: string): string | null {
     // هذه دالة مؤقتة - يجب ربطها بنظام إدارة الصفقات الفعلي
-    console.debug('Getting symbol for trade:', tradeId);
+
     return 'EURUSD'; // مؤقت
   }
 
@@ -482,7 +480,7 @@ class AdvancedRiskManagementService {
         const parsed = JSON.parse(saved);
         this.settings = { ...this.settings, ...parsed };
       } catch (error) {
-        console.warn('فشل في تحميل إعدادات إدارة المخاطر:', error);
+
       }
     }
   }
@@ -501,7 +499,7 @@ class AdvancedRiskManagementService {
       try {
         this.dailyStats = JSON.parse(saved);
       } catch (error) {
-        console.warn('فشل في تحميل الإحصائيات اليومية:', error);
+
       }
     }
   }

@@ -31,7 +31,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ onBack }) 
       // إذا حاول المستخدم الرجوع، نمنعه ونعيده للأمام
       if (event.state?.preventBack) {
         window.history.pushState({ page: 'password-reset', preventBack: true }, '', window.location.pathname);
-        console.log('🚫 تم منع الرجوع للخلف - استخدم زر الرجوع في الصفحة');
+
       }
     };
 

@@ -25,7 +25,11 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
   const { t, dir, language } = useLanguage();
 
   useEffect(() => {
-    // الاستماع لـ console.log
+    // في بيئة التطوير فقط: الاستماع للـ logs
+    if (process.env.NODE_ENV !== 'development') {
+      return; // لا نفعل شيء في الإنتاج
+    }
+
     const originalLog = console.log;
     const originalWarn = console.warn;
     const originalError = console.error;
@@ -39,7 +43,7 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
         second: '2-digit'
       });
       const logEntry = `[${timestamp}] ${level}: ${message}`;
-      setLogs(prev => [...prev.slice(-19), logEntry]); // آخر 20 سجل
+      setLogs(prev => [...prev.slice(-19), logEntry]);
     };
 
     console.log = (...args) => {
@@ -73,7 +77,7 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
       console.warn = originalWarn;
       console.error = originalError;
     };
-  }, []);
+  }, [language]);
 
   const handleToggle = () => {
     const newState = !isRealDataEnabled;
@@ -90,14 +94,11 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
     setLogs([]); // مسح الـ logs السابقة
     
     try {
-      console.log('🧪 بدء اختبار الاتصال بـ IQ Option Server...');
-      
+
       // اختبار الاتصال بالخادم
       const testSymbols = ['EURUSD_otc', 'GBPUSD_otc', 'EURJPY_otc'];
       
       for (const symbol of testSymbols) {
-        console.log(`🔍 اختبار ${symbol}...`);
-        
         try {
           // جلب البيانات مباشرة من IQ Option Server
           const response = await fetch(API_ENDPOINTS.quote(symbol));
@@ -105,16 +106,13 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
           if (response.ok) {
             const data = await response.json();
             const logMsg = `✅ ${symbol}: متصل - السعر ${data.price}`;
-            console.log(logMsg);
             setLogs(prev => [...prev, logMsg]);
           } else {
             const logMsg = `⚠️ ${symbol}: فشل الاتصال`;
-            console.warn(logMsg);
             setLogs(prev => [...prev, logMsg]);
           }
         } catch (err) {
           const logMsg = `❌ ${symbol}: خطأ في الاتصال`;
-          console.error(logMsg, err);
           setLogs(prev => [...prev, logMsg]);
         }
         
@@ -122,11 +120,9 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
       }
       
       const successMsg = '✅ انتهى اختبار الاتصال بنجاح';
-      console.log(successMsg);
       setLogs(prev => [...prev, successMsg]);
     } catch (error) {
       const errorMsg = '❌ خطأ عام في اختبار الاتصال';
-      console.error(errorMsg, error);
       setLogs(prev => [...prev, errorMsg]);
     } finally {
       setIsTestingConnection(false);
@@ -253,8 +249,6 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
           </div>
         </div>
       )}
-
-     
 
       {!isRealDataEnabled && (
         <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-blue-900/30 border border-blue-600/30 rounded-lg">

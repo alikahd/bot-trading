@@ -58,10 +58,7 @@ const SYMBOLS = [
 // معالجة التوصيات - استراتيجية صارمة
 async function processSignals() {
   const startTime = Date.now();
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🚀 دورة تحليل جديدة - ' + new Date().toLocaleTimeString('en-US'));
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  
+
   const recommendations = [];
   let analyzed = 0;
   let errors = 0;
@@ -78,7 +75,7 @@ async function processSignals() {
         const signal = analyzeSignal(prices, symbol);
         
         if (signal) {
-          console.log(`✅ ${signal.symbol} ${signal.direction} ${signal.timeframe} (${signal.confidence}%)`);
+
           recommendations.push(signal);
         }
       }
@@ -89,22 +86,17 @@ async function processSignals() {
       errors++;
       // تجاهل الأخطاء الصامتة (رموز غير صالحة)
       if (!error.message.includes('invalid')) {
-        console.error(`❌ ${symbol}: ${error.message}`);
+
       }
     }
   }
-  
-  console.log(`\n📊 إحصائيات التحليل:`);
-  console.log(`   • تم تحليل: ${analyzed} زوج`);
-  console.log(`   • توصيات قوية: ${recommendations.length}`);
-  console.log(`   • أخطاء: ${errors}`);
-  
+
   // إرسال أفضل توصية (دائماً إذا وجدت)
   // عرض أفضل 5 توصيات للتشخيص
   if (recommendations.length > 0) {
-    console.log(`\n📊 أفضل ${Math.min(5, recommendations.length)} توصيات:`);
+
     recommendations.slice(0, 5).forEach((rec, i) => {
-      console.log(`   ${i+1}. ${rec.symbol} ${rec.direction} ${rec.timeframe} (${rec.confidence}%) - ${rec.reasons}`);
+
     });
   }
   
@@ -112,47 +104,35 @@ async function processSignals() {
     // ترتيب حسب الثقة
     const sortedSignals = recommendations.sort((a, b) => b.confidence - a.confidence);
     const bestSignal = sortedSignals[0];
-    
-    console.log(`\n📤 التحقق من حالة البوت...`);
-    
+
     // ✅ التحقق من حالة البوت قبل الإرسال
     const botEnabled = await isBotEnabled();
     
     if (!botEnabled) {
-      console.log(`⏸️ البوت متوقف مؤقتاً - لن يتم إرسال التوصيات`);
-      console.log(`   💡 يمكنك تشغيل البوت من لوحة التحكم في التطبيق`);
+
     } else {
-      console.log(`✅ البوت مفعّل - جاري إرسال التوصية...`);
-      console.log(`\n📤 إرسال أفضل توصية:`);
-      console.log(`   • ${bestSignal.symbol} ${bestSignal.direction}`);
-      console.log(`   • إطار زمني: ${bestSignal.timeframe}`);
-      console.log(`   • ثقة: ${bestSignal.confidence}%`);
-      
+
       const sent = await sendTelegramMessage(bestSignal);
       
       if (sent) {
-        console.log(`✅ تم الإرسال بنجاح إلى Telegram`);
+
         // تحديث إحصائيات البوت
         await updateBotStats();
       } else {
-        console.log(`❌ فشل الإرسال - سيتم المحاولة في الدورة القادمة`);
+
       }
     }
   } else {
-    console.log(`\n⚠️ لا توجد توصيات قوية في هذه الدورة`);
-    console.log(`   السبب: جميع الإشارات أقل من 60% ثقة أو أقل من إشارتين`);
-    console.log(`   سيتم التحليل مجدداً بعد دقيقتين`);
+
   }
   
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  console.log(`\n⏱️ مدة التحليل: ${duration} ثانية`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
 }
 
 // تشغيل كل دقيقتين بالضبط (21:02:00, 21:04:00, إلخ)
 async function startCronJob() {
-  console.log('⏰ بدء Cron Job - كل دقيقتين بالضبط');
-  
+
   // حساب الوقت حتى الدقيقة الزوجية القادمة
   const now = new Date();
   const currentMinute = now.getMinutes();
@@ -161,9 +141,7 @@ async function startCronJob() {
   // حساب الدقائق المتبقية حتى الدقيقة الزوجية القادمة
   const minutesUntilNext = currentMinute % 2 === 0 ? 0 : 1;
   const secondsUntilNext = minutesUntilNext * 60 - currentSecond;
-  
-  console.log(`⏱️ الانتظار ${secondsUntilNext} ثانية حتى الدقيقة الزوجية القادمة...`);
-  
+
   // انتظر حتى الدقيقة الزوجية القادمة
   setTimeout(async () => {
     // تشغيل فوري عند الدقيقة الزوجية
@@ -178,7 +156,7 @@ async function startCronJob() {
 
 // Keep-Alive لمنع Sleep Mode في Render
 setInterval(() => {
-  console.log('💓 Keep-Alive ping - ' + new Date().toLocaleTimeString());
+
 }, 10 * 60 * 1000); // كل 10 دقائق
 
 // إنشاء HTTP Server لـ Render (يتطلب Port)
@@ -199,16 +177,11 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🎯 Binary.com Trading Signals - Render');
-  console.log('📡 اتصال حقيقي بـ Binary.com WebSocket');
-  console.log('🔄 تحديث كل دقيقتين');
-  console.log(`🌐 HTTP Server listening on port ${PORT}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
 });
 
 // بدء Cron Job
 startCronJob().catch(error => {
-  console.error('❌ خطأ فادح:', error);
+
   process.exit(1);
 });

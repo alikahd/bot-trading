@@ -45,20 +45,18 @@ class PaymentService {
     // استخدام الـ cache إذا كان حديثاً
     const now = Date.now();
     if (!noCache && this.paymentsCache && (now - this.cacheTimestamp) < this.cacheDuration) {
-      console.log('✅ استخدام الـ cache:', this.paymentsCache.length);
+
       return this.paymentsCache;
     }
     
     try {
-      console.log('🔍 جلب المدفوعات (مع retry)...');
-      
+
       // محاولة 1: استعلام بسيط
       let payments = null;
       let error = null;
       
       try {
         // ✅ استعلام بسيط ومباشر - بدون retry معقد
-        console.log('🚀 جلب المدفوعات مباشرة...');
 
         const { data: paymentsData, error: paymentsError } = await supabase
           .from('payments')
@@ -84,7 +82,7 @@ class PaymentService {
             }
           }
         } catch (ue) {
-          console.warn('⚠️ تعذر جلب معلومات المستخدمين، سيتم عرض المدفوعات بدون التفاصيل:', ue);
+
         }
 
         // دمج البيانات
@@ -100,42 +98,32 @@ class PaymentService {
 
         error = null;
 
-        console.log('📦 نتيجة الاستعلام:', {
-          hasData: !!payments,
-          dataLength: payments?.length || 0
-        });
-
         if (payments && payments.length > 0) {
-          console.log('✅ تم جلب المدفوعات:', payments.length);
+
         }
       } catch (e: any) {
-        console.error('❌ فشلت المحاولة:', e.message);
-        console.error('❌ تفاصيل الخطأ:', e);
 
         error = e;
         payments = null;
       }
 
       if (error) {
-        console.error('❌ خطأ في جلب المدفوعات:', error);
-        
+
         // إرجاع cache إذا موجود
         if (this.paymentsCache && this.paymentsCache.length > 0) {
-          console.log('✅ استخدام البيانات المحفوظة مؤقتاً');
+
           return this.paymentsCache;
         }
         
         // إرجاع مصفوفة فارغة بدلاً من رسالة الصيانة
-        console.log('⚠️ لا يوجد cache - إرجاع مصفوفة فارغة');
+
         return [];
       }
 
       if (!payments || payments.length === 0) {
-        console.log('⚠️ لا توجد مدفوعات');
+
         return [];
       }
-
-      console.log('✅ تم جلب المدفوعات:', payments.length);
 
       // تنسيق البيانات (بدون الصور - سيتم جلبها عند الحاجة)
       const formattedPayments = payments.map((p: any) => ({
@@ -168,7 +156,7 @@ class PaymentService {
 
       return formattedPayments;
     } catch (error) {
-      console.error('❌ Error fetching payments:', error);
+
       // إرجاع مصفوفة فارغة بدلاً من رمي خطأ
       return [];
     }
@@ -177,30 +165,27 @@ class PaymentService {
   // تحديث حالة الدفع مع تفعيل الاشتراك تلقائياً
   async updatePaymentStatus(paymentId: string, status: 'pending' | 'completed' | 'failed' | 'reviewing'): Promise<void> {
     try {
-      console.log('🔄 تحديث حالة الدفع:', { paymentId, status });
-      
-      const { data, error } = await supabase
+
+      const { error } = await supabase
         .rpc('update_payment_status_with_subscription', {
           payment_id: paymentId,
           new_status: status
         });
 
       if (error) {
-        console.error('❌ خطأ في تحديث حالة الدفع:', error);
+
         throw error;
       }
 
-      console.log('✅ تم تحديث حالة الدفع بنجاح مع تفعيل الاشتراك:', data);
-      
       // إشعار إضافي للمدير وتفعيل المستخدم
       if (status === 'completed') {
-        console.log('🎉 تم تفعيل الاشتراك تلقائياً!');
+
         await this.activateUserAccount(paymentId);
       } else if (status === 'failed') {
-        console.log('❌ تم إلغاء الاشتراك تلقائياً!');
+
       }
     } catch (error) {
-      console.error('Error updating payment status:', error);
+
       throw error;
     }
   }
@@ -208,8 +193,7 @@ class PaymentService {
   // تفعيل حساب المستخدم عند قبول الدفع
   private async activateUserAccount(paymentId: string): Promise<void> {
     try {
-      console.log('🔓 تفعيل حساب المستخدم للدفع:', paymentId);
-      
+
       // جلب معرف المستخدم من الدفع
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
@@ -218,7 +202,7 @@ class PaymentService {
         .single();
 
       if (paymentError || !payment) {
-        console.error('❌ فشل في جلب بيانات الدفع:', paymentError);
+
         return;
       }
 
@@ -234,21 +218,19 @@ class PaymentService {
         .eq('id', payment.user_id);
 
       if (updateError) {
-        console.error('❌ فشل في تفعيل حساب المستخدم:', updateError);
+
         return;
       }
 
-      console.log('✅ تم تفعيل حساب المستخدم بنجاح');
     } catch (error) {
-      console.error('❌ خطأ في تفعيل حساب المستخدم:', error);
+
     }
   }
 
   // إنشاء دفع جديد
   async createPayment(paymentData: Partial<Payment>): Promise<Payment> {
     try {
-      console.log('💳 إنشاء دفع جديد:', paymentData);
-      
+
       const { data: paymentId, error } = await supabase
         .rpc('create_payment', {
           p_user_id: paymentData.user_id,
@@ -260,7 +242,7 @@ class PaymentService {
         });
 
       if (error) {
-        console.error('❌ خطأ في إنشاء الدفع:', error);
+
         throw error;
       }
 
@@ -272,14 +254,13 @@ class PaymentService {
         .single();
 
       if (fetchError) {
-        console.error('❌ خطأ في جلب الدفع المنشأ:', fetchError);
+
         throw fetchError;
       }
 
-      console.log('✅ تم إنشاء الدفع بنجاح:', paymentId);
       return createdPayment;
     } catch (error) {
-      console.error('Error creating payment:', error);
+
       throw error;
     }
   }
@@ -287,65 +268,42 @@ class PaymentService {
   // رفع صورة تأكيد الدفع
   async uploadPaymentProof(paymentId: string, file: File): Promise<string> {
     try {
-      console.log('📤 بدء رفع صورة تأكيد الدفع...');
-      console.log('🔍 معرف الدفع:', paymentId);
-      console.log('📁 تفاصيل الملف:', {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: new Date(file.lastModified).toISOString()
-      });
-      
+
       // رفع الصورة إلى Supabase Storage
       const fileName = `payment-proofs/${paymentId}-${Date.now()}.${file.name.split('.').pop()}`;
-      console.log('📂 اسم الملف المولد:', fileName);
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
+
+      const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(fileName, file);
 
       if (uploadError) {
-        console.error('❌ خطأ في رفع الصورة:', uploadError);
-        console.error('🔍 تفاصيل الخطأ:', {
-          message: uploadError.message,
-          name: uploadError.name,
-          stack: uploadError.stack
-        });
+
         throw uploadError;
       }
-
-      console.log('✅ تم رفع الصورة بنجاح:', uploadData);
 
       // الحصول على رابط الصورة
       const { data: urlData } = supabase.storage
         .from('payment-proofs')
         .getPublicUrl(fileName);
 
-      const imageUrl = urlData.publicUrl;
-      console.log('🔗 رابط الصورة المولد:', imageUrl);
+      const publicUrl = urlData.publicUrl;
 
       // تحديث الدفع بمعلومات الصورة
-      console.log('🔄 تحديث قاعدة البيانات...');
-      const { data: updateData, error: updateError } = await supabase
+
+      const { error: updateError } = await supabase
         .from('payments')
-        .update({ 
-          proof_image: imageUrl,
-          status: 'reviewing',
-          updated_at: new Date().toISOString()
-        })
+        .update({ receipt_url: publicUrl })
         .eq('id', paymentId)
         .select();
 
       if (updateError) {
-        console.error('❌ خطأ في تحديث معلومات الصورة:', updateError);
+
         throw updateError;
       }
 
-      console.log('✅ تم تحديث قاعدة البيانات بنجاح:', updateData);
-      console.log('✅ تم رفع صورة تأكيد الدفع بنجاح');
-      return imageUrl;
+      return publicUrl;
     } catch (error) {
-      console.error('Error uploading payment proof:', error);
+
       throw error;
     }
   }
@@ -353,20 +311,18 @@ class PaymentService {
   // حساب إحصائيات المدفوعات
   async getPaymentStats(): Promise<PaymentStats> {
     try {
-      console.log('📊 حساب إحصائيات المدفوعات...');
-      
+
       const { data, error } = await supabase
         .rpc('get_payment_statistics');
 
       if (error) {
-        console.error('❌ خطأ في حساب الإحصائيات:', error);
+
         throw error;
       }
 
-      console.log('✅ تم حساب الإحصائيات بنجاح:', data);
       return data;
     } catch (error) {
-      console.error('Error calculating payment stats:', error);
+
       throw error;
     }
   }
@@ -374,8 +330,7 @@ class PaymentService {
   // جلب صورة إثبات الدفع لدفعة معينة
   async getPaymentProofImage(paymentId: string): Promise<{ crypto_proof_image?: string; proof_image?: string } | null> {
     try {
-      console.log('🖼️ جلب صورة إثبات الدفع:', paymentId);
-      
+
       const { data, error } = await supabase
         .from('payments')
         .select('crypto_proof_image,proof_image')
@@ -383,14 +338,13 @@ class PaymentService {
         .single();
       
       if (error) {
-        console.error('❌ خطأ في جلب الصورة:', error);
+
         return null;
       }
-      
-      console.log('✅ تم جلب الصورة بنجاح');
+
       return data;
     } catch (error) {
-      console.error('Error fetching payment proof image:', error);
+
       return null;
     }
   }
@@ -412,7 +366,7 @@ class PaymentService {
         return matchesSearch && matchesStatus && matchesMethod;
       });
     } catch (error) {
-      console.error('Error searching payments:', error);
+
       throw error;
     }
   }
@@ -420,13 +374,12 @@ class PaymentService {
   // التحقق من حالة دفع مستخدم معين
   async checkUserPaymentStatus(userId: string, paymentId?: string): Promise<{ status: string; message?: string; paymentId?: string }> {
     try {
-      console.log('🔍 التحقق من حالة دفع المستخدم:', userId);
-      
+
       // 1) إذا توفّر paymentId استخدمه مباشرة (أخف وأسرع)
       let paymentData: any = null;
       let paymentError: any = null;
       if (paymentId) {
-        console.log('🎯 التحقق بواسطة paymentId المباشر:', paymentId);
+
         const byId = await supabase
           .from('payments')
           .select('id, user_id, status, admin_review_status, admin_review_notes, created_at, updated_at')
@@ -444,9 +397,6 @@ class PaymentService {
         paymentError = rpcError;
         paymentData = paymentDataArray && paymentDataArray.length > 0 ? paymentDataArray[0] : null;
 
-        console.log('🔍 استعلام الدفع عبر RPC');
-        console.log('📦 البيانات المستلمة:', paymentData);
-
         // إذا لم يوجد، جلب آخر دفع بشكل عام
         if (!paymentData) {
           const result = await supabase
@@ -463,34 +413,29 @@ class PaymentService {
       }
 
       if (paymentError || !paymentData) {
-        console.error('❌ خطأ في جلب حالة الدفع:', paymentError);
+
         return { status: 'pending', message: 'لم يتم العثور على دفعات' };
       }
 
       // لا حاجة لجلب بيانات المستخدم لكل تحقق، نقرر الحالة من الدفع مباشرة
-      console.log('📊 بيانات الدفع:', {
-        payment_status: paymentData.status,
-        admin_review_status: paymentData.admin_review_status,
-        payment_id: paymentData.id
-      });
 
       // التحقق من حالة المراجعة والمستخدم
       if (paymentData.admin_review_status === 'approved' || paymentData.status === 'completed') {
-        console.log('✅ الدفع موافق عليه والمستخدم نشط');
+
         return { 
           status: 'approved', 
           message: paymentData.admin_review_notes || 'تمت الموافقة على دفعتك بنجاح',
           paymentId: paymentData.id
         };
       } else if (paymentData.admin_review_status === 'rejected' || paymentData.status === 'failed') {
-        console.log('❌ الدفع مرفوض');
+
         return { 
           status: 'rejected', 
           message: paymentData.admin_review_notes || 'تم رفض دفعتك. يرجى التواصل مع الدعم',
           paymentId: paymentData.id
         };
       } else {
-        console.log('⏳ الدفع قيد المراجعة');
+
         return { 
           status: 'pending', 
           message: 'دفعتك قيد المراجعة من قبل الإدارة',
@@ -498,7 +443,7 @@ class PaymentService {
         };
       }
     } catch (error) {
-      console.error('Error checking payment status:', error);
+
       return { status: 'pending', message: 'حدث خطأ في التحقق من الحالة' };
     }
   }

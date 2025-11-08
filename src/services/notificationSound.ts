@@ -20,9 +20,9 @@ class NotificationSoundService {
     try {
       // لا نحتاج لإنشاء Audio element هنا
       // سنستخدم Web Audio API مباشرة في play()
-      console.log('✅ تم تهيئة خدمة التنبيهات الصوتية');
+
     } catch (error) {
-      console.error('❌ فشل تهيئة الصوت:', error);
+
     }
   }
 
@@ -31,20 +31,18 @@ class NotificationSoundService {
    */
   private playBeepSound(): void {
     try {
-      console.log('🎵 بدء إنشاء Web Audio Context...');
-      
+
       // إنشاء Audio Context
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       
       if (!AudioContext) {
-        console.error('❌ Web Audio API غير مدعوم في هذا المتصفح');
+
         this.playFallbackSound();
         return;
       }
       
       const audioContext = new AudioContext();
-      console.log(`✅ Audio Context تم إنشاؤه - الحالة: ${audioContext.state}`);
-      
+
       // إنشاء oscillator (مولد النغمة)
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
@@ -72,26 +70,20 @@ class NotificationSoundService {
       
       // Fade out ناعم جداً
       gainNode.gain.linearRampToValueAtTime(0, currentTime + totalDuration);
-      
-      console.log('🎶 تشغيل نغمة هادئة ونقية (523Hz - C5)');
-      
+
       // تشغيل الصوت
       oscillator.start(currentTime);
       oscillator.stop(currentTime + totalDuration);
-      
-      console.log('✅ تم تشغيل صوت التنبيه بنجاح (Web Audio API)');
-      
+
       // إغلاق context بعد انتهاء الصوت
       setTimeout(() => {
         audioContext.close();
-        console.log('🔚 تم إغلاق Audio Context');
+
       }, (totalDuration + 0.1) * 1000);
       
-    } catch (error) {
-      console.error('❌ فشل تشغيل صوت beep:', error);
-      console.error('📋 تفاصيل الخطأ:', error);
+    } catch (_err) {
       // محاولة بديلة باستخدام Audio element
-      console.log('🔄 محاولة الصوت البديل...');
+
       this.playFallbackSound();
     }
   }
@@ -101,36 +93,32 @@ class NotificationSoundService {
    */
   private playFallbackSound(): void {
     try {
-      console.log('🎵 محاولة الصوت البديل (Audio element)...');
-      
+
       if (!this.audio) {
-        console.log('📝 إنشاء Audio element جديد...');
+
         this.audio = new Audio();
         // استخدام data URL لصوت بسيط
         this.audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKnl8LVkHAU2kdXzzn0vBSJ1xe/glEILElyx6OyrWBUIQ5zd8sFuJAUuhM/z24s4BxlqvvHlnU4LDlCp5fC1ZBwFNpHV88+ALwUhcsXv4ZVDCxFbr+frrVkVB0Kb3fLCcCUFLoTP89uLOAcZar7x5Z1OCw5QqeXwtWQcBTaR1fPPgC8FIXLF7+GVQwsRW6/n661ZFQdCm93ywm8lBS6Ez/PbizgHGWq+8eWdTgsOUKnl8LVkHAU2kdXzz4AvBSFyxe/hlUMLEVuv5+utWRUHQpvd8sJvJQUuhM/z24s4BxlqvvHlnU4LDlCp5fC1ZBwFNpHV88+ALwUhcsXv4ZVDCxFbr+frrVkVB0Kb3fLCbyUFLoTP89uLOAcZar7x5Z1OCw5QqeXwtWQcBTaR1fPPgC8FIXLF7+GVQwsRW6/n661ZFQdCm93ywm8lBS6Ez/PbizgHGWq+8eWdTgsOUKnl8LVkHAU2kdXzz4AvBSFyxe/hlUMLEVuv5+utWRUHQpvd8sJvJQUuhM/z24s4BxlqvvHlnU4LDlCp5fC1ZBwFNpHV88+ALwUhcsXv4ZVDCxFbr+frrVkVB0Kb3fLCbyUFLoTP89uLOAcZar7x5Z1OCw5QqeXwtWQcBTaR1fPPgC8FIXLFw==';
         this.audio.volume = 0.7; // مستوى صوت أعلى
-        console.log(`✅ Audio element تم إنشاؤه - مستوى الصوت: ${this.audio.volume}`);
+
       }
       
       this.audio.currentTime = 0;
-      console.log('▶️ محاولة تشغيل الصوت...');
-      
+
       const playPromise = this.audio.play();
       
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            console.log('✅ تم تشغيل الصوت البديل بنجاح!');
+
           })
-          .catch(err => {
-            console.error('❌ فشل تشغيل الصوت البديل:', err);
-            console.error('💡 نصيحة: تأكد من الضغط على زر الصوت 🔊 أولاً لتفعيل الصوت');
+          .catch(_err => {
+
           });
       }
       
     } catch (error) {
-      console.error('❌ فشل تشغيل الصوت البديل:', error);
-      console.error('📋 تفاصيل الخطأ:', error);
+
     }
   }
 
@@ -139,19 +127,17 @@ class NotificationSoundService {
    */
   public play(): void {
     if (!this.isEnabled) {
-      console.log('🔇 الصوت معطل - لن يتم التشغيل');
+
       return;
     }
 
     // منع التنبيهات المتكررة بسرعة
     const now = Date.now();
     if (now - this.lastNotificationTime < this.minTimeBetweenNotifications) {
-      console.log('⏱️ انتظار بين التنبيهات...');
+
       return;
     }
 
-    console.log('🔊 محاولة تشغيل صوت التنبيه...');
-    
     // استخدام Web Audio API مباشرة
     this.playBeepSound();
     this.lastNotificationTime = now;
@@ -162,7 +148,7 @@ class NotificationSoundService {
    */
   public setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
-    console.log(`🔔 التنبيهات الصوتية: ${enabled ? 'مفعلة' : 'معطلة'}`);
+
   }
 
   /**

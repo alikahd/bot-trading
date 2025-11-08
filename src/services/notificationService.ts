@@ -1,4 +1,11 @@
-import { BinarySignal } from './binaryOptionsSignals';
+// تعريف بسيط لإشارة التداول
+interface BinarySignal {
+  id: string;
+  symbol: string;
+  direction: 'CALL' | 'PUT';
+  confidence: number;
+  expiryTime: number;
+}
 
 class NotificationService {
   private audioContext: AudioContext | null = null;
@@ -19,7 +26,7 @@ class NotificationService {
       try {
         this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       } catch (error) {
-        console.warn('Audio notifications not supported:', error);
+
       }
     }
   }
@@ -43,7 +50,7 @@ class NotificationService {
       this.showBrowserNotification(signal);
 
     } catch (error) {
-      console.error('خطأ في تشغيل التنبيه الصوتي:', error);
+
     }
   }
 
@@ -153,7 +160,7 @@ class NotificationService {
   // طلب أذونات الإشعارات
   async requestPermissions(): Promise<boolean> {
     if (!('Notification' in window)) {
-      console.warn('المتصفح لا يدعم الإشعارات');
+
       return false;
     }
 

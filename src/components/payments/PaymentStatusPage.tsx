@@ -36,7 +36,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = ({ userId, on
     
     // تحديث تلقائي كل 3 ثوانِ للتحقق من التحديثات
     const interval = setInterval(() => {
-      console.log('🔄 تحديث تلقائي لحالة المدفوعات...');
+
       loadUserPayments();
     }, 3000);
     
@@ -46,27 +46,17 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = ({ userId, on
   const loadUserPayments = async () => {
     try {
       setLoading(true);
-      console.log('🔍 جلب مدفوعات المستخدم:', userId);
-      console.log('⏰ الوقت الحالي:', new Date().toLocaleTimeString());
-      
+
       // جلب جميع المدفوعات وتصفيتها للمستخدم الحالي
       const allPayments = await paymentService.getAllPayments();
       const userPayments = allPayments.filter(payment => payment.user_id === userId);
-      
-      console.log('✅ تم جلب مدفوعات المستخدم:', userPayments.length);
-      console.log('📊 تفاصيل المدفوعات:', userPayments.map(p => ({
-        id: p.id.substring(0, 8),
-        status: p.status,
-        amount: p.amount,
-        updated_at: p.updated_at
-      })));
-      
+
       // التحقق من تحديث الحالة وإشعار المستخدم
       const previousPayments = payments;
       userPayments.forEach(newPayment => {
         const oldPayment = previousPayments.find(p => p.id === newPayment.id);
         if (oldPayment && oldPayment.status !== newPayment.status) {
-          console.log(`🔔 تحديث حالة الدفع: ${oldPayment.status} → ${newPayment.status}`);
+
           if (newPayment.status === 'completed') {
             alert(`🎉 تم قبول دفعتك!
             
@@ -79,7 +69,7 @@ export const PaymentStatusPage: React.FC<PaymentStatusPageProps> = ({ userId, on
       
       setPayments(userPayments);
     } catch (error) {
-      console.error('❌ خطأ في جلب المدفوعات:', error);
+
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -76,7 +76,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
       // إذا حاول المستخدم الرجوع، نمنعه ونعيده للأمام
       if (event.state?.preventBack) {
         window.history.pushState({ page: 'register', preventBack: true }, '', window.location.pathname);
-        console.log('🚫 تم منع الرجوع للخلف - استخدم زر الرجوع في الصفحة');
+
       }
     };
 
@@ -115,29 +115,26 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
     setUsernameCheckResult(null);
 
     try {
-      console.log('🔍 التحقق من توفر اسم المستخدم:', username);
-      
+
       const { data, error } = await supabase
         .from('users')
         .select('id, username')
         .eq('username', username);
 
-      console.log('📊 نتيجة البحث:', { data, error });
-
       if (error) {
-        console.error('❌ خطأ في البحث:', error);
+
         setUsernameCheckResult(null);
       } else if (data && data.length > 0) {
         // يوجد مستخدم بهذا الاسم - مأخوذ
-        console.log('❌ اسم المستخدم مأخوذ');
+
         setUsernameCheckResult('taken');
       } else {
         // لا يوجد مستخدم بهذا الاسم - متاح
-        console.log('✅ اسم المستخدم متاح');
+
         setUsernameCheckResult('available');
       }
     } catch (error) {
-      console.error('❌ خطأ في التحقق من اسم المستخدم:', error);
+
       setUsernameCheckResult(null);
     } finally {
       setIsCheckingUsername(false);
@@ -436,12 +433,12 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
       });
 
       if (error) {
-        console.error('❌ خطأ في Google OAuth:', error);
+
         alert(t('register.error.googleFailed'));
       }
       // سيتم التوجيه تلقائياً بواسطة Supabase
     } catch (error) {
-      console.error('❌ خطأ في Google signup:', error);
+
       alert(t('register.error.googleFailed'));
     } finally {
       setGoogleLoading(false);

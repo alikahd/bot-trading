@@ -31,7 +31,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onNavigateToRegis
       // إذا حاول المستخدم الرجوع، نمنعه ونعيده للأمام
       if (event.state?.preventBack) {
         window.history.pushState({ page: 'login', preventBack: true }, '', window.location.pathname);
-        console.log('🚫 تم منع الرجوع للخلف - استخدم زر الرجوع في الصفحة');
+
       }
     };
 
@@ -91,12 +91,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onNavigateToRegis
       });
 
       if (error) {
-        console.error('❌ خطأ في Google OAuth:', error);
+
         alert(t('login.error.googleFailed'));
       }
       // سيتم التوجيه تلقائياً بواسطة Supabase
     } catch (error) {
-      console.error('❌ خطأ في Google login:', error);
+
       alert(t('login.error.googleFailed'));
     } finally {
       setGoogleLoading(false);

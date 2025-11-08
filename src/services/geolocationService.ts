@@ -23,33 +23,31 @@ class GeolocationService {
     try {
       // التحقق من الـ cache أولاً
       if (this.cachedLocation && Date.now() < this.cacheExpiry) {
-        console.log('🌍 استخدام الموقع المحفوظ:', this.cachedLocation);
+
         return this.cachedLocation;
       }
 
       // محاولة الحصول على الموقع من localStorage
       const savedLocation = this.getLocationFromStorage();
       if (savedLocation) {
-        console.log('💾 استخدام الموقع من localStorage:', savedLocation);
+
         this.cachedLocation = savedLocation;
         this.cacheExpiry = Date.now() + this.CACHE_DURATION;
         return savedLocation;
       }
-
-      console.log('🔍 جلب الموقع الجغرافي من IP...');
 
       // محاولة استخدام ipapi.co (مجاني - 1000 طلب/يوم)
       let location = await this.fetchFromIpApi();
       
       // إذا فشل، محاولة ipify + ip-api.com
       if (!location) {
-        console.log('⚠️ ipapi.co فشل، محاولة ipify + ip-api.com...');
+
         location = await this.fetchFromIpify();
       }
 
       // إذا فشل، محاولة geojs.io
       if (!location) {
-        console.log('⚠️ ipify فشل، محاولة geojs.io...');
+
         location = await this.fetchFromGeoJS();
       }
 
@@ -58,15 +56,13 @@ class GeolocationService {
         this.cachedLocation = location;
         this.cacheExpiry = Date.now() + this.CACHE_DURATION;
         this.saveLocationToStorage(location);
-        console.log('✅ تم الحصول على الموقع النهائي:', location);
-        console.log('🌍 الدولة:', location.country, '| الكود:', location.countryCode);
+
         return location;
       }
 
-      console.error('❌ فشلت جميع محاولات الحصول على الموقع الجغرافي');
       return null;
     } catch (error) {
-      console.error('❌ خطأ في الحصول على الموقع:', error);
+
       return null;
     }
   }
@@ -76,20 +72,19 @@ class GeolocationService {
    */
   private async fetchFromIpApi(): Promise<GeolocationData | null> {
     try {
-      console.log('🔍 محاولة جلب الموقع من ipapi.co...');
+
       const response = await fetch('https://ipapi.co/json/', {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
 
       if (!response.ok) {
-        console.warn('⚠️ ipapi.co استجابة غير صحيحة:', response.status);
+
         throw new Error('Failed to fetch from ipapi.co');
       }
 
       const data = await response.json();
-      console.log('📊 بيانات ipapi.co:', data);
-      
+
       if (data.country_name && data.country_code) {
         return {
           country: data.country_name,
@@ -101,7 +96,7 @@ class GeolocationService {
 
       return null;
     } catch (error) {
-      console.warn('⚠️ ipapi.co فشل:', error);
+
       return null;
     }
   }
@@ -111,17 +106,15 @@ class GeolocationService {
    */
   private async fetchFromIpify(): Promise<GeolocationData | null> {
     try {
-      console.log('🔍 محاولة جلب الموقع من ipify + ip-api.com...');
+
       // الحصول على IP من ipify
       const ipResponse = await fetch('https://api.ipify.org?format=json');
       const ipData = await ipResponse.json();
       const ip = ipData.ip;
-      console.log('📍 IP المكتشف:', ip);
 
       // الحصول على معلومات الموقع من ip-api.com
       const locationResponse = await fetch(`http://ip-api.com/json/${ip}`);
       const locationData = await locationResponse.json();
-      console.log('📊 بيانات ip-api.com:', locationData);
 
       if (locationData.status === 'success' && locationData.country && locationData.countryCode) {
         return {
@@ -134,7 +127,7 @@ class GeolocationService {
 
       return null;
     } catch (error) {
-      console.warn('⚠️ ipify + ip-api.com فشل:', error);
+
       return null;
     }
   }
@@ -158,7 +151,7 @@ class GeolocationService {
 
       return null;
     } catch (error) {
-      console.warn('⚠️ geojs.io فشل:', error);
+
       return null;
     }
   }
@@ -174,7 +167,7 @@ class GeolocationService {
       };
       localStorage.setItem('user_geolocation', JSON.stringify(data));
     } catch (error) {
-      console.warn('⚠️ فشل حفظ الموقع في localStorage:', error);
+
     }
   }
 
@@ -198,7 +191,7 @@ class GeolocationService {
       localStorage.removeItem('user_geolocation');
       return null;
     } catch (error) {
-      console.warn('⚠️ فشل قراءة الموقع من localStorage:', error);
+
       return null;
     }
   }
@@ -210,7 +203,7 @@ class GeolocationService {
     this.cachedLocation = null;
     this.cacheExpiry = 0;
     localStorage.removeItem('user_geolocation');
-    console.log('🧹 تم مسح cache الموقع الجغرافي');
+
   }
 
   /**

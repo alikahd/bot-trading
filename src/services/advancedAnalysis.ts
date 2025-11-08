@@ -5,7 +5,6 @@
  * يدعم الأطر الزمنية: 1، 2، 3، 5 دقائق مع دقة لا متناهية
  */
 
-
 interface CandleData {
   timestamp: number;
   open: number;
@@ -424,17 +423,16 @@ export class AdvancedAnalysisEngine {
     // ❌ لا استراتيجيات احتياطية - فقط تحليل حقيقي ودقيق
     // فحص الثقة - معايير متوازنة
     if (bestStrategy.totalScore < this.MIN_CONFIDENCE) {
-      console.log(`❌ ${symbol}: رفض - ثقة ${bestStrategy.totalScore}% < ${this.MIN_CONFIDENCE}% (الحد الأدنى)`);
+
       return null;
     }
     
     // فحص جودة البيانات - معايير متوازنة
     if (dataQuality < 60) {
-      console.log(`❌ ${symbol}: رفض - جودة ${dataQuality}% < 60% (الحد الأدنى)`);
+
       return null;
     }
-    
-    console.log(`✅ ${symbol}: قبول - ثقة ${bestStrategy.totalScore}%, جودة ${dataQuality}%`);
+
     // قبول التوصية
     
     // إضافة معلومات جودة البيانات للاستراتيجيات الناجحة
@@ -449,7 +447,7 @@ export class AdvancedAnalysisEngine {
 
     // 🚫 رفض التوصيات ذات الريسك العالي
     if (riskLevel === 'HIGH') {
-      console.log(`❌ ${symbol}: رفض - ريسك عالي`);
+
       return null;
     }
 
@@ -458,23 +456,21 @@ export class AdvancedAnalysisEngine {
 
     // 🚫 رفض التوصيات ذات معدل نجاح أقل من 50%
     if (expectedSuccessRate < 50) {
-      console.log(`❌ ${symbol}: رفض - معدل نجاح ${expectedSuccessRate}% < 50%`);
+
       return null;
     }
 
     // 🚫 رفض التوصيات ذات ثقة أقل من MIN_CONFIDENCE
     if (bestStrategy.totalScore < this.MIN_CONFIDENCE) {
-      console.log(`❌ ${symbol}: رفض - ثقة ${bestStrategy.totalScore}% < ${this.MIN_CONFIDENCE}%`);
+
       return null;
     }
 
     // 🚫 رفض إذا كانت جودة البيانات منخفضة جداً
     if (dataQuality < 60) {
-      console.log(`❌ ${symbol}: رفض - جودة ${dataQuality}% < 60%`);
+
       return null;
     }
-    
-    console.log(`✅ ${symbol}: مقبول نهائياً - ثقة ${bestStrategy.totalScore}%, نجاح ${expectedSuccessRate}%, جودة ${dataQuality}%`);
 
     return {
       symbol,
@@ -519,6 +515,22 @@ export class AdvancedAnalysisEngine {
     // استراتيجية 6: اتباع الاتجاه العام (استراتيجية مساعدة)
     const trendStrategy = this.trendFollowingStrategy(indicators, market);
     if (trendStrategy) strategies.push(trendStrategy);
+
+    // استراتيجية 7: Stochastic Oscillator
+    const stochasticStrategy = this.stochasticStrategy(indicators, market);
+    if (stochasticStrategy) strategies.push(stochasticStrategy);
+
+    // استراتيجية 8: MACD Divergence
+    const macdDivergenceStrategy = this.macdDivergenceStrategy(indicators, market);
+    if (macdDivergenceStrategy) strategies.push(macdDivergenceStrategy);
+
+    // استراتيجية 9: اختراق الحجم
+    const volumeSpikeStrategy = this.volumeSpikeStrategy(indicators, market);
+    if (volumeSpikeStrategy) strategies.push(volumeSpikeStrategy);
+
+    // استراتيجية 10: Williams %R
+    const williamsRStrategy = this.williamsRStrategy(indicators, market);
+    if (williamsRStrategy) strategies.push(williamsRStrategy);
 
     return strategies;
   }
@@ -759,6 +771,186 @@ export class AdvancedAnalysisEngine {
     return direction ? { direction, totalScore: score, reasons } : null;
   }
 
+  /**
+   * 📉 استراتيجية Stochastic Oscillator
+   */
+  private stochasticStrategy(indicators: TechnicalIndicators, _market: MarketAnalysis) {
+    const reasons: string[] = [];
+    let score = 0;
+    let direction: 'CALL' | 'PUT' | null = null;
+
+    // Stochastic في منطقة التشبع البيعي
+    if (indicators.stochastic.k < 20) {
+      direction = 'CALL';
+      score += indicators.stochastic.k < 10 ? 35 : 30;
+      reasons.push(`Stochastic تشبع بيعي ${indicators.stochastic.k.toFixed(1)}`);
+      
+      // تأكيد من RSI
+      if (indicators.rsi < 35) {
+        score += 10;
+        reasons.push('RSI يؤكد التشبع البيعي');
+      }
+    }
+    // Stochastic في منطقة التشبع الشرائي
+    else if (indicators.stochastic.k > 80) {
+      direction = 'PUT';
+      score += indicators.stochastic.k > 90 ? 35 : 30;
+      reasons.push(`Stochastic تشبع شرائي ${indicators.stochastic.k.toFixed(1)}`);
+      
+      // تأكيد من RSI
+      if (indicators.rsi > 65) {
+        score += 10;
+        reasons.push('RSI يؤكد التشبع الشرائي');
+      }
+    }
+
+    // تأكيد من الزخم
+    if (direction === 'CALL' && indicators.momentum > 0) {
+      score += 8;
+      reasons.push('الزخم يدعم الارتداد الصاعد');
+    } else if (direction === 'PUT' && indicators.momentum < 0) {
+      score += 8;
+      reasons.push('الزخم يدعم الارتداد الهابط');
+    }
+
+    return direction && score >= 40 ? { direction, totalScore: score, reasons } : null;
+  }
+
+  /**
+   * 📊 استراتيجية MACD Divergence
+   */
+  private macdDivergenceStrategy(indicators: TechnicalIndicators, market: MarketAnalysis) {
+    const reasons: string[] = [];
+    let score = 0;
+    let direction: 'CALL' | 'PUT' | null = null;
+
+    // MACD إيجابي قوي
+    if (indicators.macd.histogram > 0.5) {
+      direction = 'CALL';
+      score += 35;
+      reasons.push('MACD إيجابي قوي');
+      
+      // تأكيد من تقاطع MACD
+      if (indicators.macd.macd > indicators.macd.signal) {
+        score += 15;
+        reasons.push('تقاطع MACD صاعد');
+      }
+    }
+    // MACD سلبي قوي
+    else if (indicators.macd.histogram < -0.5) {
+      direction = 'PUT';
+      score += 35;
+      reasons.push('MACD سلبي قوي');
+      
+      // تأكيد من تقاطع MACD
+      if (indicators.macd.macd < indicators.macd.signal) {
+        score += 15;
+        reasons.push('تقاطع MACD هابط');
+      }
+    }
+
+    // تأكيد من قوة الاتجاه
+    if (direction === 'CALL' && market.trend === 'bullish') {
+      score += 10;
+      reasons.push('الاتجاه العام صاعد');
+    } else if (direction === 'PUT' && market.trend === 'bearish') {
+      score += 10;
+      reasons.push('الاتجاه العام هابط');
+    }
+
+    return direction && score >= 40 ? { direction, totalScore: score, reasons } : null;
+  }
+
+  /**
+   * 🎯 استراتيجية اختراق الحجم
+   */
+  private volumeSpikeStrategy(indicators: TechnicalIndicators, market: MarketAnalysis) {
+    const reasons: string[] = [];
+    let score = 0;
+    let direction: 'CALL' | 'PUT' | null = null;
+
+    // ارتفاع مفاجئ في الحجم مع اتجاه صاعد
+    if (market.volume_trend === 'increasing' && market.trend === 'bullish') {
+      direction = 'CALL';
+      score += 30;
+      reasons.push('ارتفاع الحجم مع اتجاه صاعد');
+      
+      // تأكيد من الزخم
+      if (indicators.momentum > 1) {
+        score += 15;
+        reasons.push('زخم قوي يدعم الاختراق');
+      }
+      
+      // تأكيد من RSI
+      if (indicators.rsi > 50 && indicators.rsi < 70) {
+        score += 10;
+        reasons.push('RSI في منطقة صحية');
+      }
+    }
+    // ارتفاع مفاجئ في الحجم مع اتجاه هابط
+    else if (market.volume_trend === 'increasing' && market.trend === 'bearish') {
+      direction = 'PUT';
+      score += 30;
+      reasons.push('ارتفاع الحجم مع اتجاه هابط');
+      
+      // تأكيد من الزخم
+      if (indicators.momentum < -1) {
+        score += 15;
+        reasons.push('زخم قوي يدعم الهبوط');
+      }
+      
+      // تأكيد من RSI
+      if (indicators.rsi < 50 && indicators.rsi > 30) {
+        score += 10;
+        reasons.push('RSI في منطقة صحية');
+      }
+    }
+
+    return direction && score >= 40 ? { direction, totalScore: score, reasons } : null;
+  }
+
+  /**
+   * 🔥 استراتيجية Williams %R
+   */
+  private williamsRStrategy(indicators: TechnicalIndicators, market: MarketAnalysis) {
+    const reasons: string[] = [];
+    let score = 0;
+    let direction: 'CALL' | 'PUT' | null = null;
+
+    // Williams %R في منطقة التشبع البيعي
+    if (indicators.williams_r < -80) {
+      direction = 'CALL';
+      score += indicators.williams_r < -90 ? 35 : 30;
+      reasons.push(`Williams %R تشبع بيعي ${indicators.williams_r.toFixed(1)}`);
+      
+      // تأكيد من Stochastic
+      if (indicators.stochastic.k < 25) {
+        score += 12;
+        reasons.push('Stochastic يؤكد التشبع');
+      }
+    }
+    // Williams %R في منطقة التشبع الشرائي
+    else if (indicators.williams_r > -20) {
+      direction = 'PUT';
+      score += indicators.williams_r > -10 ? 35 : 30;
+      reasons.push(`Williams %R تشبع شرائي ${indicators.williams_r.toFixed(1)}`);
+      
+      // تأكيد من Stochastic
+      if (indicators.stochastic.k > 75) {
+        score += 12;
+        reasons.push('Stochastic يؤكد التشبع');
+      }
+    }
+
+    // تأكيد من احتمالية الانعكاس
+    if (direction && market.reversal_probability > 30) {
+      score += 10;
+      reasons.push(`احتمالية انعكاس ${market.reversal_probability.toFixed(1)}%`);
+    }
+
+    return direction && score >= 40 ? { direction, totalScore: score, reasons } : null;
+  }
+
   // ❌ تم حذف الاستراتيجية الاحتياطية نهائياً
   // لا نريد توصيات ضعيفة أو مبنية على افتراضات
   // كل توصية يجب أن تكون مبنية على تحليل فني قوي ومعايير صارمة
@@ -834,7 +1026,6 @@ export class AdvancedAnalysisEngine {
     }
     
     // Logging للتشخيص (اختياري)
-    // console.log(`📊 حساب الريسك: نقاط=${riskScore}, تقلب=${market.volatility.toFixed(2)}, انعكاس=${market.reversal_probability}%, قوة=${market.strength}%, RSI=${indicators.rsi.toFixed(1)} → ${riskLevel}`);
     
     return riskLevel;
   }
@@ -928,7 +1119,6 @@ export class AdvancedAnalysisEngine {
     return Math.min(98, Math.max(60, baseRate));
   }
 
-
   /**
    * 🎯 تحليل رمز واحد - تحليل حقيقي متقدم من Binary.com WebSocket
    */
@@ -942,7 +1132,7 @@ export class AdvancedAnalysisEngine {
 
       // تحذير فقط إذا كان السعر قديم جداً
       if (priceData.priceAge > 10000) {
-        console.warn(`⚠️ ${symbol}: السعر قديم (${(priceData.priceAge / 1000).toFixed(1)}s)`);
+
       }
 
       // إنشاء شموع حقيقية من البيانات التاريخية
@@ -957,7 +1147,7 @@ export class AdvancedAnalysisEngine {
 
       return signal;
     } catch (error) {
-      console.error(`❌ خطأ في تحليل ${symbol}:`, error);
+
       return null;
     }
   }
@@ -979,7 +1169,7 @@ export class AdvancedAnalysisEngine {
       // جلب السعر الحالي من realTimeDataService (Binary.com)
       const realTimeQuotes = await this.getRealTimeQuotes();
       if (!realTimeQuotes || !realTimeQuotes[symbol]) {
-        console.warn(`⚠️ لا توجد بيانات لـ ${symbol} في Binary.com`);
+
         return null;
       }
 
@@ -997,7 +1187,7 @@ export class AdvancedAnalysisEngine {
 
       return { currentPrice, historicalPrices, priceAge };
     } catch (error) {
-      console.error(`خطأ في جلب البيانات لـ ${symbol}:`, error);
+
       return null;
     }
   }
@@ -1022,18 +1212,17 @@ export class AdvancedAnalysisEngine {
       const currentQuotes = realTimeDataService.getCurrentQuotes();
       
       if (Object.keys(currentQuotes).length === 0) {
-        console.warn('⚠️ لا توجد بيانات متاحة من Binary.com WebSocket');
+
         return null;
       }
       
       return currentQuotes;
       
     } catch (error) {
-      console.error('❌ خطأ في جلب البيانات من realTimeDataService:', error);
+
       return null;
     }
   }
-
 
   /**
    * 📈 توليد بيانات تاريخية واقعية بناءً على السعر الحقيقي
@@ -1083,7 +1272,6 @@ export class AdvancedAnalysisEngine {
     return candles;
   }
 
-
   /**
    * 🎯 تحليل جميع الأزواج مع التركيز على الأطر القصيرة - Binary.com
    * 
@@ -1095,10 +1283,7 @@ export class AdvancedAnalysisEngine {
    * - أزواج العملات فقط (Forex)
    */
   async analyzeAllSymbols(): Promise<TradingSignal[]> {
-    console.log('🎯 نظام التوصيات الدقيقة - معايير متوازنة');
-    console.log('📊 معدل نجاح: 50%+ | ثقة: 55%+ | جودة: 60%+');
-    console.log('💱 أزواج العملات فقط (28 زوج)');
-    
+
     // أزواج العملات فقط (Forex Pairs Only) - بيانات حقيقية 24/7
     const symbols = [
       // العملات الرئيسية (Major Pairs) - عادي + OTC
@@ -1137,30 +1322,17 @@ export class AdvancedAnalysisEngine {
     // الحصول على الرموز المتاحة فعلياً
     const realTimeQuotes = await this.getRealTimeQuotes();
     const availableSymbols = realTimeQuotes ? Object.keys(realTimeQuotes) : [];
-    
-    console.log(`📊 رموز متاحة من Binary.com: ${availableSymbols.length}`);
-    console.log(`📋 الرموز: ${availableSymbols.slice(0, 10).join(', ')}${availableSymbols.length > 10 ? '...' : ''}`);
-    
+
     if (availableSymbols.length === 0) {
-      console.error('❌ لا توجد رموز متاحة من Binary.com WebSocket!');
-      console.error('💡 تأكد من أن السيرفر يعمل وأن الاتصال نشط');
+
       return [];
     }
     
     // تحليل فقط الرموز المتاحة
     const symbolsToAnalyze = symbols.filter(s => availableSymbols.includes(s));
-    console.log(`🎯 سيتم تحليل: ${symbolsToAnalyze.length} رمز`);
 
     const analysisPromises = symbolsToAnalyze.map(symbol => this.analyzeSymbol(symbol));
     const results = await Promise.all(analysisPromises);
-
-    const validResults = results.filter(r => r !== null);
-    
-    console.log(`📈 نتائج: ${validResults.length} توصية مقبولة من ${results.length} رمز`);
-    
-    if (validResults.length > 0) {
-      console.log(`✅ تم العثور على ${validResults.length} توصية`);
-    }
 
     let validSignals = results
       .filter((signal): signal is TradingSignal => signal !== null)
@@ -1173,23 +1345,7 @@ export class AdvancedAnalysisEngine {
       .slice(0, 8); // أفضل 8 توصيات فقط
 
     if (validSignals.length === 0) {
-      console.warn('\n⚠️ ========== لا توجد توصيات ==========');
-      console.warn('💡 السبب: جميع الأزواج لم تستوفِ المعايير المتوازنة');
-      console.warn(`\n📊 المعايير المطلوبة:`);
-      console.warn(`   ✓ معدل نجاح: 50%+`);
-      console.warn(`   ✓ ثقة: 55%+`);
-      console.warn(`   ✓ جودة بيانات: 60%+`);
-      console.warn(`   ✓ ريسك: منخفض أو متوسط فقط`);
-      console.warn(`\n📊 الإحصائيات:`);
-      console.warn(`   - أزواج عملات: ${symbolsToAnalyze.length}`);
-      console.warn(`   - توصيات مقبولة: 0`);
-      console.warn(`\n💡 نصيحة: راجع رسائل الرفض أعلاه لمعرفة السبب`);
-    } else {
-      console.log(`\n✅ ========== ${validSignals.length} توصية جيدة ==========`);
-      validSignals.forEach((s, i) => {
-        console.log(`   ${i+1}. ${s.symbol}: ${s.direction} | ثقة: ${s.confidence}% | نجاح: ${s.expected_success_rate}% | ${s.timeframe}م | ريسك: ${s.risk_level}`);
-      });
-      console.log(`\n🎯 جميع التوصيات تستوفي المعايير (50%+ نجاح، 55%+ ثقة، 60%+ جودة)`);
+
     }
     
     return validSignals;

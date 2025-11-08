@@ -66,7 +66,7 @@ export const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({
         }, 3000);
       }
     } catch (error) {
-      console.error('خطأ في إعادة الإرسال:', error);
+
       setError('حدث خطأ أثناء إعادة إرسال رابط التفعيل');
     } finally {
       setIsResending(false);

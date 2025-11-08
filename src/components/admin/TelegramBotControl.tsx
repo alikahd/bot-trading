@@ -40,7 +40,7 @@ export const TelegramBotControl: React.FC = () => {
         setBotStatus(data);
       }
     } catch (error) {
-      console.error('خطأ في جلب حالة البوت:', error);
+
       setMessage({ type: 'error', text: 'فشل جلب حالة البوت' });
     }
   };
@@ -71,7 +71,7 @@ export const TelegramBotControl: React.FC = () => {
         text: newStatus ? '✅ تم تشغيل البوت بنجاح' : '⏸️ تم إيقاف البوت مؤقتاً'
       });
     } catch (error) {
-      console.error('خطأ في تحديث حالة البوت:', error);
+
       setMessage({ type: 'error', text: 'فشل تحديث حالة البوت' });
     } finally {
       setIsLoading(false);

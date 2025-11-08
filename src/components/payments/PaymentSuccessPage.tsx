@@ -31,7 +31,7 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({
           'language': language
         });
       } catch (error) {
-        console.log('Could not set Tawk attributes:', error);
+
       }
       
       // ضبط حجم النافذة قبل الفتح
@@ -105,7 +105,7 @@ export const PaymentSuccessPage: React.FC<PaymentSuccessPageProps> = ({
         }
         
       } catch (error) {
-        console.log('Could not set window size:', error);
+
       }
       
       // فتح نافذة الدردشة

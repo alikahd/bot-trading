@@ -40,7 +40,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
     const refCode = urlParams.get('ref');
     
     if (refCode && !autoAppliedCoupon) {
-      console.log('🔗 تم اكتشاف رمز إحالة من URL:', refCode);
+
       setAutoAppliedCoupon(refCode);
       
       // تطبيق الكوبون تلقائياً بعد تحميل المكون
@@ -75,25 +75,23 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
       }
       
       setCryptoProof(file);
-      console.log('📸 تم اختيار صورة:', file.name, file.size);
-      
+
       // رفع الصورة وحفظ بيانات الدفع
       setProcessing(true);
       
       try {
-        console.log('🔄 بدء تحويل الصورة إلى Base64...');
-        
+
         // تحويل الصورة إلى Base64 باستخدام Promise
         const base64Image = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           
           reader.onload = () => {
-            console.log('✅ تم تحويل الصورة إلى Base64');
+
             resolve(reader.result as string);
           };
           
           reader.onerror = (error) => {
-            console.error('❌ خطأ في قراءة الملف:', error);
+
             reject(error);
           };
           
@@ -114,22 +112,14 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
           userInfo: userInfo,
           planInfo: selectedPlan
         };
-        
-        console.log('📤 تم تجهيز بيانات الدفع:', {
-          method: 'bitcoin',
-          status: 'crypto_pending',
-          amount: selectedPlan.price
-        });
-        
+
         // حفظ بيانات الدفع مؤقتاً بدلاً من الإرسال مباشرة
         setCryptoPaymentData(paymentData);
         setCryptoStatus('uploaded');
         setProcessing(false);
-        
-        console.log('✅ تم رفع الصورة بنجاح - في انتظار تأكيد المستخدم');
-        
+
       } catch (error) {
-        console.error('❌ خطأ في رفع الصورة:', error);
+
         alert('حدث خطأ في رفع الصورة. يرجى المحاولة مرة أخرى.');
         setCryptoStatus('pending');
         setCryptoProof(null);
@@ -146,23 +136,19 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
     setCryptoStatus('verifying');
     
     try {
-      console.log('📤 إرسال الدفع للمعالجة...');
-      
+
       // إرسال البيانات للمعالجة
       await onPaymentComplete('bitcoin', 'crypto_pending', cryptoPaymentData);
-      
-      console.log('✅ تم إرسال الدفع بنجاح');
-      
+
       // إعطاء وقت للـ state للتحديث
       await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
-      console.error('❌ خطأ في إرسال الدفع:', error);
+
       alert('حدث خطأ في إرسال الدفع. يرجى المحاولة مرة أخرى.');
       setCryptoStatus('uploaded');
       setProcessing(false);
     }
   };
-
 
   // نسخ عنوان المحفظة
   const copyToClipboard = (text: string) => {
@@ -277,7 +263,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
                     fullName: userInfo?.fullName
                   }}
                   onSuccess={(details) => {
-                    console.log('✅ Payment successful:', details);
+
                     onPaymentComplete('paypal', 'completed', {
                       method: 'paypal',
                       amount: finalPrice,
@@ -293,16 +279,15 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({
                       paymentDetails: details
                     });
                   }}
-                  onError={(error) => {
-                    console.error('❌ Payment failed:', error);
+                  onError={(_error) => {
+
                     alert('حدث خطأ في الدفع. يرجى المحاولة مرة أخرى.');
                   }}
                 />
 
                 {/* خيار العملات الرقمية */}
                 <div className="border-t border-white/20 pt-6 mt-6">
-                 
-                  
+
                   <button
                     onClick={() => setPaymentMethod(paymentMethod === 'crypto' ? 'paypal' : 'crypto')}
                     className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 text-sm sm:text-base rounded-lg transition-all duration-200 flex items-center justify-center gap-2 sm:gap-2.5 font-semibold whitespace-nowrap ${

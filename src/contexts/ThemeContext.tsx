@@ -16,12 +16,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setTheme = (_: Theme) => {
     // لا يفعل شيء - الوضع المظلم ثابت
-    console.log('Theme is locked to dark mode');
+
   };
 
   const toggleTheme = () => {
     // لا يفعل شيء - الوضع المظلم ثابت
-    console.log('Theme toggle disabled - dark mode only');
+
   };
 
   useEffect(() => {

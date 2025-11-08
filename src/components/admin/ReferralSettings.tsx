@@ -15,7 +15,7 @@ interface ReferralSettingsData {
 }
 
 export const ReferralSettings: React.FC = () => {
-  const { t } = useLanguage();
+  const { t: _t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<ReferralSettingsData>({
@@ -50,7 +50,7 @@ export const ReferralSettings: React.FC = () => {
         setSettings(data);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export const ReferralSettings: React.FC = () => {
       
       await loadSettings();
     } catch (error) {
-      console.error('Error saving settings:', error);
+
       alert('حدث خطأ أثناء حفظ الإعدادات');
     } finally {
       setSaving(false);

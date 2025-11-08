@@ -17,7 +17,7 @@ export const EmailConfirmationCallback: React.FC<EmailConfirmationCallbackProps>
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
-          console.error('خطأ في الحصول على الجلسة:', sessionError);
+
           setStatus('error');
           setMessage('حدث خطأ في التحقق من البريد الإلكتروني');
           return;
@@ -31,10 +31,7 @@ export const EmailConfirmationCallback: React.FC<EmailConfirmationCallbackProps>
 
         // التحقق من أن البريد مؤكد
         if (session.user.email_confirmed_at) {
-          console.log('✅ Email is confirmed, updating database...');
-          console.log('📧 User auth_id:', session.user.id);
-          console.log('📅 Confirmed at:', session.user.email_confirmed_at);
-          
+
           // تحديث حالة المستخدم في قاعدة البيانات
           const { error: updateError } = await supabase
             .from('users')
@@ -47,7 +44,7 @@ export const EmailConfirmationCallback: React.FC<EmailConfirmationCallbackProps>
             .eq('auth_id', session.user.id);
 
           if (updateError) {
-            console.error('خطأ في تحديث حالة المستخدم:', updateError);
+
             setStatus('error');
             setMessage('حدث خطأ في تحديث حالة الحساب');
             return;
@@ -65,7 +62,7 @@ export const EmailConfirmationCallback: React.FC<EmailConfirmationCallbackProps>
           setMessage('البريد الإلكتروني لم يتم تأكيده بعد');
         }
       } catch (error) {
-        console.error('خطأ في معالجة تأكيد البريد:', error);
+
         setStatus('error');
         setMessage('حدث خطأ غير متوقع');
       }

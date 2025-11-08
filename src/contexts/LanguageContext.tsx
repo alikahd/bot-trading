@@ -1185,7 +1185,6 @@ const translations = {
     
     // الفوتر
     'footer.telegram': 'تلغرام',
-    'footer.discord': 'ديسكورد',
     'footer.email': 'البريد الإلكتروني',
     'footer.terms': 'الشروط والأحكام',
     'footer.contact': 'اتصل بنا',
@@ -1196,6 +1195,38 @@ const translations = {
     // نصوص إضافية لصفحة نجاح الدفع
     'paymentSuccess.needHelp': 'تحتاج مساعدة؟',
     'paymentSuccess.contactUs': 'تواصل معنا',
+    
+    // Forgot Password - نسيت كلمة المرور
+    'forgotPassword.title': 'نسيت كلمة المرور',
+    'forgotPassword.description': 'أدخل بريدك الإلكتروني وسنرسل لك رابط لإعادة تعيين كلمة المرور.',
+    'forgotPassword.emailLabel': 'البريد الإلكتروني',
+    'forgotPassword.emailPlaceholder': 'email@example.com',
+    'forgotPassword.sendLink': 'إرسال الرابط',
+    'forgotPassword.sending': 'جاري الإرسال...',
+    'forgotPassword.emailSent': 'تم إرسال البريد!',
+    'forgotPassword.checkEmail': 'يرجى التحقق من صندوق الوارد والنقر على الرابط لإعادة تعيين كلمة المرور.',
+    'forgotPassword.backToLogin': 'العودة لتسجيل الدخول',
+    'forgotPassword.unexpectedError': 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
+    
+    // Reset Password - إعادة تعيين كلمة المرور
+    'resetPassword.title': 'إعادة تعيين كلمة المرور',
+    'resetPassword.description': 'أدخل كلمة المرور الجديدة أدناه.',
+    'resetPassword.newPassword': 'كلمة المرور الجديدة',
+    'resetPassword.newPasswordPlaceholder': 'أدخل كلمة المرور الجديدة',
+    'resetPassword.confirmPassword': 'تأكيد كلمة المرور',
+    'resetPassword.confirmPasswordPlaceholder': 'أكد كلمة المرور',
+    'resetPassword.updatePassword': 'تحديث كلمة المرور',
+    'resetPassword.updating': 'جاري التحديث...',
+    'resetPassword.success': 'نجح!',
+    'resetPassword.successMessage': 'تم تحديث كلمة المرور بنجاح.',
+    'resetPassword.goToLogin': 'الذهاب لتسجيل الدخول',
+    'resetPassword.backToLogin': 'العودة لتسجيل الدخول',
+    'resetPassword.passwordMismatch': 'كلمات المرور غير متطابقة',
+    'resetPassword.passwordTooShort': 'كلمة المرور يجب أن تكون 6 أحرف على الأقل',
+    'resetPassword.invalidLink': 'رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية',
+    'resetPassword.invalidLinkRequest': 'رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.',
+    'resetPassword.updateError': 'حدث خطأ أثناء تحديث كلمة المرور',
+    'resetPassword.unexpectedError': 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
   },
   en: {
     // Navigation
@@ -2357,6 +2388,38 @@ const translations = {
     // Additional texts for payment success page
     'paymentSuccess.needHelp': 'Need help?',
     'paymentSuccess.contactUs': 'Contact us',
+    
+    // Forgot Password
+    'forgotPassword.title': 'Forgot Password',
+    'forgotPassword.description': 'Enter your email address and we\'ll send you a link to reset your password.',
+    'forgotPassword.emailLabel': 'Email Address',
+    'forgotPassword.emailPlaceholder': 'you@example.com',
+    'forgotPassword.sendLink': 'Send Link',
+    'forgotPassword.sending': 'Sending...',
+    'forgotPassword.emailSent': 'Email Sent!',
+    'forgotPassword.checkEmail': 'Please check your inbox and click the link to reset your password.',
+    'forgotPassword.backToLogin': 'Back to Login',
+    'forgotPassword.unexpectedError': 'An unexpected error occurred. Please try again.',
+    
+    // Reset Password
+    'resetPassword.title': 'Reset Password',
+    'resetPassword.description': 'Enter your new password below.',
+    'resetPassword.newPassword': 'New Password',
+    'resetPassword.newPasswordPlaceholder': 'Enter new password',
+    'resetPassword.confirmPassword': 'Confirm Password',
+    'resetPassword.confirmPasswordPlaceholder': 'Confirm password',
+    'resetPassword.updatePassword': 'Update Password',
+    'resetPassword.updating': 'Updating...',
+    'resetPassword.success': 'Success!',
+    'resetPassword.successMessage': 'Your password has been updated successfully.',
+    'resetPassword.goToLogin': 'Go to Login',
+    'resetPassword.backToLogin': 'Back to Login',
+    'resetPassword.passwordMismatch': 'Passwords do not match',
+    'resetPassword.passwordTooShort': 'Password must be at least 6 characters',
+    'resetPassword.invalidLink': 'Password reset link is invalid or expired',
+    'resetPassword.invalidLinkRequest': 'Password reset link is invalid or expired. Please request a new link.',
+    'resetPassword.updateError': 'Error updating password',
+    'resetPassword.unexpectedError': 'An unexpected error occurred. Please try again.',
   },
   fr: {
     // Navigation
@@ -3517,6 +3580,38 @@ const translations = {
     // Textes supplémentaires pour la page de succès de paiement
     'paymentSuccess.needHelp': 'Besoin d\'aide ?',
     'paymentSuccess.contactUs': 'Contactez-nous',
+    
+    // Forgot Password
+    'forgotPassword.title': 'Mot de passe oublié',
+    'forgotPassword.description': 'Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.',
+    'forgotPassword.emailLabel': 'Adresse e-mail',
+    'forgotPassword.emailPlaceholder': 'vous@exemple.com',
+    'forgotPassword.sendLink': 'Envoyer le lien',
+    'forgotPassword.sending': 'Envoi en cours...',
+    'forgotPassword.emailSent': 'E-mail envoyé !',
+    'forgotPassword.checkEmail': 'Veuillez vérifier votre boîte de réception et cliquer sur le lien pour réinitialiser votre mot de passe.',
+    'forgotPassword.backToLogin': 'Retour à la connexion',
+    'forgotPassword.unexpectedError': 'Une erreur inattendue s\'est produite. Veuillez réessayer.',
+    
+    // Reset Password
+    'resetPassword.title': 'Réinitialiser le mot de passe',
+    'resetPassword.description': 'Entrez votre nouveau mot de passe ci-dessous.',
+    'resetPassword.newPassword': 'Nouveau mot de passe',
+    'resetPassword.newPasswordPlaceholder': 'Entrez le nouveau mot de passe',
+    'resetPassword.confirmPassword': 'Confirmer le mot de passe',
+    'resetPassword.confirmPasswordPlaceholder': 'Confirmez le mot de passe',
+    'resetPassword.updatePassword': 'Mettre à jour le mot de passe',
+    'resetPassword.updating': 'Mise à jour...',
+    'resetPassword.success': 'Succès !',
+    'resetPassword.successMessage': 'Votre mot de passe a été mis à jour avec succès.',
+    'resetPassword.goToLogin': 'Aller à la connexion',
+    'resetPassword.backToLogin': 'Retour à la connexion',
+    'resetPassword.passwordMismatch': 'Les mots de passe ne correspondent pas',
+    'resetPassword.passwordTooShort': 'Le mot de passe doit contenir au moins 6 caractères',
+    'resetPassword.invalidLink': 'Le lien de réinitialisation du mot de passe est invalide ou expiré',
+    'resetPassword.invalidLinkRequest': 'Le lien de réinitialisation du mot de passe est invalide ou expiré. Veuillez demander un nouveau lien.',
+    'resetPassword.updateError': 'Erreur lors de la mise à jour du mot de passe',
+    'resetPassword.unexpectedError': 'Une erreur inattendue s\'est produite. Veuillez réessayer.',
   },
 };
 

@@ -15,11 +15,10 @@ class PeriodicNotificationService {
    */
   start() {
     if (this.isRunning) {
-      console.log('⚠️ خدمة الإشعارات الدورية تعمل بالفعل');
+
       return;
     }
 
-    console.log('🚀 بدء خدمة الإشعارات الدورية (تذكير أسبوعي)');
     this.isRunning = true;
 
     // تشغيل فوري
@@ -39,7 +38,7 @@ class PeriodicNotificationService {
       clearInterval(this.intervalId);
       this.intervalId = null;
       this.isRunning = false;
-      console.log('⏹️ تم إيقاف خدمة الإشعارات الدورية');
+
     }
   }
 
@@ -48,7 +47,6 @@ class PeriodicNotificationService {
    */
   private async checkAndSendReminders() {
     try {
-      console.log('🔍 فحص المستخدمين النشطين لإرسال التذكيرات...');
 
       // جلب المستخدمين النشطين مع اشتراكات نشطة
       const { data: activeUsers, error } = await supabase
@@ -58,11 +56,9 @@ class PeriodicNotificationService {
         .eq('is_active', true);
 
       if (error || !activeUsers || activeUsers.length === 0) {
-        console.log('ℹ️ لا يوجد مستخدمين نشطين');
+
         return;
       }
-
-      console.log(`✅ تم العثور على ${activeUsers.length} مستخدم نشط`);
 
       // إرسال تذكير لكل مستخدم (مع التحقق من آخر تذكير)
       let sentCount = 0;
@@ -73,7 +69,7 @@ class PeriodicNotificationService {
         
         if (result.success) {
           sentCount++;
-          console.log(`✅ تم إرسال تذكير لـ ${user.full_name} (${user.email})`);
+
         } else {
           skippedCount++;
         }
@@ -82,9 +78,8 @@ class PeriodicNotificationService {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      console.log(`📊 نتيجة الإرسال: ${sentCount} تم إرسالها، ${skippedCount} تم تخطيها`);
     } catch (error) {
-      console.error('❌ خطأ في فحص وإرسال التذكيرات:', error);
+
     }
   }
 

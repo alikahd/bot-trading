@@ -8,8 +8,7 @@ interface RealSupabaseResponse {
 
 // استخدام Supabase مباشرة - بسيط وفعال
 export const executeRealQuery = async (query: string): Promise<RealSupabaseResponse> => {
-  console.log('🔍 تنفيذ استعلام مباشر على Supabase:', query);
-  
+
   // استخدام الاستعلام المباشر مباشرة بدلاً من محاولة RPC غير موجود
   return await executeDirectQuery(query);
 };
@@ -19,25 +18,25 @@ const executeDirectQuery = async (query: string): Promise<RealSupabaseResponse> 
   try {
     // تحليل نوع الاستعلام وتنفيذه مباشرة
     if (query.includes('FROM users')) {
-      console.log('👤 جلب بيانات المستخدم...');
+
       return await getUsersData(query);
     } else if (query.includes('FROM subscriptions')) {
-      console.log('📦 جلب بيانات الاشتراك...');
+
       return await getSubscriptionsData(query);
     } else if (query.includes('FROM payments')) {
-      console.log('💳 جلب بيانات المدفوعات...');
+
       return await getPaymentsData(query);
     }
     
     // إذا لم نتمكن من تحليل الاستعلام، نرجع خطأ
-    console.warn('⚠️ نوع استعلام غير مدعوم:', query);
+
     return {
       data: null,
       error: 'نوع استعلام غير مدعوم'
     };
     
   } catch (error) {
-    console.error('❌ خطأ في الاستعلام المباشر:', error);
+
     return {
       data: null,
       error: `خطأ في الاستعلام: ${error}`
@@ -68,12 +67,12 @@ const getUsersData = async (query: string): Promise<RealSupabaseResponse> => {
         .maybeSingle();
       
       if (userError) {
-        console.error('❌ خطأ في جلب بيانات المستخدم:', userError);
+
         return { data: null, error: userError.message };
       }
       
       if (!userData) {
-        console.log('⚠️ المستخدم غير موجود في قاعدة البيانات');
+
         return { data: [], error: null };
       }
       
@@ -99,7 +98,7 @@ const getUsersData = async (query: string): Promise<RealSupabaseResponse> => {
         .limit(1);
       
       if (subError) {
-        console.error('❌ خطأ في جلب بيانات الاشتراك:', subError);
+
       }
       
       // دمج البيانات
@@ -135,8 +134,7 @@ const getUsersData = async (query: string): Promise<RealSupabaseResponse> => {
           plan_price: planData?.price || null
         };
       }
-      
-      console.log('✅ تم جلب بيانات المستخدم والاشتراك بنجاح');
+
       return { data: [combinedData], error: null };
     } else {
       // استعلام بسيط بدون JOIN
@@ -147,16 +145,15 @@ const getUsersData = async (query: string): Promise<RealSupabaseResponse> => {
         .maybeSingle();
       
       if (error) {
-        console.error('❌ خطأ في جلب بيانات المستخدم:', error);
+
         return { data: null, error: error.message };
       }
       
       if (!data) {
-        console.log('⚠️ المستخدم غير موجود في قاعدة البيانات');
+
         return { data: [], error: null };
       }
-      
-      console.log('✅ تم جلب بيانات المستخدم بنجاح');
+
       return { data: [data], error: null };
     }
     
@@ -208,14 +205,10 @@ const getSubscriptionsData = async (query: string): Promise<RealSupabaseResponse
       .limit(1);
     
     if (error) {
-      console.error('❌ خطأ في جلب بيانات الاشتراك:', error);
+
       return { data: null, error: error.message };
     }
-    
-    console.log('✅ تم جلب بيانات الاشتراك بنجاح');
-    
-    console.log('📊 بيانات الاشتراك الخام:', data);
-    
+
     // تحويل البيانات لتتوافق مع الصيغة المطلوبة
     const formattedData = data.map(sub => {
       const planData = Array.isArray(sub.subscription_plans) ? sub.subscription_plans[0] : sub.subscription_plans;
@@ -229,16 +222,7 @@ const getSubscriptionsData = async (query: string): Promise<RealSupabaseResponse
         features_fr: planData?.features_fr,
         plan_price: planData?.price
       };
-      
-      console.log('📊 بيانات الاشتراك المنسقة:', {
-        id: formatted.id,
-        start_date: formatted.start_date,
-        end_date: formatted.end_date,
-        created_at: formatted.created_at,
-        plan_name_ar: formatted.plan_name_ar,
-        plan_price: formatted.plan_price
-      });
-      
+
       return formatted;
     });
     
@@ -268,12 +252,10 @@ const getPaymentsData = async (query: string): Promise<RealSupabaseResponse> => 
       .limit(20); // نجلب أكثر ثم نفلتر المكررات
     
     if (error) {
-      console.error('❌ خطأ في جلب بيانات المدفوعات:', error);
+
       return { data: null, error: error.message };
     }
-    
-    console.log('✅ تم جلب بيانات المدفوعات بنجاح');
-    
+
     // فلترة المدفوعات المكررة
     const uniquePayments = data?.filter((payment: any, index: number, self: any[]) => {
       const firstIndex = self.findIndex((p: any) => {
@@ -300,11 +282,10 @@ const getPaymentsData = async (query: string): Promise<RealSupabaseResponse> => 
   }
 };
 
-
 // دالة لحساب الوقت المتبقي
 export const calculateRealTimeRemaining = (endDate: string) => {
   if (!endDate) {
-    console.error('تاريخ الانتهاء غير موجود');
+
     return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
   }
   
@@ -330,18 +311,12 @@ export const calculateRealTimeRemaining = (endDate: string) => {
     
     // تسجيل مؤقت للتشخيص
     if (isNaN(end.getTime())) {
-      console.log('📅 تحليل التاريخ:', {
-        original: endDate,
-        cleaned: cleanEndDate,
-        now: now.toISOString(),
-        end: end.toISOString(),
-        isValid: false
-      });
+
     }
     
     // التحقق من صحة التاريخ
     if (isNaN(end.getTime())) {
-      console.error('تاريخ انتهاء غير صحيح:', endDate);
+
       return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
     }
     
@@ -358,7 +333,7 @@ export const calculateRealTimeRemaining = (endDate: string) => {
     
     return { days, hours, minutes, seconds, expired: false };
   } catch (error) {
-    console.error('خطأ في حساب الوقت المتبقي:', error, 'التاريخ:', endDate);
+
     return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
   }
 };
@@ -390,7 +365,7 @@ export const formatRealLatinDate = (dateString: string, locale: string = 'en-US'
     
     // التحقق من صحة التاريخ
     if (isNaN(date.getTime())) {
-      console.error('تاريخ غير صحيح:', dateString);
+
       return { full: 'تاريخ غير صحيح', short: 'تاريخ غير صحيح', time: 'تاريخ غير صحيح' };
     }
     
@@ -415,7 +390,7 @@ export const formatRealLatinDate = (dateString: string, locale: string = 'en-US'
     return formatted;
     
   } catch (error) {
-    console.error('❌ خطأ في تنسيق التاريخ:', error, 'التاريخ الأصلي:', dateString);
+
     return { full: 'خطأ في التاريخ', short: 'خطأ في التاريخ', time: 'خطأ في التاريخ' };
   }
 };

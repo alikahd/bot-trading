@@ -41,7 +41,7 @@ export const AutoPayoutSettings: React.FC = () => {
         loadAutoPayoutStatus()
       ]);
     } catch (error) {
-      console.error('Error loading data:', error);
+
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export const AutoPayoutSettings: React.FC = () => {
         setAutoPayoutEnabled(data.is_active);
       }
     } catch (error) {
-      console.error('Error loading auto-payout status:', error);
+
     }
   };
 
@@ -95,7 +95,7 @@ export const AutoPayoutSettings: React.FC = () => {
 
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
-      console.error('Error toggling auto-payout:', error);
+
       setMessage({
         type: 'error',
         text: `❌ حدث خطأ: ${error.message}`
@@ -116,7 +116,7 @@ export const AutoPayoutSettings: React.FC = () => {
         setSummary(data[0]);
       }
     } catch (error) {
-      console.error('Error loading summary:', error);
+
     }
   };
 
@@ -143,7 +143,7 @@ export const AutoPayoutSettings: React.FC = () => {
       
       setHistory(months);
     } catch (error) {
-      console.error('Error loading history:', error);
+
     }
   };
 
@@ -174,7 +174,7 @@ export const AutoPayoutSettings: React.FC = () => {
       // إعادة تحميل البيانات
       await loadData();
     } catch (error: any) {
-      console.error('Error processing payout:', error);
+
       setMessage({
         type: 'error',
         text: `❌ حدث خطأ: ${error.message}`

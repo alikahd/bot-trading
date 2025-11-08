@@ -3,8 +3,7 @@
  */
 export const clearAllCaches = async (): Promise<void> => {
   try {
-    console.log('🧹 بدء مسح جميع أنواع الـ Cache...');
-    
+
     // 1. مسح localStorage
     const keysToRemove = [
       'auth_state_cache',
@@ -19,23 +18,21 @@ export const clearAllCaches = async (): Promise<void> => {
     
     keysToRemove.forEach(key => {
       localStorage.removeItem(key);
-      console.log(`✅ تم مسح: ${key}`);
+
     });
     
     // 2. مسح sessionStorage
     sessionStorage.clear();
-    console.log('✅ تم مسح sessionStorage');
-    
+
     // 3. مسح Service Worker Cache
     if ('caches' in window) {
       const cacheNames = await caches.keys();
       await Promise.all(cacheNames.map(name => caches.delete(name)));
-      console.log('✅ تم مسح Service Worker Cache');
+
     }
-    
-    console.log('✅ تم مسح جميع أنواع الـ Cache بنجاح');
+
   } catch (error) {
-    console.error('❌ خطأ في مسح الـ Cache:', error);
+
   }
 };
 

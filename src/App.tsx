@@ -4,7 +4,8 @@ import { LoginPage } from './components/auth/LoginPage';
 import { RegisterPage } from './components/auth/RegisterPage';
 import { EmailVerificationPage } from './components/auth/EmailVerificationPage';
 import { EmailVerifiedSuccessPage } from './components/auth/EmailVerifiedSuccessPage';
-import { PasswordResetPage } from './components/auth/PasswordResetPage';
+import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import { SubscriptionPage } from './components/subscription/SubscriptionPage';
 import { TermsPage } from './pages/TermsPage';
 // تم حذف testApis - لم يعد مطلوباً
@@ -68,7 +69,7 @@ const saveToStorage = (key: string, value: any) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
-    console.warn('Failed to save to localStorage:', error);
+
   }
 };
 
@@ -77,7 +78,7 @@ const loadFromStorage = (key: string, defaultValue: any = null) => {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : defaultValue;
   } catch (error) {
-    console.warn('Failed to load from localStorage:', error);
+
     return defaultValue;
   }
 };
@@ -92,11 +93,11 @@ function App() {
   // بدء خدمة الإشعارات الدورية
   useEffect(() => {
     if (isAuthenticated && user?.subscription_status === 'active') {
-      console.log('🚀 تفعيل خدمة الإشعارات الدورية');
+
       periodicNotificationService.start();
       
       return () => {
-        console.log('⏹️ إيقاف خدمة الإشعارات الدورية');
+
         periodicNotificationService.stop();
       };
     }
@@ -128,7 +129,8 @@ function App() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showRegisterPage, setShowRegisterPage] = useState(false);
   const [showLoginPage, setShowLoginPage] = useState(false);
-  const [showPasswordResetPage, setShowPasswordResetPage] = useState(false);
+  const [showForgotPasswordPage, setShowForgotPasswordPage] = useState(false);
+  const [showResetPasswordPage, setShowResetPasswordPage] = useState(false);
   const [showTermsPage, setShowTermsPage] = useState(false);
   const [showEmailVerificationFromLogin, setShowEmailVerificationFromLogin] = useState(false);
   const [showEmailVerifiedSuccess, setShowEmailVerifiedSuccess] = useState(false);
@@ -140,11 +142,10 @@ function App() {
 
   // حالة البوت - في المكون الرئيسي
   const [isActive, setIsActive] = useState(false);
-  
-  
+
   const toggleBot = () => {
     setIsActive(!isActive);
-    console.log(`🤖 البوت ${!isActive ? 'مُفعّل' : 'متوقف'}`);
+
   };
 
   // ⚡ Ref لمنع التنفيذ المتكرر في React Strict Mode
@@ -155,36 +156,28 @@ function App() {
     const handleEmailConfirmation = async () => {
       // ⚡ منع التنفيذ المتكرر
       if (isProcessingCallback.current) {
-        console.log('⏭️ [SKIP] تخطي - جاري المعالجة بالفعل');
+
         return;
       }
       
       const hash = window.location.hash;
       const searchParams = new URLSearchParams(window.location.search);
-      
-      console.log('🔍 [EMAIL VERIFICATION] Checking URL:', {
-        hash: hash || '<empty>',
-        search: window.location.search || '<empty>',
-        pathname: window.location.pathname,
-        fullURL: window.location.href
-      });
-      
+
       // التحقق من وجود access_token أو code (PKCE flow) في hash أو query params
       const hasAccessToken = hash.includes('access_token') || searchParams.has('access_token');
-      const hasCode = searchParams.has('code'); // PKCE flow
+      const hasCode = searchParams.has('code');
       const hasTypeSignup = hash.includes('type=signup') || searchParams.get('type') === 'signup';
       const hasConfirmation = hash.includes('confirmation') || searchParams.has('confirmation');
       const isAuthCallback = window.location.pathname === '/auth/callback';
       
-      if (!(hasAccessToken || hasCode || hasTypeSignup || hasConfirmation || (isAuthCallback && hasCode))) {
+      if (!(hasAccessToken || hasTypeSignup || hasConfirmation || (isAuthCallback))) {
         // لا يوجد callback - تحقق من الحالة البديلة
         isProcessingCallback.current = false; // ⚡ إعادة تعيين
         try {
           const { data: { session } } = await supabase.auth.getSession();
           
           if (session?.user?.email_confirmed_at) {
-            console.log('🔍 تم العثور على session مفعلة بدون hash - التحقق من حالة التفعيل');
-            
+
             // التحقق من قاعدة البيانات
             const { data: userData } = await supabase
               .from('users')
@@ -198,8 +191,7 @@ function App() {
             const diffMinutes = (now.getTime() - verifiedAt.getTime()) / (1000 * 60);
             
             if (diffMinutes < 1 && userData && !userData.email_verified) {
-              console.log('✅ تم اكتشاف تفعيل حديث - تحديث قاعدة البيانات');
-              
+
               // تحديث قاعدة البيانات
               await supabase
                 .from('users')
@@ -221,85 +213,62 @@ function App() {
             }
           }
         } catch (error) {
-          console.error('❌ خطأ في التحقق من session:', error);
+
         }
         return; // ⚡ خروج مبكر
       }
       
       // يوجد callback - معالجة
-      console.log('✅ تم اكتشاف callback من Supabase', {
-        hasAccessToken,
-        hasCode,
-        isAuthCallback,
-        code: searchParams.get('code')?.substring(0, 10) + '...'
-      });
-      
+
       // ⚡ عرض شاشة تحميل فوراً (قبل أي معالجة)
       setIsProcessingEmailVerification(true);
-      console.log('⏳ عرض شاشة التحميل فوراً');
-      
+
       // ⚡ تعيين flag - بدء المعالجة
       isProcessingCallback.current = true;
-      console.log('🔒 [LOCK] تم قفل المعالجة');
-      
+
       // متغير للتحقق من Google OAuth
       let isGoogleOAuth = false;
       
       try {
         let session = null;
-        let sessionError = null;
         
         // إذا كان لدينا code (PKCE flow)، نحتاج لتبديله بـ session
         if (hasCode && searchParams.get('code')) {
-          console.log('🔄 تبديل PKCE code بـ session...');
-          
+
           // ⚡ مسح الـ code من URL فوراً لمنع إعادة الاستخدام
           const code = searchParams.get('code')!;
           window.history.replaceState(null, '', '/');
-          console.log('🧹 تم مسح code من URL');
-          
+
           try {
             const { data, error } = await supabase.auth.exchangeCodeForSession(code);
             session = data.session;
-            sessionError = error;
             
             if (error) {
               // ⚡ تجاهل الخطأ إذا كان الـ code مستخدم بالفعل (React Strict Mode)
               if (error.message.includes('code verifier')) {
-                console.log('⚠️ الكود مستخدم بالفعل - تجاهل (React Strict Mode)');
+
               } else {
-                console.error('❌ خطأ في تبديل code:', error);
+
               }
             } else {
-              console.log('✅ تم تبديل code بنجاح');
+
             }
           } catch (err) {
-            console.log('⚠️ خطأ في exchangeCodeForSession - تجاهل');
+
           }
         } else {
           // الحصول على session الحالية
-          const { data, error } = await supabase.auth.getSession();
+          const { data } = await supabase.auth.getSession();
           session = data.session;
-          sessionError = error;
         }
-        
-        console.log('📊 Session data:', {
-          hasSession: !!session,
-          email: session?.user?.email,
-          email_confirmed_at: session?.user?.email_confirmed_at,
-          provider: session?.user?.app_metadata?.provider,
-          error: sessionError
-        });
-        
+
         // ✅ التحقق من مصدر التسجيل
         const isGoogleAuth = session?.user?.app_metadata?.provider === 'google';
-        console.log('🔍 مصدر التسجيل:', isGoogleAuth ? 'Google OAuth' : 'Email/Password');
-        
+
         if (session?.user) {
           // إذا كان Google OAuth، نتحقق من حالة المستخدم ونوجهه مباشرة
           if (isGoogleAuth) {
-            console.log('🔐 [GOOGLE OAUTH] التحقق من حالة المستخدم...');
-            console.log('⚡ [GOOGLE OAUTH] تعيين isGoogleOAuth = true');
+
             isGoogleOAuth = true; // ✅ تعيين flag
             
             const { data: userData } = await supabase
@@ -307,9 +276,7 @@ function App() {
               .select('email_verified, status, subscription_status, is_active')
               .eq('auth_id', session.user.id)
               .single();
-            
-            console.log('👤 بيانات المستخدم:', userData);
-            
+
             // تحديث البيانات إذا لزم الأمر
             if (userData && !userData.email_verified) {
               await supabase
@@ -323,25 +290,21 @@ function App() {
             }
             
             // ✅ توجيه مباشر بدون عرض صفحة التأكيد
-            console.log('✅ [GOOGLE OAUTH] توجيه مباشر بدون نافذة تأكيد');
-            
+
             // ⚡ إخفاء شاشة التحميل
             setIsProcessingEmailVerification(false);
             
             // ⚡ لا نعرض نافذة التأكيد - نخرج فوراً
             // سيتم التوجيه التلقائي من خلال simpleAuthService
             // URL تم مسحه بالفعل في الأعلى
-            console.log('🚪 [GOOGLE OAUTH] RETURN - خروج من handleEmailConfirmation');
+
             return; // ⚡ خروج فوري بدون عرض أي شيء
           }
           
           // Email/Password - معالجة عادية
-          console.log('📧 Email/Password - تحديث قاعدة البيانات...');
-          console.log('User ID:', session.user.id);
-          console.log('Email:', session.user.email);
-          
+
           // تحديث قاعدة البيانات
-          const { data: updateData, error: updateError } = await supabase
+          const { error: updateError } = await supabase
             .from('users')
             .update({
               email_verified: true,
@@ -353,31 +316,28 @@ function App() {
             .select();
           
           if (updateError) {
-            console.error('❌ خطأ في تحديث قاعدة البيانات:', updateError);
+
           } else {
-            console.log('✅ تم تحديث قاعدة البيانات بنجاح:', updateData);
+
           }
         } else {
-          console.warn('⚠️ لا توجد session - قد يكون الرابط منتهي الصلاحية');
+
         }
       } catch (error) {
-        console.error('❌ خطأ في معالجة callback:', error);
+
       }
       
       // ⚡ فقط لـ Email/Password - عرض صفحة التأكيد
-      console.log('🔍 [FINAL CHECK] isGoogleOAuth =', isGoogleOAuth);
-      
+
       // ⚡ تحقق إضافي: هل هناك session نشطة؟
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       const hasActiveSession = !!currentSession;
-      console.log('🔍 [SESSION CHECK] hasActiveSession =', hasActiveSession);
-      
+
       // ⚡ لا نعرض النافذة إذا:
       // 1. Google OAuth (isGoogleOAuth = true)
       // 2. يوجد session نشطة (المستخدم مسجل دخول بالفعل)
       if (!isGoogleOAuth && !hasActiveSession) {
-        console.log('✅ [EMAIL/PASSWORD] عرض صفحة التأكيد');
-        
+
         // URL تم مسحه بالفعل في الأعلى
         
         // إخفاء جميع الصفحات الأخرى
@@ -389,7 +349,7 @@ function App() {
         setShowEmailVerifiedSuccess(true);
         setIsProcessingEmailVerification(false);
       } else {
-        console.log('⚡ تم التخطي - لا نعرض نافذة التأكيد (Google OAuth أو session نشطة)');
+
         // إخفاء شاشة التحميل
         setIsProcessingEmailVerification(false);
       }
@@ -404,7 +364,7 @@ function App() {
       const customEvent = event as CustomEvent;
       const email = customEvent.detail?.email;
       if (email) {
-        console.log('📧 البريد غير مفعل:', email);
+
         setUnverifiedEmail(email);
         setShowLoginPage(false);
         setShowEmailVerificationFromLogin(true);
@@ -417,11 +377,7 @@ function App() {
 
   // ⚡ مستمع لحدث "تفعيل البريد" - توجيه مباشر لصفحة الاشتراك
   useEffect(() => {
-    const handleEmailVerified = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      
-      console.log('✅ تم تفعيل البريد - توجيه لصفحة الاشتراك', customEvent.detail?.userId);
-      
+    const handleEmailVerified = (_event: Event) => {
       // إخفاء صفحات التسجيل/الدخول
       setShowLoginPage(false);
       setShowRegisterPage(false);
@@ -446,7 +402,7 @@ function App() {
   useEffect(() => {
     const handleFooterNavigate = (event: CustomEvent) => {
       const { page } = event.detail;
-      console.log('Received footer navigation event:', page);
+
       navigate(page);
     };
 
@@ -467,16 +423,19 @@ function App() {
       
       // ✅ إعادة تحميل الصفحة لمسح subscriptionStatus من الذاكرة
       // هذا يضمن عدم ظهور نافذة انتهاء الاشتراك من الجلسة السابقة
-      console.log('🔄 تم إعادة تعيين جميع الحالات - سيتم إعادة تحميل الصفحة');
+
     }
   }, [isAuthenticated]);
 
-
   // معالجة التوجيه التلقائي بعد تسجيل الدخول
   useEffect(() => {
+    // ⚠️ تجاهل هذا useEffect إذا كنا في صفحة إعادة تعيين كلمة المرور
+    if (showResetPasswordPage) {
+      return;
+    }
+    
     if (isAuthenticated && user && !isLoading) {
-      console.log('🔄 معالجة التوجيه التلقائي للمستخدم:', user.email, 'redirectTo:', user.redirectTo);
-      
+
       // ✅ فحص فوري من بيانات المستخدم - بدون انتظار subscriptionStatus
       const isAdmin = user.role === 'admin';
       const hasActiveSubscription = user.subscription_status === 'active';
@@ -484,12 +443,12 @@ function App() {
       // إخفاء صفحات المصادقة
       setShowLoginPage(false);
       setShowRegisterPage(false);
-      setShowPasswordResetPage(false);
+      setShowForgotPasswordPage(false);
       setShowEmailVerificationFromLogin(false);
       
       // ✅ Admin أو مشترك → دخول فوري بدون انتظار
       if (isAdmin || hasActiveSubscription) {
-        console.log(isAdmin ? '👑 Admin - دخول فوري' : '✅ مشترك - دخول فوري');
+
         setShowSubscriptionPage(false);
         localStorage.removeItem(STORAGE_KEYS.SHOW_SUBSCRIPTION_PAGE);
         setActiveTab('recommendations');
@@ -500,30 +459,30 @@ function App() {
       
       // للمستخدمين غير المشتركين، معالجة حسب redirectTo
       if (user.redirectTo === 'email_verification') {
-        console.log('📧 توجيه لتفعيل البريد الإلكتروني');
+
         setUnverifiedEmail(user.email);
         setShowEmailVerificationFromLogin(true);
         setIsCheckingSubscription(false);
       } else if (user.redirectTo === 'subscription') {
-        console.log('📦 توجيه لصفحة الاشتراك - المستخدم غير مشترك');
+
         setShowSubscriptionPage(true);
         setSubscriptionStep('plans');
         window.history.replaceState({ authenticated: true }, '', '/subscription');
         setIsCheckingSubscription(false);
       } else if (user.redirectTo === 'payment_pending') {
-        console.log('⏳ توجيه لصفحة انتظار المراجعة');
+
         setShowSubscriptionPage(true);
         setSubscriptionStep('review');
         window.history.replaceState({ authenticated: true }, '', '/payment/review');
         setIsCheckingSubscription(false);
       } else if (user.redirectTo === 'blocked') {
-        console.log('🚫 المستخدم محظور');
+
         alert('تم حظر حسابك. يرجى التواصل مع الدعم.');
         handleLogout();
         setIsCheckingSubscription(false);
       } else {
         // حالة احتياطية - دخول للوحة التحكم
-        console.log('✅ دخول للوحة التحكم (حالة احتياطية)');
+
         setShowSubscriptionPage(false);
         localStorage.removeItem(STORAGE_KEYS.SHOW_SUBSCRIPTION_PAGE);
         setActiveTab('recommendations');
@@ -531,7 +490,7 @@ function App() {
         setIsCheckingSubscription(false);
       }
     }
-  }, [isAuthenticated, user, isLoading]);
+  }, [isAuthenticated, user, isLoading, showResetPasswordPage]);
 
   // حالة التطبيق مع استعادة من localStorage
   const [showDataSourcePanel, setShowDataSourcePanel] = useState(() => 
@@ -560,7 +519,7 @@ function App() {
         }
       } else {
         // المستخدم ليس لديه اشتراك - منع الوصول وإعادة توجيه
-        console.log('⚠️ محاولة الوصول لصفحة المدفوعات بدون اشتراك ساري');
+
         setActiveTab('recommendations');
         setShowSubscriptionPage(true);
       }
@@ -574,7 +533,7 @@ function App() {
       const hasActiveSubscription = user.subscription_status === 'active';
       
       if (isAdmin || hasActiveSubscription) {
-        console.log('✅ إيقاف فحص الاشتراك - المستخدم مشترك أو admin');
+
         setIsCheckingSubscription(false);
       }
     }
@@ -587,8 +546,7 @@ function App() {
   
   // Log عند تغيير showSubscriptionPage وتحديث URL
   useEffect(() => {
-    console.log('📄 showSubscriptionPage تغير إلى:', showSubscriptionPage);
-    
+
     // تحديث URL عند فتح/إغلاق صفحة الاشتراك
     if (showSubscriptionPage) {
       const path = subscriptionStep === 'plans' ? '/subscription' : 
@@ -608,12 +566,10 @@ function App() {
       }
     }
   }, [showSubscriptionPage, subscriptionStep, isAuthenticated]);
-  
 
   // Log عند تغيير subscriptionStep وتحديث URL
   useEffect(() => {
-    console.log('🔄 subscriptionStep تغير إلى:', subscriptionStep);
-    
+
     // تحديث URL حسب حالة الاشتراك
     if (showSubscriptionPage) {
       let path = '/subscription';
@@ -645,7 +601,7 @@ function App() {
           '', 
           '/dashboard'
         );
-        console.log('🔒 تم استبدال الصفحة المحظورة بلوحة التحكم');
+
       }
     }
   }, [isAuthenticated]);
@@ -654,11 +610,10 @@ function App() {
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       const path = window.location.pathname;
-      console.log('🔙 زر الرجوع - المسار:', path, '| مسجل دخول:', isAuthenticated);
-      
+
       // منع الرجوع من الصفحة الرئيسية تماماً
       if ((path === '/' || path === '/home') && event.state?.preventBack) {
-        console.log('🚫 منع الرجوع من الصفحة الرئيسية');
+
         window.history.pushState({ page: 'landing', preventBack: true }, '', '/home');
         return;
       }
@@ -667,15 +622,15 @@ function App() {
       if (isAuthenticated) {
         const forbiddenPaths = ['/', '/home', '/login', '/register'];
         if (forbiddenPaths.includes(path)) {
-          console.log('🚫 محاولة الرجوع لصفحة محظورة - إعادة التوجيه');
-          
+
           // تم إزالة منع الرجوع - السماح بالتنقل الطبيعي
           // window.history.forward();
           
           // تحديث الحالة للبقاء في الصفحة الحالية
           setShowLoginPage(false);
           setShowRegisterPage(false);
-          setShowPasswordResetPage(false);
+          setShowForgotPasswordPage(false);
+      setShowResetPasswordPage(false);
           
           return;
         }
@@ -688,11 +643,12 @@ function App() {
           setShowSubscriptionPage(false);
           setShowLoginPage(false);
           setShowRegisterPage(false);
-          setShowPasswordResetPage(false);
+          setShowForgotPasswordPage(false);
+      setShowResetPasswordPage(false);
           setActiveTab('recommendations');
         } else {
           // المستخدم غير مشترك - إعادة توجيه لصفحة الاشتراك
-          console.log('⚠️ محاولة الوصول للوحة التحكم بدون اشتراك ساري - إعادة توجيه');
+
           window.history.replaceState({ authenticated: true }, '', '/subscription');
           setShowSubscriptionPage(true);
           setSubscriptionStep('plans');
@@ -707,7 +663,7 @@ function App() {
           setShowRegisterPage(false);
         } else {
           // المستخدم ليس لديه اشتراك - إعادة توجيه لصفحة الاشتراك
-          console.log('⚠️ محاولة الوصول لصفحة المدفوعات بدون اشتراك ساري - إعادة توجيه');
+
           window.history.replaceState({ authenticated: true }, '', '/subscription');
           setShowSubscriptionPage(true);
           setSubscriptionStep('plans');
@@ -722,7 +678,7 @@ function App() {
           setSubscriptionStep('plans');
         } else {
           // المستخدم مشترك - إعادة توجيه للوحة التحكم
-          console.log('🚫 المستخدم مشترك - منع الوصول لصفحة الاشتراك');
+
           setShowSubscriptionPage(false);
           window.history.replaceState({ authenticated: true }, '', '/dashboard');
         }
@@ -738,7 +694,7 @@ function App() {
           setSubscriptionStep('payment');
         } else {
           // المستخدم مشترك - إعادة توجيه للوحة التحكم
-          console.log('🚫 المستخدم مشترك - منع الوصول لصفحة الدفع');
+
           setShowSubscriptionPage(false);
           window.history.replaceState({ authenticated: true }, '', '/dashboard');
         }
@@ -762,7 +718,7 @@ function App() {
           setShowRegisterPage(false);
         } else {
           // المستخدم ليس لديه اشتراك أو دفع - إعادة توجيه لصفحة الاشتراك
-          console.log('⚠️ محاولة الوصول لصفحة نتائج الدفع بدون اشتراك ساري');
+
           window.history.replaceState({ authenticated: true }, '', '/subscription');
           setShowSubscriptionPage(true);
           setSubscriptionStep('plans');
@@ -775,7 +731,7 @@ function App() {
           setShowSubscriptionPage(false);
         } else {
           // إذا كان مسجل دخول، منع الوصول والعودة للصفحة الرئيسية
-          console.log('🚫 محاولة الوصول لصفحة تسجيل الدخول وأنت مسجل دخول - العودة للصفحة الرئيسية');
+
           window.history.pushState({ page: 'landing', preventBack: true }, '', '/');
         }
       } else if (path === '/register') {
@@ -786,30 +742,34 @@ function App() {
           setShowSubscriptionPage(false);
         } else {
           // إذا كان مسجل دخول، منع الوصول والعودة للصفحة الرئيسية
-          console.log('🚫 محاولة الوصول لصفحة التسجيل وأنت مسجل دخول - العودة للصفحة الرئيسية');
+
           window.history.pushState({ page: 'landing', preventBack: true }, '', '/');
         }
-      } else if (path === '/reset-password') {
-        setShowPasswordResetPage(true);
+      } else if (path === '/reset-password' || window.location.hash.includes('type=recovery')) {
+        // عرض صفحة إعادة تعيين كلمة المرور
+        setShowResetPasswordPage(true);
         setShowLoginPage(false);
         setShowRegisterPage(false);
         setShowSubscriptionPage(false);
+        setShowForgotPasswordPage(false);
       } else if (path === '/terms' || path === '/contact' || path === '/about') {
         // صفحات خاصة - يتم التعامل معها في AppRouter
         setShowSubscriptionPage(false);
         setShowLoginPage(false);
         setShowRegisterPage(false);
-        setShowPasswordResetPage(false);
+        setShowForgotPasswordPage(false);
+      setShowResetPasswordPage(false);
       } else if (path === '/') {
         // منع الرجوع من الصفحة الرئيسية - البقاء فيها
-        console.log('📍 في الصفحة الرئيسية - منع الرجوع');
+
         window.history.pushState({ page: 'landing', preventBack: true }, '', '/');
         
         if (!isAuthenticated) {
           setShowSubscriptionPage(false);
           setShowLoginPage(false);
           setShowRegisterPage(false);
-          setShowPasswordResetPage(false);
+          setShowForgotPasswordPage(false);
+      setShowResetPasswordPage(false);
           setShowEmailVerificationFromLogin(false);
         }
       }
@@ -818,6 +778,39 @@ function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isAuthenticated, showSubscriptionPage, subscriptionStep]);
+
+  // ⚡ التحقق من رابط إعادة تعيين كلمة المرور عند التحميل الأولي
+  useEffect(() => {
+    const checkPasswordResetLink = () => {
+      const hash = window.location.hash;
+      const path = window.location.pathname;
+      
+      // التحقق من type=recovery في hash أو /reset-password في path
+      if (hash.includes('type=recovery') || path === '/reset-password') {
+        // وضع علامة لمنع simpleAuthService من التوجيه التلقائي
+        sessionStorage.setItem('in_password_reset_flow', 'true');
+        
+        setShowResetPasswordPage(true);
+        setShowLoginPage(false);
+        setShowRegisterPage(false);
+        setShowSubscriptionPage(false);
+        setShowForgotPasswordPage(false);
+      }
+    };
+    
+    checkPasswordResetLink();
+  }, []); // يتم تنفيذه مرة واحدة عند التحميل
+
+  // ⚡ منع التوجيه التلقائي عندما نكون في صفحة إعادة تعيين كلمة المرور
+  useEffect(() => {
+    if (showResetPasswordPage) {
+      // منع أي تحديثات للصفحات الأخرى
+      setShowLoginPage(false);
+      setShowRegisterPage(false);
+      setShowSubscriptionPage(false);
+      setShowForgotPasswordPage(false);
+    }
+  }, [showResetPasswordPage, isAuthenticated]); // يتم تنفيذه عند تغيير showResetPasswordPage أو isAuthenticated
   
   const [selectedPlan, setSelectedPlan] = useState<any>(() => 
     loadFromStorage(STORAGE_KEYS.SELECTED_PLAN, null)
@@ -826,8 +819,7 @@ function App() {
     loadFromStorage(STORAGE_KEYS.USER_INFO, null)
   );
   const [lastPaymentData, setLastPaymentData] = useState<any>(null);
-  
-  
+
   // حالة البوت - مبسطة (بدون useRealTimeTrading المحذوف)
   const [assets] = useState<any[]>([]);
   const [signals, setSignals] = useState<any[]>([]);
@@ -836,18 +828,17 @@ function App() {
   
   const clearSignals = () => {
     setSignals([]);
-    console.log('🗑️ تم مسح جميع الإشارات');
+
   };
   
-  const executeSignal = (signal: any) => {
-    console.log('⚡ تنفيذ الإشارة:', signal);
+  const executeSignal = (_signal: any) => {
+
     // يمكن إضافة منطق التنفيذ هنا لاحقاً
   };
 
   // تفعيل البيانات الحقيقية عند بدء التطبيق
   useEffect(() => {
-    console.log('🚀 تهيئة النظام - البيانات الحقيقية من IQ Option...');
-    console.log('✅ النظام جاهز - البيانات من Python Backend → IQ Option');
+
   }, []);
 
   // حفظ البيانات في localStorage عند تغييرها - تم دمجها لتحسين الأداء
@@ -889,8 +880,7 @@ function App() {
       }
       
       // تسجيل دخول ناجح - بدء التحقق من الاشتراك
-      console.log('✅ تسجيل دخول ناجح - بدء التحقق من حالة الاشتراك...');
-      
+
       // تفعيل شاشة التحميل للتحقق من الاشتراك
       setIsCheckingSubscription(true);
       
@@ -905,7 +895,7 @@ function App() {
       
       return true;
     } catch (error) {
-      console.error('خطأ في تسجيل الدخول:', error);
+
       setAuthError('حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.');
       return false;
     } finally {
@@ -943,14 +933,13 @@ function App() {
 
   // معالج للتوجيه من صفحة تأكيد التفعيل إلى صفحة تسجيل الدخول
   const handleGoToLoginFromVerified = () => {
-    console.log('🔐 التوجيه لصفحة تسجيل الدخول');
+
     setShowEmailVerifiedSuccess(false);
     setShowLoginPage(true);
   };
 
   const handleBackToLogin = async () => {
-    console.log('🔙 بدء عملية العودة لصفحة تسجيل الدخول...');
-    
+
     // مسح جميع بيانات الاشتراك والدفع من localStorage
     localStorage.removeItem('auth_state_cache');
     localStorage.removeItem('show_subscription_page');
@@ -970,7 +959,7 @@ function App() {
     
     // إذا كان المستخدم مسجل دخول، تسجيل خروج أولاً
     if (isAuthenticated) {
-      console.log('🔓 تسجيل خروج المستخدم...');
+
       await logout();
       // انتظار قصير للتأكد من اكتمال تسجيل الخروج
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -982,14 +971,14 @@ function App() {
     // تحديث URL
     window.history.pushState({ page: 'login' }, '', '/login');
     window.dispatchEvent(new CustomEvent('app-navigate', { detail: { path: '/login' } }));
-    
-    console.log('✅ تم التوجيه لصفحة تسجيل الدخول');
+
   };
 
   const handleNavigateToRegister = () => {
     setShowRegisterPage(true);
     setShowLoginPage(false);
-    setShowPasswordResetPage(false);
+    setShowForgotPasswordPage(false);
+    setShowResetPasswordPage(false);
     setAuthError(null);
     
     // تحديث URL
@@ -998,7 +987,7 @@ function App() {
   };
 
   const handleNavigateToPasswordReset = () => {
-    setShowPasswordResetPage(true);
+    setShowForgotPasswordPage(true);
     setShowLoginPage(false);
     setShowRegisterPage(false);
     setAuthError(null);
@@ -1018,7 +1007,8 @@ function App() {
   };
 
   const handleBackToLoginFromPasswordReset = () => {
-    setShowPasswordResetPage(false);
+    setShowForgotPasswordPage(false);
+    setShowResetPasswordPage(false);
     setShowLoginPage(true);
     setAuthError(null);
     
@@ -1054,17 +1044,14 @@ function App() {
 
   // دوال معالجة تدفق الاشتراك
   const handleSelectPlan = (plan: any) => {
-    console.log('Plan selected:', plan);
+
     setSelectedPlan(plan);
     // التوجه مباشرة لصفحة الدفع (تم إلغاء صفحة معلومات المستخدم)
     setSubscriptionStep('payment');
   };
 
   const handlePaymentComplete = async (paymentMethod: string = 'paypal', status: string = 'completed', paymentData?: any) => {
-    console.log('🔄 Payment completed with method:', paymentMethod, 'status:', status, 'data:', paymentData);
-    console.log('👤 Current user:', user);
-    console.log('📋 Current userInfo:', userInfo);
-    
+
     try {
       // إنشاء userInfo من بيانات المستخدم إذا لم تكن موجودة
       const effectiveUserInfo = userInfo && userInfo.id ? userInfo : (user ? {
@@ -1074,14 +1061,10 @@ function App() {
         country: (user as any).country || 'المغرب',
         phone: (user as any).phone || ''
       } : null);
-      
-      console.log('🔍 effectiveUserInfo:', effectiveUserInfo);
-      console.log('📋 full_name من قاعدة البيانات:', user?.full_name);
-      
+
       // حفظ بيانات المستخدم والاشتراك في قاعدة البيانات
       if (selectedPlan && effectiveUserInfo) {
-        console.log('📝 إنشاء الاشتراك...', { userInfo: effectiveUserInfo, selectedPlan, paymentMethod, status });
-        
+
         const result = await subscriptionService.createSubscription(
           effectiveUserInfo,
           selectedPlan,
@@ -1090,19 +1073,15 @@ function App() {
           paymentData
         );
 
-        console.log('📊 نتيجة إنشاء الاشتراك:', result);
-        console.log('✅ result.success =', result.success);
-
         if (result.success) {
-          console.log('✅ تم إنشاء الاشتراك بنجاح');
-          
+
           // حفظ بيانات الدفع
           setLastPaymentData(result.paymentData || paymentData);
           
           // التدفق الجديد حسب طريقة الدفع
           if (paymentMethod === 'paypal' || paymentMethod === 'credit_card') {
             // الدفع المباشر - تفعيل فوري
-            console.log('💳 دفع مباشر - التوجيه إلى صفحة النجاح');
+
             if (status === 'completed') {
               setSubscriptionStep('success');
             } else {
@@ -1110,64 +1089,60 @@ function App() {
             }
           } else if (paymentMethod === 'bitcoin' || paymentMethod.includes('crypto')) {
             // العملات الرقمية - انتظار مراجعة الأدمن
-            console.log('🪙 عملة رقمية - التوجيه إلى صفحة المراجعة');
-            console.log('🔧 تعيين subscriptionStep من', subscriptionStep, 'إلى review');
+
             setSubscriptionStep('review');
-            console.log('✅ تم تعيين subscriptionStep إلى: review');
+
           }
         } else {
-          console.error('❌ فشل في إنشاء الاشتراك:', result.error);
-          console.error('❌ result.success = false');
+
           alert('حدث خطأ في إنشاء الاشتراك: ' + (result.error || 'خطأ غير معروف'));
         }
       } else {
-        console.error('❌ بيانات ناقصة:', { selectedPlan, userInfo });
+
         alert('بيانات الاشتراك أو المستخدم غير متوفرة');
       }
     } catch (error) {
-      console.error('❌ خطأ في معالجة الدفع:', error);
+
       alert('حدث خطأ في معالجة الدفع: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
     }
   };
 
   // مسح البيانات عند تسجيل الخروج
   const handleLogout = async () => {
-    console.log('🚪 بدء عملية تسجيل الخروج من App.tsx...');
-    
+
     try {
       // إعادة تعيين جميع الحالات المتعلقة بالاشتراك
       setIsCheckingSubscription(false);
       setShowSubscriptionPage(false);
       
       // ✅ مسح كامل لـ localStorage و sessionStorage
-      console.log('🧹 مسح localStorage و sessionStorage...');
+
       localStorage.clear();
       sessionStorage.clear();
       
       // ✅ مسح جميع أنواع الـ Cache (Service Worker, etc.)
-      console.log('🧹 مسح Service Worker Cache...');
+
       await clearAllCaches();
       
       // ✅ تسجيل الخروج من Supabase (يقوم بإعادة التحميل تلقائياً)
-      console.log('🚪 تسجيل الخروج من Supabase...');
+
       await logout();
       
       // ملاحظة: logout() يقوم بإعادة تحميل الصفحة تلقائياً
       
     } catch (error) {
-      console.error('❌ خطأ في تسجيل الخروج:', error);
-      
+
       // ✅ في حالة الخطأ، نمسح كل شيء ونعيد التحميل
       try {
         localStorage.clear();
         sessionStorage.clear();
         await clearAllCaches();
       } catch (clearError) {
-        console.error('❌ خطأ في مسح البيانات:', clearError);
+
       }
       
       // إعادة تحميل قوية مع timestamp
-      console.log('🔄 إعادة تحميل الصفحة...');
+
       window.location.href = window.location.origin + '?_logout=' + Date.now();
     }
   };
@@ -1227,7 +1202,9 @@ function App() {
             handleNavigateToRegister={handleNavigateToRegister}
             handleNavigateToPasswordReset={handleNavigateToPasswordReset}
             handleBackToLoginFromPasswordReset={handleBackToLoginFromPasswordReset}
-            showPasswordResetPage={showPasswordResetPage}
+            showForgotPasswordPage={showForgotPasswordPage}
+            showResetPasswordPage={showResetPasswordPage}
+            setShowResetPasswordPage={setShowResetPasswordPage}
             showTermsPage={showTermsPage}
             handleNavigateToTerms={handleNavigateToTerms}
             handleNavigateToSubscription={handleNavigateToSubscription}
@@ -1297,7 +1274,9 @@ interface AppContentProps {
   handleNavigateToRegister: () => void;
   handleNavigateToPasswordReset: () => void;
   handleBackToLoginFromPasswordReset: () => void;
-  showPasswordResetPage: boolean;
+  showForgotPasswordPage: boolean;
+  showResetPasswordPage: boolean;
+  setShowResetPasswordPage: (show: boolean) => void;
   // Terms
   showTermsPage: boolean;
   handleNavigateToTerms: () => void;
@@ -1356,7 +1335,9 @@ const AppContent: React.FC<AppContentProps> = ({
   handleNavigateToRegister,
   handleNavigateToPasswordReset,
   handleBackToLoginFromPasswordReset,
-  showPasswordResetPage,
+  showForgotPasswordPage,
+  showResetPasswordPage,
+  setShowResetPasswordPage,
   showTermsPage,
   handleNavigateToTerms,
   handleNavigateToSubscription,
@@ -1400,22 +1381,41 @@ const AppContent: React.FC<AppContentProps> = ({
   // التحقق من حالة الاشتراك للمستخدمين المسجلين
   const { status: subscriptionStatus, loading: subscriptionLoading, refresh: refreshSubscription } = useSubscriptionStatus(user?.id);
   
-  // منع عرض صفحة الاشتراك للمستخدمين المشتركين
+  // ✅ السماح للمستخدمين المشتركين بالوصول لصفحة الاشتراك للتجديد
+  // تم تعطيل هذا useEffect للسماح بالتجديد
+  // useEffect(() => {
+  //   if (isAuthenticated && user && showSubscriptionPage) {
+  //     const isAdmin = user.role === 'admin';
+  //     const hasActiveSubscription = user.subscription_status === 'active';
+  //     
+  //     if (hasActiveSubscription || isAdmin) {
+  //       setShowSubscriptionPage(false);
+  //       localStorage.removeItem(STORAGE_KEYS.SHOW_SUBSCRIPTION_PAGE);
+  //     }
+  //   }
+  // }, [isAuthenticated, user, showSubscriptionPage]);
+
+  // التوجيه التلقائي لصفحة الاشتراك إذا لزم الأمر
   useEffect(() => {
-    if (isAuthenticated && user && showSubscriptionPage) {
+    // انتظار تحميل subscriptionStatus قبل اتخاذ قرار
+    if (subscriptionLoading) return;
+    
+    if (isAuthenticated && user && !showResetPasswordPage) {
       const isAdmin = user.role === 'admin';
-      const hasActiveSubscription = user.subscription_status === 'active';
+      const needsSubscription = user.redirectTo === 'subscription' && 
+                                !isAdmin &&
+                                user.subscription_status !== 'active';
       
-      if (hasActiveSubscription || isAdmin) {
-        console.log('🚫 منع عرض صفحة الاشتراك للمستخدم المشترك');
-        setShowSubscriptionPage(false);
-        localStorage.removeItem(STORAGE_KEYS.SHOW_SUBSCRIPTION_PAGE);
+      // ⚠️ لا توجيه إذا كان الاشتراك منتهي - سيتم عرض نافذة الحجب
+      if (!showSubscriptionPage && needsSubscription && !subscriptionStatus.isExpired) {
+        handleNavigateToSubscription();
       }
     }
-  }, [isAuthenticated, user, showSubscriptionPage]);
+  }, [isAuthenticated, user, showResetPasswordPage, showSubscriptionPage, subscriptionStatus.isExpired, subscriptionLoading]);
 
   // التحقق من حالة المستخدم المسجل وتوجيهه للصفحة المناسبة
-  if (isAuthenticated && user) {
+  // ⚠️ لكن فقط إذا لم نكن في صفحة إعادة تعيين كلمة المرور
+  if (isAuthenticated && user && !showResetPasswordPage) {
     // 1. إذا كان البريد غير مفعل، عرض صفحة التفعيل مع زر إعادة الإرسال
     if (user.redirectTo === 'email_verification') {
       return (
@@ -1441,7 +1441,6 @@ const AppContent: React.FC<AppContentProps> = ({
 
     // 2. فحص دقيق لحالة الاشتراك
     const isAdmin = user.role === 'admin';
-    const hasActiveSubscription = user.subscription_status === 'active';
     
     // ✅ المستخدم يحتاج اشتراك فقط إذا:
     // - redirectTo === 'subscription' و
@@ -1450,31 +1449,18 @@ const AppContent: React.FC<AppContentProps> = ({
     const needsSubscription = user.redirectTo === 'subscription' && 
                               !isAdmin &&
                               user.subscription_status !== 'active';
+
+    // ✅ السماح للمستخدمين المشتركين بالوصول لصفحة الاشتراك للتجديد
+    // تم تعطيل هذا المنطق للسماح بالتجديد
+    // if (hasActiveSubscription || isAdmin) {
+    //   if (showSubscriptionPage) {
+    //     setShowSubscriptionPage(false);
+    //     localStorage.removeItem(STORAGE_KEYS.SHOW_SUBSCRIPTION_PAGE);
+    //   }
+    // }
     
-    console.log('🔐 فحص الاشتراك:', {
-      isAdmin,
-      hasActiveSubscription,
-      needsSubscription,
-      showSubscriptionPage,
-      status: user.status,
-      subscription_status: user.subscription_status
-    });
-    
-    // ❌ إذا كان المستخدم مشترك، لا تعرض صفحة الاشتراك نهائياً
-    if (hasActiveSubscription || isAdmin) {
-      if (showSubscriptionPage) {
-        console.log('⚠️ المستخدم مشترك لكن showSubscriptionPage = true، إخفاءها...');
-        setShowSubscriptionPage(false);
-        localStorage.removeItem(STORAGE_KEYS.SHOW_SUBSCRIPTION_PAGE);
-      }
-    }
-    
-    if (needsSubscription || (showSubscriptionPage && !hasActiveSubscription && !isAdmin)) {
-      console.log('📍 في صفحة الاشتراك - subscriptionStep:', subscriptionStep);
-      
-      if (!showSubscriptionPage && needsSubscription) {
-        handleNavigateToSubscription();
-      }
+    // السماح بعرض صفحة الاشتراك للتجديد
+    if (needsSubscription || (showSubscriptionPage && !isAdmin)) {
       
       // إنشاء userInfo من بيانات المستخدم إذا لم تكن موجودة
       const currentUserInfo = userInfo || {
@@ -1486,11 +1472,7 @@ const AppContent: React.FC<AppContentProps> = ({
       };
       
       // عرض صفحة الاشتراك حسب الخطوة
-      console.log('🔀 Switch على subscriptionStep:', subscriptionStep);
-      console.log('📦 selectedPlan:', selectedPlan);
-      console.log('👤 currentUserInfo:', currentUserInfo);
-      console.log('📋 full_name من قاعدة البيانات:', user.full_name);
-      
+
       switch (subscriptionStep) {
         case 'payment':
           return (
@@ -1533,7 +1515,7 @@ const AppContent: React.FC<AppContentProps> = ({
                   const result = await paymentService.checkUserPaymentStatus(user?.id, (lastPaymentData as any)?.id);
                   return result;
                 } catch (error) {
-                  console.error('خطأ في التحقق من حالة الدفع:', error);
+
                   return { status: 'pending', message: 'خطأ في التحقق' };
                 }
               }}
@@ -1597,12 +1579,23 @@ const AppContent: React.FC<AppContentProps> = ({
                            subscriptionStatus.subscription?.plan_name?.includes('جاري التحميل');
   
   // فقط نعرض نافذة الحظر إذا كان الاشتراك منتهي فعلاً وليس بسبب خطأ اتصال
+  // ⚡ عرض صفحة إعادة تعيين كلمة المرور (قبل أي فحص آخر)
+  if (showResetPasswordPage) {
+    return (
+      <ResetPasswordPage
+        onSuccess={() => {
+          setShowResetPasswordPage(false);
+          setShowLoginPage(true);
+        }}
+      />
+    );
+  }
+
   // ✅ فحص إضافي: التأكد من أن المستخدم فعلاً منتهي الاشتراك من بيانات user
   const isAdmin = user?.role === 'admin';
   const hasActiveSubscription = user?.status === 'active' && user?.subscription_status === 'active';
   const shouldShowBlockedPage = isAuthenticated && 
                                 !subscriptionLoading && 
-                                !isCheckingSubscription && // ✅ لا تعرض أثناء التحقق
                                 subscriptionStatus.isExpired && 
                                 !isConnectionError && 
                                 !isAdmin &&
@@ -1663,10 +1656,10 @@ const AppContent: React.FC<AppContentProps> = ({
       );
     }
 
-    // عرض صفحة استعادة كلمة المرور
-    if (showPasswordResetPage) {
+    // عرض صفحة نسيت كلمة المرور
+    if (showForgotPasswordPage) {
       return (
-        <PasswordResetPage
+        <ForgotPasswordPage
           onBack={handleBackToLoginFromPasswordReset}
         />
       );
@@ -1695,11 +1688,11 @@ const AppContent: React.FC<AppContentProps> = ({
       );
     }
 
-    // ✅ فحص نهائي: لا تعرض صفحة الاشتراك للمستخدمين المشتركين
+    // ✅ فحص نهائي: السماح بعرض صفحة الاشتراك للتجديد
     const isAdmin = user?.role === 'admin';
-    const hasActiveSubscription = user?.status === 'active' && user?.subscription_status === 'active';
     
-    if (showSubscriptionPage && !hasActiveSubscription && !isAdmin) {
+    // السماح بعرض صفحة الاشتراك للتجديد حتى للمستخدمين النشطين
+    if (showSubscriptionPage && !isAdmin) {
       // عرض الصفحة المناسبة حسب خطوة الاشتراك
       switch (subscriptionStep) {
         case 'plans':
@@ -1757,7 +1750,7 @@ const AppContent: React.FC<AppContentProps> = ({
                   const result = await paymentService.checkUserPaymentStatus(user?.id || userInfo?.id, (lastPaymentData as any)?.id);
                   return result;
                 } catch (error) {
-                  console.error('خطأ في التحقق من حالة الدفع:', error);
+
                   return { status: 'pending', message: 'خطأ في التحقق' };
                 }
               }}
@@ -1836,28 +1829,12 @@ const AppContent: React.FC<AppContentProps> = ({
     // إذا كان لديه اشتراك نشط في قاعدة البيانات أو هو المالك، السماح بالدخول مباشرة
     if (hasActiveSubscription || isOwner) {
       // ✅ لديه اشتراك نشط - السماح بالدخول
-      console.log('✅ مستخدم مشترك - الدخول للوحة التحكم');
+
     } else {
       // ❌ ليس لديه اشتراك نشط - فحص إضافي من subscriptionStatus
       const hasTimeRemaining = subscriptionStatus && subscriptionStatus.isActive;
       
       if (!hasTimeRemaining) {
-        console.warn('🚫 محاولة الدخول للوحة التحكم بدون اشتراك ساري!');
-        console.log('📊 تفاصيل المستخدم:', {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          status: user.status,
-          subscription_status: user.subscription_status,
-          subscriptionStatus: subscriptionStatus,
-          role: user.role
-        });
-        
-        // إجبار التوجيه لصفحة الاشتراك
-        if (!showSubscriptionPage) {
-          handleNavigateToSubscription();
-        }
-        
         // عرض صفحة الاشتراك فقط
         return (
           <SubscriptionPage 
@@ -1984,7 +1961,7 @@ const AppContent: React.FC<AppContentProps> = ({
                     userId={user?.id}
                     onBack={() => setActiveTab('signals')}
                     onRenew={() => {
-                      setActiveTab('signals');
+                      // لا نغير التبويب - فقط نفتح صفحة الاشتراك
                       handleNavigateToSubscription();
                     }}
                   />

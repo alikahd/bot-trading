@@ -87,7 +87,7 @@ export const InstallButton: React.FC<InstallButtonProps> = ({ className = '' }) 
           // إغلاق النافذة المنبثقة إذا كانت مفتوحة
           setShowInstallPrompt(false);
         } catch (error) {
-          console.error('❌ InstallButton - Error installing app on mobile:', error);
+
         }
         return;
       }
@@ -100,7 +100,7 @@ export const InstallButton: React.FC<InstallButtonProps> = ({ className = '' }) 
         // إغلاق النافذة المنبثقة إذا كانت مفتوحة
         setShowInstallPrompt(false);
       } catch (error) {
-        console.error('❌ InstallButton - Error installing app:', error);
+
       }
       return;
     }
@@ -125,7 +125,7 @@ export const InstallButton: React.FC<InstallButtonProps> = ({ className = '' }) 
       setDeferredPrompt(null);
       setShowInstallPrompt(false);
     } catch (error) {
-      console.error('❌ InstallButton - Error during installation:', error);
+
     }
   };
 

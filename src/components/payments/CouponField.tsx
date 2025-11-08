@@ -35,8 +35,7 @@ export const CouponField = forwardRef<any, CouponFieldProps>(({
           table: 'referral_settings'
         },
         async (payload: any) => {
-          console.log('🔄 تم تحديث إعدادات الإحالة في صفحة الدفع:', payload);
-          
+
           // إذا كان هناك كوبون مطبق ويستخدم النسب الديناميكية، تحديث النسب
           if (appliedCoupon && appliedCoupon.use_dynamic_rates && payload.new) {
             const newSettings = payload.new as any;
@@ -60,12 +59,7 @@ export const CouponField = forwardRef<any, CouponFieldProps>(({
             
             // تحديث الخصم
             onCouponApplied(newDiscount, updatedCoupon.id);
-            
-            console.log('✅ تم تحديث الكوبون المطبق بالنسب الجديدة:', {
-              oldRate: appliedCoupon.discount_rate,
-              newRate: newSettings.discount_rate,
-              newDiscount
-            });
+
           }
         }
       )
@@ -87,7 +81,6 @@ export const CouponField = forwardRef<any, CouponFieldProps>(({
 
     try {
       const searchCode = couponCode.toUpperCase().trim();
-      console.log('🔍 البحث عن الكوبون:', searchCode);
 
       // البحث عن الكوبون (قد يكون كوبون عادي أو رمز إحالة)
       const { data: coupons, error: couponError } = await supabase
@@ -95,17 +88,15 @@ export const CouponField = forwardRef<any, CouponFieldProps>(({
         .select('*')
         .eq('code', searchCode);
 
-      console.log('📊 نتيجة البحث:', { coupons, couponError });
-
       if (couponError) {
-        console.error('❌ خطأ في جلب الكوبون:', couponError);
+
         setError(t('coupon.error') || 'حدث خطأ أثناء التحقق من الكوبون');
         setLoading(false);
         return;
       }
 
       if (!coupons || coupons.length === 0) {
-        console.warn('⚠️ لم يتم العثور على الكوبون:', searchCode);
+
         setError(t('coupon.invalid') || 'كود الكوبون غير صحيح');
         setLoading(false);
         return;
@@ -113,27 +104,26 @@ export const CouponField = forwardRef<any, CouponFieldProps>(({
 
       // استخدام أول كوبون متطابق
       let coupon = coupons[0];
-      console.log('✅ تم العثور على الكوبون:', coupon);
 
       // إذا كان الكوبون يستخدم النسب الديناميكية، جلب النسبة الحالية من referral_settings
       if (coupon.use_dynamic_rates) {
-        console.log('🔄 كوبون ديناميكي - جلب النسبة الحالية من الإعدادات...');
+
         const { data: settings, error: settingsError } = await supabase
           .from('referral_settings')
           .select('discount_rate, commission_rate')
           .single();
 
         if (!settingsError && settings) {
-          console.log('✅ تم جلب الإعدادات الحالية:', settings);
+
           // تحديث نسبة الخصم بالنسبة الحالية من الإعدادات
           coupon = {
             ...coupon,
             discount_rate: settings.discount_rate,
             commission_rate: settings.commission_rate
           };
-          console.log('🔄 تم تحديث الكوبون بالنسب الحالية:', coupon);
+
         } else {
-          console.warn('⚠️ لم يتم العثور على الإعدادات، استخدام النسب المحفوظة');
+
         }
       }
 
@@ -185,21 +175,12 @@ export const CouponField = forwardRef<any, CouponFieldProps>(({
       // التأكد من أن الخصم لا يتجاوز السعر الأصلي
       discount = Math.min(discount, originalPrice);
 
-      console.log('✅ تم تطبيق الكوبون:', {
-        code: coupon.code,
-        type: coupon.discount_type,
-        rate: coupon.discount_rate || coupon.discount_value,
-        discount: discount,
-        originalPrice: originalPrice,
-        finalPrice: originalPrice - discount
-      });
-
       // تطبيق الكوبون
       setAppliedCoupon(coupon);
       onCouponApplied(discount, coupon.id);
 
     } catch (error) {
-      console.error('Error validating coupon:', error);
+
       setError(t('coupon.error') || 'حدث خطأ أثناء التحقق من الكوبون');
     } finally {
       setLoading(false);
@@ -216,7 +197,7 @@ export const CouponField = forwardRef<any, CouponFieldProps>(({
   // تطبيق الكوبون تلقائياً عند التحميل
   useEffect(() => {
     if (autoApplyCoupon && !appliedCoupon && !loading) {
-      console.log('🎁 تطبيق كوبون تلقائي من رابط الإحالة:', autoApplyCoupon);
+
       setCouponCode(autoApplyCoupon);
       // تطبيق الكوبون بعد تأخير قصير
       const timer = setTimeout(() => {
@@ -229,7 +210,7 @@ export const CouponField = forwardRef<any, CouponFieldProps>(({
   // إتاحة دالة التطبيق التلقائي للمكون الأب
   useImperativeHandle(ref, () => ({
     applyCouponAutomatically: (code: string) => {
-      console.log('🎯 تطبيق كوبون من المكون الأب:', code);
+
       setCouponCode(code);
       setTimeout(() => {
         validateAndApplyCoupon();

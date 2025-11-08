@@ -119,19 +119,19 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   useEffect(() => {
-    console.log('🔄 تغيرت حالة النافذة:', isVisible);
+
     if (isVisible) {
-      console.log('✅ النافذة مرئية - بدء تحميل الاشتراكات');
+
       fetchSubscriptions();
 
       // ✅ إعداد Realtime للاشتراكات
-      console.log('🔴 إعداد Realtime لإدارة الاشتراكات...');
+
       const subscriptionsChannel = supabase
         .channel('subscriptions-management-changes')
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'subscriptions' },
-          (payload) => {
-            console.log('🔄 تغيير في الاشتراكات:', payload);
+          (_payload) => {
+
             fetchSubscriptions(); // إعادة تحميل البيانات
           }
         )
@@ -139,7 +139,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
 
       // تنظيف عند إخفاء النافذة
       return () => {
-        console.log('🧹 تنظيف Realtime للاشتراكات...');
+
         supabase.removeChannel(subscriptionsChannel);
       };
     }
@@ -147,7 +147,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
 
   // تحميل إضافي عند تحميل المكون
   useEffect(() => {
-    console.log('🚀 تم تحميل مكون SubscriptionManagement');
+
   }, []);
 
   // إغلاق القائمة عند النقر خارجها أو فتح نافذة أخرى
@@ -175,9 +175,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     setLoading(true);
     try {
       const data = await subscriptionService.getAllSubscriptions();
-      console.log('🔍 نافذة إدارة المشتركين - البيانات المحملة:', data);
-      console.log('📊 عدد المشتركين:', data.length);
-      
+
       setSubscriptions(data);
       // حساب الإيرادات برقمين بعد الفاصلة
       const totalRevenue = data.reduce((sum, sub) => sum + (sub.amount_paid || 0), 0);
@@ -190,7 +188,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
         revenue: formattedRevenue
       });
     } catch (error) {
-      console.error('❌ خطأ في تحميل المشتركين:', error);
+
     } finally {
       setLoading(false);
     }
@@ -204,17 +202,14 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   }>) => {
     setActionLoading(id);
     try {
-      console.log('🔄 تحديث الاشتراك:', id, updates);
-      
+
       // استدعاء API لتحديث الاشتراك
       await subscriptionService.updateSubscription(id, updates);
-      
-      console.log('✅ تم تحديث الاشتراك بنجاح');
-      
+
       // إعادة تحميل البيانات
       await fetchSubscriptions();
     } catch (error) {
-      console.error('❌ خطأ في تحديث الاشتراك:', error);
+
       // يمكن إضافة toast notification هنا
     } finally {
       setActionLoading(null);
@@ -229,12 +224,12 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   const handleDeleteSubscription = async (id: string) => {
     setActionLoading(id);
     try {
-      console.log('🗑️ حذف الاشتراك:', id);
+
       // يمكن إضافة API call للحذف هنا
       await fetchSubscriptions();
       setShowDeleteConfirm(null);
     } catch (error) {
-      console.error('❌ خطأ في حذف الاشتراك:', error);
+
     } finally {
       setActionLoading(null);
     }
@@ -243,7 +238,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   const handleExtendSubscription = async (id: string, months: number) => {
     setActionLoading(id);
     try {
-      console.log('📅 تمديد الاشتراك:', id, months, 'شهر');
+
       // حساب تاريخ انتهاء جديد
       const subscription = subscriptions.find(s => s.id === id);
       if (subscription) {
@@ -257,7 +252,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       }
       setShowExtendModal(false);
     } catch (error) {
-      console.error('❌ خطأ في تمديد الاشتراك:', error);
+
     } finally {
       setActionLoading(null);
     }
@@ -265,11 +260,11 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
 
   const handleSendEmail = async (subscription: SubscriptionData) => {
     try {
-      console.log('📧 إرسال بريد إلكتروني إلى:', subscription.user_email);
+
       // يمكن إضافة API call لإرسال البريد هنا
       setShowEmailModal(false);
     } catch (error) {
-      console.error('❌ خطأ في إرسال البريد:', error);
+
     }
   };
 
@@ -307,9 +302,6 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   );
 
   // تشخيص إضافي
-  console.log('🔍 الاشتراكات الأصلية:', subscriptions);
-  console.log('🔍 الاشتراكات المفلترة:', filteredSubscriptions);
-  console.log('🔍 نص البحث:', searchTerm);
 
   if (!isVisible) return null;
 
@@ -1526,7 +1518,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                   </Button>
                   <Button
                     onClick={() => {
-                      console.log('💾 حفظ الإعدادات المتقدمة');
+
                       setShowAdvancedSettings(false);
                     }}
                     variant="primary"

@@ -87,25 +87,18 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
 
   const loadRecommendations = async () => {
     if (!isActive || isPaused) {
-      console.log('⏸️ التوصيات الذكية متوقفة مؤقتاً');
+
       return;
     }
     
     setLoading(true);
     try {
-      console.log('🚀 بدء تحليل التوصيات الذكية من Binary.com...');
-      console.log('✅ مصدر البيانات: Binary.com WebSocket (بيانات فورية)');
-      console.log('⚡ سرعة التحديث: كل 15 ثانية (عرض متتالي سريع جداً)');
-      console.log('🔍 نظام فحص جودة البيانات: مفعل');
-      console.log('⚙️ الحد الأدنى للثقة: 40% + جودة بيانات ≥70%');
-      
+
       // استخدام المحرك المتقدم للتحليل (بيانات مباشرة من Binary.com)
       const signals = await advancedAnalysisEngine.analyzeAllSymbols();
-      
-      console.log(`📊 تم إنشاء ${signals.length} إشارة من المحرك المتقدم`);
-      
+
       if (signals.length === 0) {
-        console.warn('⚠️ لا توجد إشارات متاحة - سيتم المحاولة مرة أخرى في 15 ثانية');
+
         setLoading(false);
         return;
       }
@@ -141,12 +134,9 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
         entryTime: new Date(Date.now() + 120000), // بعد دقيقتين من الآن - وقت كافٍ للمستخدم
         expiryTime: new Date(Date.now() + 120000 + signal.timeframe * 60000) // بعد وقت الدخول + مدة الصفقة
       }));
-      
-      console.log(`✅ تم تحليل ${recs.length} توصية ذكية من أصل ${signals.length} إشارة`);
-      console.log(`⏰ وقت الدخول: بعد دقيقتين من الآن (وقت كافٍ للمستخدم)`);
+
       if (recs.length > 0) {
-        console.log(`📈 نطاق الثقة: ${Math.min(...recs.map(r => r.confidence))}% - ${Math.max(...recs.map(r => r.confidence))}%`);
-        console.log(`🎯 متوسط الثقة: ${Math.round(recs.reduce((sum, r) => sum + r.confidence, 0) / recs.length)}%`);
+
       }
       
       // تشغيل صوت التنبيه إذا كانت هناك توصيات جديدة (فقط إذا كان مفعلاً)
@@ -154,20 +144,18 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
         if (recs.length > 0 && recommendations.length === 0) {
           // توصيات جديدة للمرة الأولى
           notificationSound.play();
-          console.log('🔔 تم تشغيل صوت التنبيه - توصيات ذكية جديدة!');
+
         } else if (recs.length > recommendations.length) {
           // زيادة في عدد التوصيات
           notificationSound.play();
-          console.log(`🔔 تم تشغيل صوت التنبيه - ${recs.length - recommendations.length} توصية ذكية جديدة!`);
+
         }
       }
       
       setRecommendations(recs);
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('❌ خطأ في تحميل التوصيات الذكية:', error);
-      console.error('📋 تفاصيل الخطأ:', error);
-      console.warn('🔄 سيتم المحاولة مرة أخرى في 15 ثانية...');
+
       // لا نمسح التوصيات القديمة - نبقيها حتى نحصل على جديدة
       // setRecommendations([]);
     } finally {

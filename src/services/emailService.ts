@@ -31,14 +31,13 @@ class EmailService {
         });
 
       if (error) {
-        console.error('❌ خطأ في حفظ رمز التفعيل:', error);
+
         return { success: false, error: error.message };
       }
 
-      console.log('✅ تم حفظ رمز التفعيل بنجاح');
       return { success: true };
     } catch (error) {
-      console.error('❌ خطأ في حفظ رمز التفعيل:', error);
+
       return { success: false, error: 'حدث خطأ أثناء حفظ رمز التفعيل' };
     }
   }
@@ -46,8 +45,7 @@ class EmailService {
   // إرسال رمز التفعيل عبر البريد الإلكتروني
   async sendVerificationEmail(email: string, code: string, fullName: string): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('📧 إرسال رمز التفعيل إلى:', email);
-      
+
       // محاولة إرسال البريد الحقيقي أولاً
       try {
         const response = await fetch('/api/send-verification-email', {
@@ -64,8 +62,7 @@ class EmailService {
 
         if (response.ok) {
           await response.json();
-          console.log('✅ تم إرسال البريد الإلكتروني بنجاح');
-          
+
           // إظهار رسالة نجاح للمستخدم
           if (typeof window !== 'undefined') {
             const successDiv = document.createElement('div');
@@ -102,13 +99,9 @@ class EmailService {
           throw new Error(`HTTP ${response.status}`);
         }
       } catch (emailError) {
-        console.warn('⚠️ فشل في إرسال البريد الحقيقي، التبديل للوضع التطويري:', emailError);
-        
+
         // الرجوع للوضع التطويري
-        console.log('🔑 رمز التفعيل (وضع تطويري):', code);
-        console.log('👤 المستخدم:', fullName);
-        console.log('📧 البريد الإلكتروني:', email);
-        
+
         // إظهار تنبيه للمستخدم في الوضع التطويري
         if (typeof window !== 'undefined') {
           const alertDiv = document.createElement('div');
@@ -141,7 +134,7 @@ class EmailService {
         return { success: true };
       }
     } catch (error) {
-      console.error('❌ خطأ في إرسال رمز التفعيل:', error);
+
       return { success: false, error: 'فشل في إرسال رمز التفعيل' };
     }
   }
@@ -166,7 +159,7 @@ class EmailService {
 
       return { success: true };
     } catch (error) {
-      console.error('❌ خطأ في إرسال رمز التفعيل:', error);
+
       return { success: false, error: 'حدث خطأ أثناء إرسال رمز التفعيل' };
     }
   }
@@ -174,7 +167,6 @@ class EmailService {
   // التحقق من رمز التفعيل
   async verifyCode(email: string, code: string): Promise<{ success: boolean; error?: string; userId?: string }> {
     try {
-      console.log('🔍 التحقق من رمز التفعيل:', { email, code });
 
       // البحث عن رمز التفعيل
       const { data: verification, error: fetchError } = await supabase
@@ -186,7 +178,7 @@ class EmailService {
         .single();
 
       if (fetchError || !verification) {
-        console.error('❌ رمز التفعيل غير صحيح أو منتهي الصلاحية');
+
         return { success: false, error: 'رمز التفعيل غير صحيح أو منتهي الصلاحية' };
       }
 
@@ -195,7 +187,7 @@ class EmailService {
       const expiresAt = new Date(verification.expires_at);
       
       if (now > expiresAt) {
-        console.error('❌ رمز التفعيل منتهي الصلاحية');
+
         return { success: false, error: 'رمز التفعيل منتهي الصلاحية' };
       }
 
@@ -209,7 +201,7 @@ class EmailService {
         .eq('id', verification.id);
 
       if (updateError) {
-        console.error('❌ خطأ في تحديث حالة التفعيل:', updateError);
+
         return { success: false, error: 'حدث خطأ أثناء التفعيل' };
       }
 
@@ -223,14 +215,13 @@ class EmailService {
         .eq('id', verification.user_id);
 
       if (userUpdateError) {
-        console.error('❌ خطأ في تحديث حالة المستخدم:', userUpdateError);
+
         return { success: false, error: 'حدث خطأ أثناء تحديث حالة المستخدم' };
       }
 
-      console.log('✅ تم تفعيل البريد الإلكتروني بنجاح');
       return { success: true, userId: verification.user_id };
     } catch (error) {
-      console.error('❌ خطأ في التحقق من رمز التفعيل:', error);
+
       return { success: false, error: 'حدث خطأ أثناء التحقق من رمز التفعيل' };
     }
   }
@@ -256,7 +247,7 @@ class EmailService {
       // إرسال رمز جديد
       return await this.sendVerificationCode(user.id, email, user.full_name);
     } catch (error) {
-      console.error('❌ خطأ في إعادة إرسال رمز التفعيل:', error);
+
       return { success: false, error: 'حدث خطأ أثناء إعادة إرسال رمز التفعيل' };
     }
   }
@@ -276,7 +267,7 @@ class EmailService {
 
       return { isVerified: user.email_verified || false };
     } catch (error) {
-      console.error('❌ خطأ في التحقق من حالة التفعيل:', error);
+
       return { isVerified: false, error: 'حدث خطأ أثناء التحقق من حالة التفعيل' };
     }
   }

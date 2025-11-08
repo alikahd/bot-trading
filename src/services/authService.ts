@@ -72,7 +72,7 @@ class AuthService {
         this.notifyListeners();
       }
     } catch (error) {
-      console.error('خطأ في استعادة الجلسة:', error);
+
       localStorage.removeItem('trading_bot_user');
     }
   }
@@ -82,7 +82,7 @@ class AuthService {
     try {
       localStorage.setItem('trading_bot_user', JSON.stringify(user));
     } catch (error) {
-      console.error('خطأ في حفظ الجلسة:', error);
+
     }
   }
 
@@ -179,7 +179,7 @@ class AuthService {
 
       return { success: true };
     } catch (error) {
-      console.error('خطأ في تسجيل الدخول:', error);
+
       return {
         success: false,
         error: 'حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.'
@@ -247,7 +247,7 @@ class AuthService {
         .eq('id', this.currentUser.id);
 
       if (error) {
-        console.error('خطأ في تحديث الإعدادات:', error);
+
         return false;
       }
 
@@ -258,7 +258,7 @@ class AuthService {
 
       return true;
     } catch (error) {
-      console.error('خطأ في تحديث الإعدادات:', error);
+
       return false;
     }
   }

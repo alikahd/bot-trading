@@ -28,10 +28,9 @@ export const useSubscriptionStatus = (userId?: string) => {
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-
   const checkSubscriptionStatus = async (isBackground = false) => {
     if (!userId) {
-      console.log('⚠️ لا يوجد userId - إيقاف الفحص');
+
       // إعادة تعيين الحالة للمستخدم غير مسجل الدخول
       setStatus({
         isActive: false,
@@ -117,7 +116,7 @@ export const useSubscriptionStatus = (userId?: string) => {
 
       // ✅ التحقق الفوري من صلاحية الاشتراك من قاعدة البيانات
       if (!data.subscription_id || !data.end_date || data.is_subscription_valid === false) {
-        console.log('⚠️ لا يوجد اشتراك نشط أو الاشتراك منتهي');
+
         setStatus({
           isActive: false,
           daysRemaining: 0,
@@ -136,7 +135,7 @@ export const useSubscriptionStatus = (userId?: string) => {
       const now = new Date();
       
       if (endDate < now) {
-        console.log('⚠️ الاشتراك منتهي - تحديث الحالة في قاعدة البيانات');
+
         setStatus({
           isActive: false,
           daysRemaining: 0,
@@ -181,12 +180,11 @@ export const useSubscriptionStatus = (userId?: string) => {
       });
 
     } catch (err) {
-      console.error('Error checking subscription status:', err);
+
       setError('فشل في التحقق من حالة الاشتراك');
       
       // عند فشل جلب البيانات، نعتبر المستخدم غير نشط للأمان
-      console.log('⚠️ فشل جلب البيانات، المستخدم يعتبر غير نشط');
-      
+
       setStatus({
         isActive: false, // ❌ غير نشط للأمان
         daysRemaining: 0,
@@ -202,7 +200,7 @@ export const useSubscriptionStatus = (userId?: string) => {
       // فقط نعيد المحاولة إذا كان خطأ شبكة أو خطأ مؤقت
       if (userId && err instanceof Error && !err.message.includes('غير موجود')) {
         setTimeout(() => {
-          console.log('🔄 إعادة محاولة جلب البيانات...');
+
           checkSubscriptionStatus(true);
         }, 30000);
       }
@@ -221,12 +219,11 @@ export const useSubscriptionStatus = (userId?: string) => {
     if (!userId) return;
     
     // ⚡ استخدام Realtime للتحديث الفوري (بدون تأخير)
-    console.log('⚡ تفعيل Realtime للاشتراك - تحديث فوري بدون تأخير');
-    
+
     const unsubscribeUser = realtimeSyncService.subscribeToUserChanges(
       userId,
       async (_payload) => {
-        console.log('🔔 تحديث فوري - تغيير في بيانات المستخدم');
+
         await checkSubscriptionStatus(true);
       }
     );
@@ -234,7 +231,7 @@ export const useSubscriptionStatus = (userId?: string) => {
     const unsubscribeSub = realtimeSyncService.subscribeToSubscriptionChanges(
       userId,
       async (_payload) => {
-        console.log('🔔 تحديث فوري - تغيير في الاشتراك');
+
         await checkSubscriptionStatus(true);
       }
     );

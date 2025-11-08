@@ -57,16 +57,12 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("🚀 بدء معالجة الدفع الشهري للعمولات...");
-
     // 3. الحصول على ملخص العمولات المعلقة قبل المعالجة
     const { data: summaryBefore, error: summaryError } = await supabase
       .rpc("get_pending_commissions_summary");
 
     if (summaryError) {
-      console.error("❌ خطأ في جلب الملخص:", summaryError);
-    } else {
-      console.log("📊 ملخص العمولات المعلقة:", summaryBefore);
+      // خطأ في جلب الملخص
     }
 
     // 4. تنفيذ معالجة العمولات
@@ -74,7 +70,6 @@ serve(async (req) => {
       .rpc("process_monthly_commissions");
 
     if (processError) {
-      console.error("❌ خطأ في معالجة العمولات:", processError);
       
       // إرسال تنبيه للأدمن بالخطأ
       await sendAdminErrorNotification(supabase, processError.message);
@@ -87,8 +82,6 @@ serve(async (req) => {
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
-
-    console.log("✅ تم معالجة العمولات:", results);
 
     // 5. تحليل النتائج
     const payoutResults = results as PayoutResult[];
@@ -111,13 +104,7 @@ serve(async (req) => {
 
     await sendAdminReport(supabase, adminReport);
 
-    // 7. تسجيل النتيجة النهائية
-    console.log("📊 التقرير النهائي:");
-    console.log(`   ✅ عدد المستخدمين المدفوع لهم: ${successfulPayouts.length}`);
-    console.log(`   💰 إجمالي المبلغ المدفوع: $${totalAmount.toFixed(2)}`);
-    console.log(`   ❌ عدد الفشل: ${failedPayouts.length}`);
-
-    // 8. إرجاع النتيجة
+    // 7. إرجاع النتيجة
     return new Response(
       JSON.stringify({
         success: true,
@@ -137,7 +124,6 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("❌ خطأ غير متوقع:", error);
     
     return new Response(
       JSON.stringify({ 
@@ -165,12 +151,10 @@ async function sendAdminReport(
       .eq("is_active", true);
 
     if (adminError) {
-      console.error("❌ خطأ في جلب المديرين:", adminError);
       return;
     }
 
     if (!admins || admins.length === 0) {
-      console.warn("⚠️ لا يوجد مديرين لإرسال التقرير");
       return;
     }
 
@@ -212,9 +196,8 @@ async function sendAdminReport(
       });
     }
 
-    console.log(`✅ تم إرسال التقرير لـ ${admins.length} مديرين`);
   } catch (error) {
-    console.error("❌ خطأ في إرسال تقرير الأدمن:", error);
+    // خطأ في إرسال التقرير
   }
 }
 
@@ -250,8 +233,7 @@ async function sendAdminErrorNotification(
       });
     }
 
-    console.log("✅ تم إرسال تنبيه الخطأ للمديرين");
   } catch (error) {
-    console.error("❌ خطأ في إرسال تنبيه الخطأ:", error);
+    // خطأ في إرسال التنبيه
   }
 }

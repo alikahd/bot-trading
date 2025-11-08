@@ -28,7 +28,7 @@ interface PaymentMethodSettingsProps {
 }
 
 const PaymentMethodSettings: React.FC<PaymentMethodSettingsProps> = ({ userId }) => {
-  const { t } = useLanguage();
+  const { t: _t } = useLanguage();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -75,7 +75,7 @@ const PaymentMethodSettings: React.FC<PaymentMethodSettingsProps> = ({ userId })
         .order('is_primary', { ascending: false });
 
       if (error) {
-        console.error('خطأ في تحميل طرق الدفع:', error);
+
         // إذا كان الجدول غير موجود، نعرض رسالة واضحة
         if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
           setError('جدول طرق الدفع غير موجود. يرجى تطبيق Migration أولاً.');
@@ -87,7 +87,7 @@ const PaymentMethodSettings: React.FC<PaymentMethodSettingsProps> = ({ userId })
         setPaymentMethods(data || []);
       }
     } catch (error: any) {
-      console.error('خطأ في تحميل طرق الدفع:', error);
+
       setError('حدث خطأ غير متوقع: ' + (error?.message || 'خطأ غير معروف'));
       setPaymentMethods([]);
     } finally {
@@ -187,7 +187,7 @@ const PaymentMethodSettings: React.FC<PaymentMethodSettingsProps> = ({ userId })
       await loadPaymentMethods();
       handleCancel();
     } catch (error: any) {
-      console.error('خطأ في حفظ طريقة الدفع:', error);
+
       setError(error.message || 'فشل حفظ طريقة الدفع');
     } finally {
       setSaving(false);
@@ -230,7 +230,7 @@ const PaymentMethodSettings: React.FC<PaymentMethodSettingsProps> = ({ userId })
       if (error) throw error;
       await loadPaymentMethods();
     } catch (error) {
-      console.error('خطأ في حذف طريقة الدفع:', error);
+
       setError('فشل حذف طريقة الدفع');
     }
   };
@@ -245,7 +245,7 @@ const PaymentMethodSettings: React.FC<PaymentMethodSettingsProps> = ({ userId })
       if (error) throw error;
       await loadPaymentMethods();
     } catch (error) {
-      console.error('خطأ في تعيين طريقة الدفع الافتراضية:', error);
+
     }
   };
 

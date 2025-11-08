@@ -101,7 +101,7 @@ class RealTimeDataService {
       // تعيين timeout للاتصال
       const connectionTimeout = setTimeout(() => {
         if (this.binaryWS && this.binaryWS.readyState !== WebSocket.OPEN) {
-          console.error('⏱️ انتهت مهلة الاتصال - إعادة المحاولة...');
+
           this.binaryWS.close();
           this.handleReconnect();
         }
@@ -109,7 +109,7 @@ class RealTimeDataService {
       
       this.binaryWS.onopen = () => {
         clearTimeout(connectionTimeout);
-        console.log('✅ WebSocket متصل');
+
         this.reconnectAttempts = 0;
         
         // إرسال ping للحفاظ على الاتصال
@@ -126,10 +126,7 @@ class RealTimeDataService {
         
         // عرض إحصائيات كل 10 ثوانٍ
         this.statsInterval = setInterval(() => {
-          console.log(`📊 إحصائيات Binary.com:`);
-          console.log(`   - رموز مشترك فيها: ${this.subscribedSymbols.size}`);
-          console.log(`   - رموز مستلمة: ${this.receivedSymbols.size}`);
-          console.log(`   - رموز نشطة: ${Object.keys(this.quotes).length}`);
+
         }, 10000);
         
         this.subscribeToSymbols();
@@ -153,19 +150,13 @@ class RealTimeDataService {
         this.handleReconnect();
       };
       
-      this.binaryWS.onerror = (error) => {
+      this.binaryWS.onerror = (_error) => {
         clearTimeout(connectionTimeout);
-        console.error('❌ خطأ في خدمة البيانات:', error);
-        console.error('🌐 البيئة الحالية:', {
-          hostname: window.location.hostname,
-          protocol: window.location.protocol,
-          isSecure: window.location.protocol === 'https:'
-        });
+
       };
       
     } catch (error) {
-      console.error('❌ فشل الاتصال بخدمة البيانات:', error);
-      console.error('📋 تفاصيل الخطأ:', error);
+
       this.handleReconnect();
     }
   }
@@ -190,9 +181,7 @@ class RealTimeDataService {
       'frxNZDCHF', 'frxNZDCAD', 'frxCADJPY', 'frxCADCHF', 
       'frxCHFJPY'
     ];
-    
-    console.log(`📡 بدء الاشتراك في ${symbols.length} رمز...`);
-    
+
     // الاشتراك في دفعات صغيرة (10 رموز في كل دفعة)
     const batchSize = 10;
     const delayBetweenBatches = 500; // نصف ثانية بين كل دفعة
@@ -211,16 +200,13 @@ class RealTimeDataService {
           this.subscribedSymbols.add(symbol); // تتبع الرموز المشترك فيها
         }
       });
-      
-      console.log(`✅ تم الاشتراك في الدفعة ${Math.floor(i / batchSize) + 1}/${Math.ceil(symbols.length / batchSize)} (${batch.length} رموز)`);
-      
+
       // انتظار قبل إرسال الدفعة التالية
       if (i + batchSize < symbols.length) {
         await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
       }
     }
-    
-    console.log(`🎉 تم الاشتراك في جميع الرموز (${symbols.length} رمز)`);
+
   }
 
   /**
@@ -244,7 +230,7 @@ class RealTimeDataService {
       
       // معالجة رسالة error
       if (data.error) {
-        console.error('❌ WebSocket error:', data.error.message);
+
         return;
       }
       
@@ -259,12 +245,12 @@ class RealTimeDataService {
         // تتبع الرموز المستلمة
         if (!this.receivedSymbols.has(sourceSymbol)) {
           this.receivedSymbols.add(sourceSymbol);
-          console.log(`📊 رمز جديد: ${localSymbol} (${this.receivedSymbols.size}/${this.subscribedSymbols.size})`);
+
         }
         
         // استقبال بيانات جديدة
         if (!this.quotes[localSymbol]) {
-          console.log(`📊 ${localSymbol}: ${data.tick.quote}`);
+
         }
         
         // استخدام القيم الدقيقة مباشرة
@@ -299,7 +285,7 @@ class RealTimeDataService {
       this.lastUpdate = new Date();
       
     } catch (error) {
-      console.error('❌ خطأ في معالجة رسالة البيانات:', error);
+
     }
   }
 
@@ -369,7 +355,7 @@ class RealTimeDataService {
    */
   private handleReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('❌ فشل في إعادة الاتصال - التبديل للبيانات الاحتياطية');
+
       this.fetchFallbackData();
       return;
     }
@@ -390,25 +376,15 @@ class RealTimeDataService {
    * 📡 جلب البيانات الاحتياطية (عند فشل WebSocket)
    */
   private fetchFallbackData() {
-    console.warn('⚠️ WebSocket غير متصل - محاولة إعادة الاتصال...');
-    console.warn('🌐 البيئة:', window.location.hostname);
-    console.warn('💡 إذا استمرت المشكلة، تحقق من:');
-    console.warn('   1. اتصال الإنترنت');
-    console.warn('   2. إعدادات CORS');
-    console.warn('   3. جدار الحماية');
-    
+
     // محاولة إعادة الاتصال تلقائياً
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       // محاولة إعادة الاتصال
       this.handleReconnect();
     } else {
-      console.error('❌ فشلت جميع محاولات إعادة الاتصال');
-      console.error('💡 يرجى إعادة تحميل الصفحة');
+
     }
   }
-
-
-
 
   /**
    * 📢 إشعار جميع المستمعين بالتحديثات
@@ -418,7 +394,7 @@ class RealTimeDataService {
       try {
         listener.callback(this.quotes);
       } catch (error) {
-        console.error(`❌ خطأ في إشعار المستمع ${listener.id}:`, error);
+
       }
     });
   }
@@ -467,8 +443,7 @@ class RealTimeDataService {
   getCurrentQuotes(): { [symbol: string]: RealTimeQuote } {
     const quotesCount = Object.keys(this.quotes).length;
     if (quotesCount === 0) {
-      console.warn('⚠️ لا توجد أسعار متاحة! تحقق من اتصال خدمة البيانات');
-      console.warn('🌐 البيئة:', window.location.hostname);
+
     }
     return { ...this.quotes };
   }

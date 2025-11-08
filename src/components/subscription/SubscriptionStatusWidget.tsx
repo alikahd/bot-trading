@@ -30,7 +30,6 @@ export const SubscriptionStatusWidget: React.FC<SubscriptionStatusWidgetProps> =
   compact = false
 }) => {
   const { t, language } = useLanguage();
-  const isRTL = language === 'ar';
 
   const getStatusConfig = () => {
     if (status.isExpired) {

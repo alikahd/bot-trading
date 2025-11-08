@@ -87,14 +87,13 @@ class AdminNotificationService {
         .single();
 
       if (error) {
-        console.error('❌ خطأ في إرسال التنبيه:', error);
+
         return { success: false, error: error.message };
       }
 
-      console.log('✅ تم إرسال التنبيه بنجاح');
       return { success: true, notification };
     } catch (error: any) {
-      console.error('❌ خطأ في إرسال التنبيه:', error);
+
       return { success: false, error: error.message };
     }
   }
@@ -117,7 +116,7 @@ class AdminNotificationService {
         .eq('is_active', true);
 
       if (usersError || !users) {
-        console.error('❌ خطأ في جلب المستخدمين:', usersError);
+
         return { success: false, error: usersError?.message || 'فشل جلب المستخدمين' };
       }
 
@@ -147,14 +146,13 @@ class AdminNotificationService {
         .insert(notifications);
 
       if (error) {
-        console.error('❌ خطأ في إرسال التنبيهات:', error);
+
         return { success: false, error: error.message };
       }
 
-      console.log(`✅ تم إرسال ${notifications.length} تنبيه بنجاح`);
       return { success: true, count: notifications.length };
     } catch (error: any) {
-      console.error('❌ خطأ في إرسال التنبيهات:', error);
+
       return { success: false, error: error.message };
     }
   }
@@ -193,13 +191,13 @@ class AdminNotificationService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('❌ خطأ في جلب التنبيهات:', error);
+
         return { success: false, error: error.message };
       }
 
       return { success: true, notifications: data || [] };
     } catch (error: any) {
-      console.error('❌ خطأ في جلب التنبيهات:', error);
+
       return { success: false, error: error.message };
     }
   }
@@ -215,14 +213,13 @@ class AdminNotificationService {
         .eq('id', notificationId);
 
       if (error) {
-        console.error('❌ خطأ في حذف التنبيه:', error);
+
         return { success: false, error: error.message };
       }
 
-      console.log('✅ تم حذف التنبيه بنجاح');
       return { success: true };
     } catch (error: any) {
-      console.error('❌ خطأ في حذف التنبيه:', error);
+
       return { success: false, error: error.message };
     }
   }
@@ -239,14 +236,13 @@ class AdminNotificationService {
         .select();
 
       if (error) {
-        console.error('❌ خطأ في حذف التنبيهات المنتهية:', error);
+
         return { success: false, error: error.message };
       }
 
-      console.log(`✅ تم حذف ${data?.length || 0} تنبيه منتهي`);
       return { success: true, count: data?.length || 0 };
     } catch (error: any) {
-      console.error('❌ خطأ في حذف التنبيهات المنتهية:', error);
+
       return { success: false, error: error.message };
     }
   }
@@ -256,8 +252,7 @@ class AdminNotificationService {
    */
   async sendWelcomeNotification(userId: string, isRenewal: boolean = false): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('📧 إرسال إشعار ترحيبي للمستخدم:', userId);
-      
+
       // ✅ منع إرسال الإشعارات الترحيبية للأدمن
       const { data: userData } = await supabase
         .from('users')
@@ -266,7 +261,7 @@ class AdminNotificationService {
         .single();
       
       if (userData?.role === 'admin') {
-        console.log('⏭️ تخطي إرسال الإشعار الترحيبي للأدمن');
+
         return { success: true };
       }
       
@@ -284,8 +279,7 @@ class AdminNotificationService {
         .maybeSingle();
       
       if (existingNotification) {
-        console.log(`ℹ️ إشعار ترحيبي ${isRenewal ? '(تجديد)' : '(اشتراك جديد)'} موجود بالفعل - تخطي الإرسال`);
-        console.log('📅 تاريخ الإشعار السابق:', existingNotification.created_at);
+
         return { success: true };
       }
       
@@ -313,27 +307,20 @@ class AdminNotificationService {
         action_data: { source: 'welcome_notification' },
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('notifications')
         .insert(notificationData)
         .select()
         .single();
 
       if (error) {
-        console.error('❌ خطأ في إرسال التنبيه الترحيبي:', error);
+
         return { success: false, error: error.message };
       }
 
-      console.log(`✅ تم إرسال التنبيه الترحيبي ${isRenewal ? '(تجديد)' : '(اشتراك جديد)'} للمستخدم:`, userId);
-      console.log('📧 بيانات الإشعار المُرسل:', {
-        id: data?.id,
-        recipient_id: data?.recipient_id,
-        title_ar: data?.title_ar,
-        type: data?.type
-      });
       return { success: true };
     } catch (error: any) {
-      console.error('❌ خطأ في إرسال التنبيه الترحيبي:', error);
+
       return { success: false, error: error.message };
     }
   }
@@ -343,8 +330,7 @@ class AdminNotificationService {
    */
   async sendReferralReminder(userId: string, forceResend: boolean = false): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('📧 إرسال تذكير بنظام الإحالة للمستخدم:', userId);
-      
+
       // ✅ منع إرسال إشعارات الإحالة للأدمن
       const { data: userData } = await supabase
         .from('users')
@@ -353,7 +339,7 @@ class AdminNotificationService {
         .single();
       
       if (userData?.role === 'admin') {
-        console.log('⏭️ تخطي إرسال إشعار الإحالة للأدمن');
+
         return { success: true };
       }
       
@@ -375,12 +361,12 @@ class AdminNotificationService {
           );
           
           if (daysSinceLastNotif < 7) {
-            console.log(`ℹ️ تم إرسال تذكير الإحالة منذ ${daysSinceLastNotif} أيام - تخطي`);
+
             return { success: false, error: 'تم إرسال التذكير مؤخراً' };
           }
         }
       } else {
-        console.log('⚠️ إرسال إجباري - تجاوز فحص الـ 7 أيام');
+
       }
 
       const notificationData = {
@@ -402,25 +388,19 @@ class AdminNotificationService {
         action_data: { source: 'reminder', potential_earnings: 5000 },
       };
 
-      console.log('📤 البيانات المرسلة:', notificationData);
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('notifications')
         .insert(notificationData)
         .select();
 
       if (error) {
-        console.error('❌ خطأ في إرسال تذكير الإحالة:', error);
-        console.error('❌ تفاصيل الخطأ:', JSON.stringify(error, null, 2));
+
         return { success: false, error: error.message };
       }
-      
-      console.log('✅ الإشعار المُرسل:', data);
 
-      console.log('✅ تم إرسال تذكير الإحالة');
       return { success: true };
     } catch (error: any) {
-      console.error('❌ خطأ في إرسال تذكير الإحالة:', error);
+
       return { success: false, error: error.message };
     }
   }
@@ -461,7 +441,7 @@ class AdminNotificationService {
 
       return { success: true, stats };
     } catch (error: any) {
-      console.error('❌ خطأ في جلب إحصائيات التنبيهات:', error);
+
       return { success: false, error: error.message };
     }
   }

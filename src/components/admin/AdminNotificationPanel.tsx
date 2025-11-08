@@ -36,21 +36,17 @@ export const AdminNotificationPanel: React.FC = () => {
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      console.log('🔄 جلب المستخدمين من قاعدة البيانات...');
-      
+
       // جلب المستخدمين (استخدام auth_id للتنبيهات)
       const { data: usersData, error } = await supabase
         .from('users')
         .select('id, auth_id, username, email, full_name, status, subscription_status, subscription_end_date, is_active, preferred_language');
       
       if (error) {
-        console.error('❌ خطأ في جلب المستخدمين:', error);
-        console.error('تفاصيل الخطأ:', JSON.stringify(error, null, 2));
+
         throw error;
       }
-      
-      console.log('✅ تم جلب المستخدمين:', usersData?.length || 0, 'مستخدم');
-      
+
       // جلب معلومات الدفع لكل مستخدم
       const usersWithPaymentInfo = await Promise.all(
         (usersData || []).map(async (user: any) => {
@@ -68,9 +64,7 @@ export const AdminNotificationPanel: React.FC = () => {
           };
         })
       );
-      
-      console.log('📋 المستخدمون مع معلومات الدفع:', usersWithPaymentInfo);
-      
+
       // ترتيب المستخدمين: المشتركون أولاً، ثم حسب الاسم
       const sortedUsers = usersWithPaymentInfo.sort((a: any, b: any) => {
         // أولاً: المشتركون النشطون
@@ -85,8 +79,7 @@ export const AdminNotificationPanel: React.FC = () => {
       
       setUsers(sortedUsers);
     } catch (error: any) {
-      console.error('❌ خطأ في جلب المستخدمين:', error);
-      console.error('رسالة الخطأ:', error?.message);
+
       alert(`فشل جلب المستخدمين: ${error?.message || 'خطأ غير معروف'}`);
     } finally {
       setLoadingUsers(false);
@@ -149,15 +142,14 @@ export const AdminNotificationPanel: React.FC = () => {
     loadUsers();
 
     // ✅ إعداد Realtime للمستخدمين والإشعارات
-    console.log('🔴 إعداد Realtime لإدارة الإشعارات...');
 
     // مزامنة المستخدمين
     const usersChannel = supabase
       .channel('admin-notification-users-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'users' },
-        (payload) => {
-          console.log('🔄 تغيير في المستخدمين:', payload);
+        (_payload) => {
+
           loadUsers(); // إعادة تحميل قائمة المستخدمين
         }
       )
@@ -168,8 +160,8 @@ export const AdminNotificationPanel: React.FC = () => {
       .channel('admin-notifications-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
-        (payload) => {
-          console.log('🔄 تغيير في الإشعارات:', payload);
+        (_payload) => {
+
           loadStats(); // إعادة تحميل الإحصائيات
         }
       )
@@ -177,7 +169,7 @@ export const AdminNotificationPanel: React.FC = () => {
 
     // تنظيف عند إلغاء التحميل
     return () => {
-      console.log('🧹 تنظيف Realtime للإشعارات...');
+
       supabase.removeChannel(usersChannel);
       supabase.removeChannel(notificationsChannel);
     };
@@ -218,7 +210,7 @@ export const AdminNotificationPanel: React.FC = () => {
       
       return publicUrl;
     } catch (error) {
-      console.error('خطأ في رفع الصورة:', error);
+
       return null;
     }
   };
@@ -280,7 +272,7 @@ export const AdminNotificationPanel: React.FC = () => {
       const results = await Promise.all(
         selectedUsers.map(user => {
           const authId = user.auth_id || user.id; // استخدام auth_id إذا كان موجوداً
-          console.log('📤 إرسال تنبيه للمستخدم:', user.email, 'auth_id:', authId);
+
           return adminNotificationService.sendToUser(authId, data);
         })
       );
@@ -625,7 +617,6 @@ export const AdminNotificationPanel: React.FC = () => {
               )}
             </div>
           )}
-
 
           {/* النوع والأولوية */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4">

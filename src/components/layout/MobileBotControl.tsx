@@ -29,7 +29,7 @@ const MobileBotControl: React.FC<MobileBotControlProps> = ({
         {/* الزر الرئيسي */}
         <button
           onClick={() => {
-            console.log('🔘 زر التشغيل العائم تم النقر عليه');
+
             onToggleBot();
           }}
           type="button"

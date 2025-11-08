@@ -43,8 +43,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
 
   // التحقق من حالة المراجعة كل 3 ثوانٍ + Realtime
   useEffect(() => {
-    console.log('🔄 إعادة تحميل صفحة المراجعة - دفع جديد');
-    console.log('📦 paymentData:', paymentData);
+
     isUnmountedRef.current = false;
 
     const nextPaymentId = paymentData?.id || lastPaymentIdRef.current || null;
@@ -74,8 +73,6 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
           activeChannelRef.current = null;
         }
 
-        console.log('🔌 إعداد Realtime subscription للمستخدم:', userInfo.id);
-
         let channel = supabase.channel(`payment-updates-${userInfo.id}`, {
           config: { broadcast: { self: true } }
         });
@@ -84,10 +81,9 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
           'postgres_changes',
           { event: '*', schema: 'public', table: 'payments', filter: `user_id=eq.${userInfo.id}` },
           (payload) => {
-            console.log('🔔 تحديث فوري من Realtime:', payload);
+
             const newData: any = (payload as any).new || {};
             const eventType: string = (payload as any).eventType || '';
-            console.log('📦 البيانات الجديدة:', newData, '📄 الحدث:', eventType);
 
             // اشتقاق الحالة مباشرة بدون انتظار طلبات إضافية
             let derivedStatus: 'pending' | 'approved' | 'rejected' = 'pending';
@@ -99,7 +95,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
 
             // إذا كانت محاولة دفع جديدة (INSERT) لنفس المستخدم، نجعلها المحاولة الحالية
             if (eventType === 'INSERT' && (derivedStatus === 'pending' || newData.status === 'reviewing' || newData.admin_review_status === 'pending')) {
-              console.log('🆕 تم اكتشاف محاولة دفع جديدة للمستخدم - التحويل إليها');
+
               setLastPaymentId(newData.id);
               lastPaymentIdRef.current = newData.id;
               resolvedRef.current = false;
@@ -152,7 +148,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
                 }, 0);
                 alert('❌ تم رفض دفعتك\n\nالسبب: ' + (newData.admin_review_notes || 'غير محدد') + '\n\nيرجى التواصل مع الدعم أو إعادة المحاولة.');
               } else {
-                console.log('⏭️ تجاهل رفض لدفعة قديمة؛ هناك محاولة أحدث قيد المراجعة');
+
               }
               return;
             }
@@ -174,7 +170,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
               filter: `id=eq.${userInfo.id}`
             },
             (payload) => {
-              console.log('🔔 تحديث فوري من Realtime (users):', payload);
+
               const newUser: any = (payload as any).new || {};
               // إذا أصبح المستخدم نشطاً، نعتبرها موافقة
               if (newUser.is_active === true || newUser.subscription_status === 'active' || newUser.status === 'active') {
@@ -200,19 +196,19 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
             }
           )
           .subscribe((status) => {
-            console.log('📡 حالة Realtime subscription:', status);
+
             const scheduleResubscribe = () => {
               if (resolvedRef.current || isUnmountedRef.current) return;
               if (retryTimerRef.current) return;
               const MAX_RETRIES = 6;
               if (retryCountRef.current >= MAX_RETRIES) {
-                console.warn('⛔ تجاوز الحد الأقصى لمحاولات إعادة الاشتراك. سيتم الاكتفاء بالتحقق الدوري.');
+
                 return;
               }
               const base = 1500;
               const delay = Math.min(base * Math.pow(2, retryCountRef.current), 15000) + Math.floor(Math.random() * 400);
               retryCountRef.current += 1;
-              console.warn(`🔁 جدولة إعادة الاشتراك بعد ${delay}ms (المحاولة ${retryCountRef.current})`);
+
               retryTimerRef.current = setTimeout(async () => {
                 retryTimerRef.current = null;
                 if (activeChannelRef.current) {
@@ -225,7 +221,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
             };
 
             if (status === 'SUBSCRIBED') {
-              console.log('✅ تم الاشتراك في Realtime بنجاح');
+
               // إعادة تعيين عدّاد المحاولات عند النجاح
               retryCountRef.current = 0;
               if (retryTimerRef.current) {
@@ -233,7 +229,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
                 retryTimerRef.current = null;
               }
             } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
-              console.error('❌ مشكلة في قناة Realtime، إعادة المحاولة...');
+
               scheduleResubscribe();
             }
           });
@@ -241,7 +237,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
         activeChannelRef.current = channel;
         return channel;
       } catch (error) {
-        console.error('❌ خطأ في إعداد Realtime:', error);
+
         return null;
       }
     };
@@ -263,7 +259,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
       (async () => {
         try {
           if (activeChannelRef.current) {
-            console.log('🔌 إلغاء الاشتراك وإزالة قناة Realtime');
+
             try { activeChannelRef.current.unsubscribe(); } catch {}
             try { supabase.removeChannel(activeChannelRef.current); } catch {}
             activeChannelRef.current = null;
@@ -309,21 +305,18 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
     if (reviewStatus !== 'pending') { setIsChecking(false); return; }
     if (!silent) setIsChecking(true);
     try {
-      console.log('🔍 التحقق من حالة المراجعة...');
+
       const result = await onCheckStatus();
-      console.log('📊 نتيجة التحقق:', result);
-      
+
       const newStatus = result.status as 'pending' | 'approved' | 'rejected';
       
       // التحقق من معرّف الدفع (إذا كان متوفراً)
       // نستخدم paymentData.id أو createdAt كمعرّف فريد للدفع
       const currentPaymentId = (result as any).paymentId || paymentData?.id || paymentData?.createdAt;
       const isNewPayment = currentPaymentId && currentPaymentId !== lastPaymentId;
-      
-      console.log('🔍 تتبع الدفع:', { currentPaymentId, lastPaymentId, isNewPayment, newStatus });
-      
+
       if (isNewPayment) {
-        console.log('🆕 دفع جديد تم اكتشافه:', currentPaymentId);
+
         setLastPaymentId(currentPaymentId);
       }
       
@@ -340,11 +333,9 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
       
       // إذا تمت الموافقة
       if (newStatus === 'approved') {
-        console.log('✅ تمت الموافقة! إعادة تحميل بيانات المستخدم...');
-        console.log('📊 الحالة الجديدة:', newStatus);
-        
+
         // إيقاف التحقق الدوري
-        console.log('⏹️ إيقاف التحقق الدوري - تمت الموافقة');
+
         resolvedRef.current = true;
         if (checkIntervalRef.current) {
           clearInterval(checkIntervalRef.current);
@@ -357,7 +348,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
         // مسح الـ cache وإعادة التحميل فوراً
         paymentService.clearCache();
         setTimeout(async () => {
-          console.log('🔄 مسح الـ cache وإعادة التحميل...');
+
           await clearAllCaches();
           localStorage.removeItem('auth_state_cache');
           localStorage.removeItem('show_subscription_page');
@@ -368,11 +359,9 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
       
       // إذا تم الرفض
       if (newStatus === 'rejected') {
-        console.log('❌ تم رفض الدفع');
-        console.log('📊 الحالة الجديدة:', newStatus);
-        
+
         // إيقاف التحقق الدوري
-        console.log('⏹️ إيقاف التحقق الدوري - تم الرفض');
+
         resolvedRef.current = true;
         if (checkIntervalRef.current) {
           clearInterval(checkIntervalRef.current);
@@ -384,7 +373,7 @@ export const PaymentReviewPage: React.FC<PaymentReviewPageProps> = ({
         alert('❌ تم رفض دفعتك\n\nالسبب: ' + (result.message || 'غير محدد') + '\n\nيرجى التواصل مع الدعم أو إعادة المحاولة.');
       }
     } catch (error) {
-      console.error('❌ خطأ في التحقق من الحالة:', error);
+
       setIsChecking(false);
     }
   };

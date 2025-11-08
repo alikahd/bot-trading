@@ -35,8 +35,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   
   // دالة للتنقل الفوري - تستبدل الصفحة بالكامل
   const handleNavigate = (page: 'terms' | 'contact' | 'about') => {
-    console.log('Footer navigation clicked:', page);
-    
+
     // منع التنفيذ المتعدد
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
@@ -49,10 +48,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
     }, 1000);
     
     if (onNavigate) {
-      console.log('Using provided onNavigate function - replacing entire page');
+
       onNavigate(page);
     } else {
-      console.log('Using global navigation system');
+
       // استخدام النظام العام للتنقل
       globalNavigate(page);
     }

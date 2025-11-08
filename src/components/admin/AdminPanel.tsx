@@ -100,19 +100,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
   // تحميل البيانات وإعداد Realtime
   useEffect(() => {
-    console.log('🚀 AdminPanel useEffect - بدء التحميل الأولي');
+
     loadDashboardData();
 
     // ✅ إعداد Realtime subscriptions للمزامنة الفورية
-    console.log('🔴 إعداد Realtime subscriptions...');
 
     // مزامنة المستخدمين
     const usersChannel = supabase
       .channel('admin-users-changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'users' },
-        (payload) => {
-          console.log('🔄 تغيير في المستخدمين:', payload);
+        (_payload) => {
+
           loadDashboardData();
           loadNotifications();
         }
@@ -124,8 +123,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       .channel('admin-subscriptions-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'subscriptions' },
-        (payload) => {
-          console.log('🔄 تغيير في الاشتراكات:', payload);
+        (_payload) => {
+
           loadDashboardData();
           loadNotifications();
         }
@@ -137,10 +136,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       .channel('admin-payments-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'payments' },
-        (payload) => {
-          console.log('🔄 تغيير في المدفوعات:', payload);
-          console.log('🔄 نوع الحدث:', payload.eventType);
-          console.log('🔄 البيانات الجديدة:', payload.new);
+        (_payload) => {
+
           loadDashboardData();
           loadNotifications();
         }
@@ -152,8 +149,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       .channel('admin-commissions-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'pending_commissions' },
-        (payload) => {
-          console.log('🔄 تغيير في العمولات:', payload);
+        (_payload) => {
+
           loadNotifications();
         }
       )
@@ -161,7 +158,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
     // تنظيف الاشتراكات عند إلغاء التحميل
     return () => {
-      console.log('🧹 تنظيف Realtime subscriptions...');
+
       supabase.removeChannel(usersChannel);
       supabase.removeChannel(subscriptionsChannel);
       supabase.removeChannel(paymentsChannel);
@@ -170,53 +167,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   }, []);
 
   const loadDashboardData = async () => {
-    console.log('🔄 بدء تحميل بيانات لوحة التحكم...');
-    
+
     setLoading(true);
     
     try {
       
       // جلب المستخدمين مباشرة من Supabase
-      console.log('📥 جلب المستخدمين من قاعدة البيانات...');
+
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (usersError) {
-        console.error('❌ خطأ في جلب المستخدمين:', usersError);
+
         throw usersError;
       }
-      
-      console.log('✅ تم جلب المستخدمين:', usersData?.length || 0, usersData);
+
       setUsers(usersData || []);
       
       // جلب الاشتراكات مباشرة من Supabase
-      console.log('📊 جلب الاشتراكات من قاعدة البيانات...');
+
       const { data: subscriptions, error: subsError } = await supabase
         .from('subscriptions')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (subsError) {
-        console.error('❌ خطأ في جلب الاشتراكات:', subsError);
+
       }
-      
-      console.log('✅ تم جلب الاشتراكات:', subscriptions?.length || 0);
-      
+
       // جلب جميع المدفوعات لحساب الإحصائيات
       const { data: allPayments, error: paymentsError } = await supabase
         .from('payments')
         .select('amount, status');
       
       if (paymentsError) {
-        console.error('❌ خطأ في جلب المدفوعات:', paymentsError);
+
       }
       
       // المدفوعات المكتملة
       const completedPayments = allPayments?.filter((p: any) => p.status === 'completed') || [];
-      console.log('💰 المدفوعات المكتملة:', completedPayments.length);
-      
+
       // المدفوعات المعلقة
       const pendingPayments = allPayments?.filter((p: any) => 
         p.status === 'pending' || 
@@ -224,8 +216,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         p.status === 'crypto_pending' || 
         p.status === 'reviewing'
       ) || [];
-      console.log('⏳ المدفوعات المعلقة:', pendingPayments.length);
-      
+
       // حساب الإيرادات الفعلية (رقمين بعد الفاصلة)
       const totalRevenue = completedPayments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
       const formattedRevenue = Math.round(totalRevenue * 100) / 100;
@@ -240,12 +231,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         activeSubscriptions: subscriptions?.filter((sub: any) => sub.status === 'active').length || 0,
         pendingPayments: pendingPayments.length
       };
-      
-      console.log('📈 الإحصائيات:', dashboardStats);
+
       setStats(dashboardStats);
-      console.log('✅ تم تحميل لوحة التحكم بنجاح');
+
     } catch (error) {
-      console.error('❌ خطأ في تحميل لوحة التحكم:', error);
+
       // تعيين إحصائيات افتراضية في حالة الخطأ
       setStats({
         totalUsers: 0,
@@ -257,7 +247,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         pendingPayments: 0
       });
     } finally {
-      console.log('🏁 انتهى تحميل لوحة التحكم');
+
       setLoading(false);
     }
   };
@@ -268,14 +258,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     const updated = { ...lastViewedPages, [page]: now };
     setLastViewedPages(updated);
     localStorage.setItem('admin_last_viewed_pages', JSON.stringify(updated));
-    console.log(`✅ تم تحديث آخر مشاهدة لصفحة ${page}:`, now);
+
   };
 
   // تحميل الإشعارات
   const loadNotifications = async () => {
     try {
-      console.log('🔔 بدء تحميل الإشعارات...');
-      
+
       // 1. المستخدمين الجدد (بعد آخر مشاهدة)
       const lastViewedUsers = lastViewedPages['users'] || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
@@ -283,9 +272,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         .from('users')
         .select('id')
         .gte('created_at', lastViewedUsers);
-      
-      console.log('👥 مستخدمين جدد منذ آخر مشاهدة:', newUsersData?.length || 0);
-      
+
       // 2. المدفوعات المعلقة
       const { data: pendingPaymentsData, error: paymentsError } = await supabase
         .from('payments')
@@ -293,22 +280,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         .in('status', ['pending', 'pending_review', 'crypto_pending', 'reviewing']);
       
       if (paymentsError) {
-        console.error('❌ خطأ في جلب المدفوعات المعلقة:', paymentsError);
+
       }
-      
-      console.log('💰 مدفوعات معلقة:', pendingPaymentsData?.length || 0, pendingPaymentsData);
-      
+
       // 3. العمولات المعلقة
       const { data: pendingCommissionsData, error: commissionsError } = await supabase
         .from('pending_commissions')
         .select('id');
       
       if (commissionsError) {
-        console.error('❌ خطأ في جلب العمولات المعلقة:', commissionsError);
+
       }
-      
-      console.log('💵 عمولات معلقة:', pendingCommissionsData?.length || 0);
-      
+
       // 4. الاشتراكات التي ستنتهي قريباً (خلال 7 أيام)
       const nextWeek = new Date();
       nextWeek.setDate(nextWeek.getDate() + 7);
@@ -319,21 +302,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         .eq('status', 'active')
         .lte('end_date', nextWeek.toISOString())
         .gte('end_date', new Date().toISOString());
-      
-      console.log('📅 اشتراكات ستنتهي قريباً:', expiringSoonData?.length || 0);
-      
+
       const notificationsData = {
         newUsers: newUsersData?.length || 0,
         pendingPayments: pendingPaymentsData?.length || 0,
         pendingCommissions: pendingCommissionsData?.length || 0,
         expiringSoon: expiringSoonData?.length || 0
       };
-      
-      console.log('✅ إجمالي الإشعارات:', notificationsData);
-      
+
       setNotifications(notificationsData);
     } catch (error) {
-      console.error('❌ خطأ في تحميل الإشعارات:', error);
+
     }
   };
 
@@ -418,7 +397,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       </div>
     </Card>
   );
-
 
   // محتوى لوحة المعلومات
   const DashboardContent = () => (
@@ -762,7 +740,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         alert(`خطأ: ${result.error}`);
       }
     } catch (error) {
-      console.error('خطأ في إنشاء المستخدم:', error);
+
       alert('حدث خطأ أثناء إنشاء المستخدم');
     } finally {
       setCreateLoading(false);
@@ -793,7 +771,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         alert(`خطأ: ${result.error}`);
       }
     } catch (error) {
-      console.error('خطأ في تحديث المستخدم:', error);
+
       alert('حدث خطأ أثناء تحديث المستخدم');
     } finally {
       setUpdateLoading(false);
@@ -817,7 +795,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         alert(`خطأ: ${result.error}`);
       }
     } catch (error) {
-      console.error('خطأ في حذف المستخدم:', error);
+
       alert('حدث خطأ أثناء حذف المستخدم');
     } finally {
       setDeleteLoading(false);
@@ -881,7 +859,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         alert(`خطأ: ${result.error}`);
       }
     } catch (error) {
-      console.error('خطأ في تحديث حالة المستخدم:', error);
+
     }
   };
 
@@ -901,7 +879,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       // هذه الوظيفة تحتاج تطوير إضافي في simpleAuthService
       alert('تم إعادة تعيين كلمة المرور بنجاح! (محاكاة)');
     } catch (error) {
-      console.error('خطأ في إعادة تعيين كلمة المرور:', error);
+
     }
   };
 

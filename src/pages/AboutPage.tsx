@@ -86,7 +86,6 @@ export const AboutPage: React.FC<AboutPageProps> = ({
     }
   ];
 
-
   const values = [
     {
       icon: Heart,
@@ -144,7 +143,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                 <div className="flex md:hidden items-center justify-between gap-2">
                   <LoginButton 
                     onClick={() => {
-                      console.log('AboutPage: Mobile Login button clicked');
+
                       onNavigateToLogin && onNavigateToLogin();
                     }}
                     variant="mobile"
@@ -155,7 +154,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                   <div className="flex items-center gap-3">
                     <LoginButton 
                       onClick={() => {
-                        console.log('AboutPage: Desktop Login button clicked');
+
                         onNavigateToLogin && onNavigateToLogin();
                       }}
                       variant="desktop"
@@ -164,7 +163,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg blur opacity-40 group-hover:opacity-70 transition duration-300 animate-pulse"></div>
                       <button 
                         onClick={() => {
-                          console.log('AboutPage: Desktop Register button clicked');
+
                           onNavigateToRegister && onNavigateToRegister();
                         }}
                         className="relative px-6 py-2.5 text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border border-blue-400/50">
@@ -347,7 +346,6 @@ export const AboutPage: React.FC<AboutPageProps> = ({
               })}
             </div>
           </Card>
-
 
           {/* القيم */}
           <Card variant="glass" padding="md">

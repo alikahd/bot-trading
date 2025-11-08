@@ -126,27 +126,18 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
 
   const loadRecommendations = async () => {
     if (!isActive || isPaused) {
-      console.log('⏸️ التوصيات متوقفة مؤقتاً');
+
       return;
     }
     
     setIsLoading(true);
     try {
-      console.log('🎯 بدء تحليل التوصيات الدقيقة من Binary.com...');
-      console.log('📊 مصدر البيانات: Binary.com WebSocket (بيانات حقيقية فورية)');
-      console.log('⚡ سرعة التحديث: كل 15 ثانية');
-      console.log('🔍 نظام فحص جودة البيانات: مفعل (معايير متوازنة)');
-      console.log('⚙️ الحد الأدنى للثقة: 35% + جودة بيانات ≥60%');
-      console.log('✅ استراتيجيات: RSI، EMA، Bollinger، Momentum، Reversal، Trend');
-      console.log('❌ لا توجد توصيات احتياطية أو افتراضية - فقط تحليل حقيقي');
-      
+
       // استخدام المحرك المتقدم للتحليل (يستخدم بيانات Binary.com WebSocket)
       const signals = await advancedAnalysisEngine.analyzeAllSymbols();
-      
-      console.log(`📊 تم الحصول على ${signals.length} إشارة من المحرك`);
-      
+
       if (signals.length === 0) {
-        console.warn('⚠️ لا توجد إشارات متاحة - سيتم المحاولة مرة أخرى في 15 ثانية');
+
         setIsLoading(false);
         return;
       }
@@ -191,29 +182,20 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
           momentum: (signal.indicators.macd?.histogram || 0) > 0 ? 'قوي' : 'ضعيف'
         }
       }));
-      console.log(`✅ تم تحليل ${recs.length} توصية دقيقة`);
-      
+
       // تشغيل صوت التنبيه إذا كانت هناك توصيات جديدة (فقط إذا كان مفعلاً)
       if (soundEnabled) {
         if (recs.length > 0 && recommendations.length === 0) {
           // توصيات جديدة للمرة الأولى
           notificationSound.play();
-          console.log('🔔 تم تشغيل صوت التنبيه - توصيات جديدة!');
+
         } else if (recs.length > recommendations.length) {
           // زيادة في عدد التوصيات
           notificationSound.play();
-          console.log(`🔔 تم تشغيل صوت التنبيه - ${recs.length - recommendations.length} توصية جديدة!`);
+
         }
       }
-      
-      console.log(`✅ تم تحليل ${recs.length} توصية دقيقة`);
-      console.log(`📊 توزيع الأطر الزمنية:`);
-      console.log(`   - 1 دقيقة: ${recs.filter(r => r.expiryMinutes === 1).length}`);
-      console.log(`   - 2 دقيقة: ${recs.filter(r => r.expiryMinutes === 2).length}`);
-      console.log(`   - 3 دقائق: ${recs.filter(r => r.expiryMinutes === 3).length}`);
-      console.log(`   - 5 دقائق: ${recs.filter(r => r.expiryMinutes === 5).length}`);
-      console.log(`⚡ سيتم إرسال توصية واحدة كل 5 ثواني إلى Telegram`);
-      
+
       // ترتيب التوصيات حسب الثقة (الأفضل أولاً)
       const sortedRecs = recs.sort((a, b) => b.confidence - a.confidence);
       
@@ -223,9 +205,7 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
       // إعادة تعيين المؤشر عند تحديث التوصيات
       setCurrentRecommendationIndex(0);
     } catch (error) {
-      console.error('❌ خطأ في جلب التوصيات الدقيقة:', error);
-      console.error('📋 تفاصيل الخطأ:', error);
-      console.warn('🔄 سيتم المحاولة مرة أخرى في دقيقة واحدة...');
+
       // لا نمسح التوصيات القديمة - نبقيها حتى نحصل على جديدة
       // setRecommendations([]);
     } finally {

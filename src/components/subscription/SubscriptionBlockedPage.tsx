@@ -20,7 +20,7 @@ export const SubscriptionBlockedPage: React.FC<SubscriptionBlockedPageProps> = (
   onLogout,
   onRefresh
 }) => {
-  const { t, language, dir } = useLanguage();
+  const { t, dir } = useLanguage();
 
   const getStatusColor = () => {
     if (subscriptionStatus.isExpired) return 'text-red-400';
@@ -168,7 +168,7 @@ export const SubscriptionBlockedPage: React.FC<SubscriptionBlockedPageProps> = (
         {/* معلومات إضافية */}
         <div className={cn("mt-4 text-center")}>
           <p className={cn("text-xs text-slate-600")}>
-            {t('subscriptionBlocked.lastUpdate')}: {new Date().toLocaleTimeString(language === 'ar' ? 'ar-SA' : language === 'fr' ? 'fr-FR' : 'en-US')}
+            {t('subscriptionBlocked.lastUpdate')}: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
           </p>
         </div>
       </div>

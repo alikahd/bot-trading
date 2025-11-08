@@ -66,7 +66,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
           table: 'referral_settings'
         },
         (payload: any) => {
-          console.log('🔄 تم تحديث إعدادات الإحالة:', payload);
+
           // تحديث الإعدادات فوراً
           if (payload.new) {
             setSystemSettings({
@@ -91,7 +91,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
           filter: `referrer_id=eq.${userId}`
         },
         (payload) => {
-          console.log('🔄 تم تحديث الإحالات:', payload);
+
           // إعادة تحميل البيانات عند أي تغيير
           loadReferralData();
         }
@@ -110,7 +110,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
           filter: `referrer_id=eq.${userId}`
         },
         (payload) => {
-          console.log('🔄 تم تحديث العمولات:', payload);
+
           // إعادة تحميل البيانات عند أي تغيير
           loadReferralData();
         }
@@ -198,9 +198,9 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
 
       // قياس الأداء
       const endTime = performance.now();
-      console.log(`⚡ تم تحميل بيانات الإحالة في ${(endTime - startTime).toFixed(0)}ms`);
+
     } catch (error) {
-      console.error('❌ خطأ في تحميل بيانات الإحالة:', error);
+
     } finally {
       setLoading(false);
     }
@@ -266,10 +266,9 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
       }));
       
       setAvailableMonths(months);
-      console.log('✅ تم جلب الأشهر المتاحة:', months.length);
-      
+
     } catch (error) {
-      console.error('❌ خطأ في جلب الأشهر المتاحة:', error);
+
     }
   };
 
@@ -281,13 +280,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
       // تحديد بداية ونهاية الشهر
       const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
       const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
-      
-      console.log('📅 جلب كشف شهري:', { 
-        month: formatDate(date, 'long'),
-        startDate, 
-        endDate 
-      });
-      
+
       // جلب العمولات المدفوعة في هذا الشهر
       const { data: paidCommissions, error: paidError } = await supabase
         .from('pending_commissions')
@@ -304,10 +297,9 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
       if (paidError) throw paidError;
       
       setMonthlyCommissions(paidCommissions || []);
-      console.log('✅ تم جلب الكشف الشهري:', paidCommissions?.length || 0, 'عمولة');
-      
+
     } catch (error) {
-      console.error('❌ خطأ في جلب الكشف الشهري:', error);
+
     } finally {
       setLoadingStatement(false);
     }
@@ -331,7 +323,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     } catch (error) {
-      console.error('Error copying to clipboard:', error);
+
     }
   };
 
@@ -350,7 +342,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
       } catch (error) {
         // إذا ألغى المستخدم، لا نفعل شيء
         if ((error as Error).name !== 'AbortError') {
-          console.error('Error sharing:', error);
+
           // في حالة الخطأ، نعرض القائمة المخصصة
           setShowShareMenu(true);
         }
@@ -411,7 +403,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
       setCodeError('');
       return true;
     } catch (error) {
-      console.error('Error checking code availability:', error);
+
       setCodeError('حدث خطأ أثناء التحقق من الرمز');
       return false;
     }
@@ -443,7 +435,7 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
         .eq('id', userId);
 
       if (userError) {
-        console.error('Error updating user referral code:', userError);
+
         throw new Error('فشل تحديث رمز الإحالة');
       }
 
@@ -453,8 +445,6 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
         .select('id')
         .eq('code', trimmedCode)
         .maybeSingle();
-      
-      console.log('🔍 التحقق من وجود الكوبون:', { trimmedCode, existingCoupon, checkError });
 
       // 3. جلب الإعدادات الحالية من referral_settings
       const { data: settings } = await supabase
@@ -466,16 +456,13 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
       const commissionRate = settings?.commission_rate || 10;
       const systemActive = settings?.is_active !== false;
 
-      console.log('⚙️ إعدادات النظام:', { discountRate, commissionRate, systemActive });
-
       if (!systemActive) {
         throw new Error('نظام الإحالة معطل حالياً');
       }
 
       // 4. إنشاء كوبون جديد فقط إذا لم يكن موجوداً
       if (!existingCoupon) {
-        console.log('📝 إنشاء كوبون جديد بالرمز:', trimmedCode);
-        
+
         const { data: newCoupon, error: couponError } = await supabase
           .from('coupons')
           .insert({
@@ -493,23 +480,22 @@ export const ReferralPanel: React.FC<ReferralPanelProps> = ({ userId }) => {
           .single();
 
         if (couponError) {
-          console.error('❌ خطأ في إنشاء الكوبون:', couponError);
+
           // لا نفشل العملية بالكامل إذا فشل إنشاء الكوبون
-          console.warn('⚠️ تم تحديث رمز الإحالة ولكن فشل إنشاء الكوبون');
+
         } else {
-          console.log('✅ تم إنشاء الكوبون بنجاح:', newCoupon);
+
         }
       } else {
-        console.log('ℹ️ الكوبون موجود بالفعل:', existingCoupon);
+
       }
 
       setReferralCode(trimmedCode);
       setIsEditingCode(false);
       setNewReferralCode('');
-      
-      console.log('✅ تم تحديث رمز الإحالة بنجاح:', trimmedCode);
+
     } catch (error) {
-      console.error('Error saving referral code:', error);
+
       setCodeError(error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ الرمز');
     } finally {
       setCodeSaving(false);

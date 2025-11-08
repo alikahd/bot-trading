@@ -45,13 +45,13 @@ export const CouponManagement: React.FC = () => {
     loadCoupons();
 
     // ✅ إعداد Realtime للكوبونات
-    console.log('🔴 إعداد Realtime لإدارة الكوبونات...');
+
     const couponsChannel = supabase
       .channel('coupons-management-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'coupons' },
-        (payload) => {
-          console.log('🔄 تغيير في الكوبونات:', payload);
+        (_payload) => {
+
           loadCoupons(); // إعادة تحميل البيانات
         }
       )
@@ -59,14 +59,14 @@ export const CouponManagement: React.FC = () => {
 
     // تنظيف عند إلغاء التحميل
     return () => {
-      console.log('🧹 تنظيف Realtime للكوبونات...');
+
       supabase.removeChannel(couponsChannel);
     };
   }, []);
 
   const loadCoupons = async () => {
     try {
-      console.log('🟡 [loadCoupons] بدء تحميل الكوبونات مع بيانات المستخدمين...');
+
       setLoading(true);
       
       // جلب الكوبونات
@@ -76,7 +76,7 @@ export const CouponManagement: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ [loadCoupons] خطأ في التحميل:', error);
+
         throw error;
       }
       
@@ -100,22 +100,18 @@ export const CouponManagement: React.FC = () => {
           return coupon;
         })
       );
-      
-      console.log('✅ [loadCoupons] تم تحميل', couponsWithUsers.length, 'كوبون مع بيانات المستخدمين');
+
       setCoupons(couponsWithUsers);
     } catch (error) {
-      console.error('❌ [loadCoupons] خطأ في تحميل الكوبونات:', error);
+
     } finally {
       setLoading(false);
-      console.log('✅ [loadCoupons] انتهى التحميل');
+
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    console.log('🟢 [handleSubmit] بدء حفظ الكوبون');
-    console.log('🟢 [handleSubmit] بيانات النموذج:', formData);
 
     try {
       const couponData = {
@@ -131,22 +127,11 @@ export const CouponManagement: React.FC = () => {
         is_active: true
       };
 
-      console.log('🟢 [handleSubmit] البيانات التي سيتم حفظها:', couponData);
-      console.log('🔍 [handleSubmit] تفاصيل النسب:', {
-        discount_value: couponData.discount_value,
-        discount_rate: couponData.discount_rate,
-        commission_rate: couponData.commission_rate
-      });
-
       if (editingCoupon) {
-        console.log('🟢 [handleSubmit] تحديث كوبون موجود:', editingCoupon.id);
-        
+
         // التحقق من session
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔐 [handleSubmit] Session:', session ? 'موجود' : 'غير موجود');
-        console.log('🔐 [handleSubmit] User ID:', session?.user?.id);
-        console.log('🔐 [handleSubmit] User Email:', session?.user?.email);
-        
+        const { data: { session: _session } } = await supabase.auth.getSession();
+
         // تحديث كوبون موجود
         const { data: updateResult, error } = await supabase
           .from('coupons')
@@ -155,61 +140,53 @@ export const CouponManagement: React.FC = () => {
           .select();
 
         if (error) {
-          console.error('❌ [handleSubmit] خطأ في التحديث:', error);
+
           throw error;
         }
-        
-        console.log('✅ [handleSubmit] تم التحديث بنجاح');
-        
+
         // التحقق الفوري من قاعدة البيانات
-        console.log('🔍 [handleSubmit] التحقق الفوري من قاعدة البيانات...');
-        const { data: verifyData, error: verifyError } = await supabase
+
+        const { error: verifyError } = await supabase
           .from('coupons')
           .select('discount_value, discount_rate, commission_rate')
           .eq('id', editingCoupon.id)
           .single();
           
         if (verifyError) {
-          console.error('❌ [handleSubmit] خطأ في التحقق:', verifyError);
+
         } else {
-          console.log('🔍 [handleSubmit] البيانات الفعلية في قاعدة البيانات:', verifyData);
+
         }
-        console.log('🔍 [handleSubmit] نتيجة التحديث:', updateResult);
-        
+
         if (updateResult && updateResult.length > 0) {
-          console.log('✅ [handleSubmit] البيانات المحدثة في قاعدة البيانات:', {
-            discount_value: updateResult[0].discount_value,
-            discount_rate: updateResult[0].discount_rate,
-            commission_rate: updateResult[0].commission_rate
-          });
+
         } else {
-          console.warn('⚠️ [handleSubmit] لم يتم تحديث أي صف!');
+
         }
       } else {
-        console.log('🟢 [handleSubmit] إنشاء كوبون جديد');
+
         // إنشاء كوبون جديد
         const { error } = await supabase
           .from('coupons')
           .insert([couponData]);
 
         if (error) {
-          console.error('❌ [handleSubmit] خطأ في الإنشاء:', error);
+
           throw error;
         }
-        console.log('✅ [handleSubmit] تم الإنشاء بنجاح');
+
       }
 
       // إعادة تحميل الكوبونات والانتظار حتى يكتمل التحميل
-      console.log('🟢 [handleSubmit] إعادة تحميل الكوبونات...');
+
       await loadCoupons();
-      console.log('✅ [handleSubmit] تم إعادة تحميل الكوبونات');
-      
+
       // إضافة تأخير صغير للتأكد من تحديث الـ state
-      console.log('🟢 [handleSubmit] انتظار 100ms...');
+
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // إغلاق النموذج وإعادة تعيينه
-      console.log('🟢 [handleSubmit] إغلاق النافذة');
+
       setShowModal(false);
       setEditingCoupon(null);
       setFormData({
@@ -222,25 +199,18 @@ export const CouponManagement: React.FC = () => {
         commission_rate: '10',
         use_dynamic_rates: false
       });
-      console.log('✅ [handleSubmit] تم إغلاق النافذة بنجاح');
+
     } catch (error: any) {
-      console.error('❌ [handleSubmit] خطأ في حفظ الكوبون:', error);
+
       alert(error.message || 'حدث خطأ أثناء حفظ الكوبون');
     }
   };
 
   const handleEdit = async (coupon: Coupon) => {
-    console.log('🔵 [handleEdit] بدء التعديل للكوبون:', coupon.code);
-    console.log('🔵 [handleEdit] البيانات من state:', {
-      discount_rate: coupon.discount_rate,
-      discount_value: coupon.discount_value,
-      commission_rate: coupon.commission_rate,
-      use_dynamic_rates: coupon.use_dynamic_rates
-    });
 
     // جلب البيانات الحديثة من قاعدة البيانات مباشرة
     try {
-      console.log('🔵 [handleEdit] جلب البيانات الحديثة من Supabase...');
+
       const { data: freshCoupon, error } = await supabase
         .from('coupons')
         .select('*')
@@ -248,16 +218,9 @@ export const CouponManagement: React.FC = () => {
         .single();
 
       if (error) {
-        console.error('❌ [handleEdit] خطأ في جلب البيانات:', error);
+
         throw error;
       }
-
-      console.log('✅ [handleEdit] تم جلب البيانات الحديثة:', {
-        discount_rate: freshCoupon?.discount_rate,
-        discount_value: freshCoupon?.discount_value,
-        commission_rate: freshCoupon?.commission_rate,
-        use_dynamic_rates: freshCoupon?.use_dynamic_rates
-      });
 
       const couponToEdit = freshCoupon || coupon;
       
@@ -273,18 +236,14 @@ export const CouponManagement: React.FC = () => {
         use_dynamic_rates: couponToEdit.use_dynamic_rates ?? false
       };
 
-      console.log('✅ [handleEdit] البيانات التي سيتم عرضها في النموذج:', formDataToSet);
-      
       setEditingCoupon(couponToEdit);
       setFormData(formDataToSet);
       setShowModal(true);
-      
-      console.log('✅ [handleEdit] تم فتح النافذة بنجاح');
+
     } catch (error) {
-      console.error('❌ [handleEdit] خطأ في معالجة التعديل:', error);
+
       // في حالة الخطأ، استخدم البيانات الموجودة
-      console.log('⚠️ [handleEdit] استخدام البيانات من state كـ fallback');
-      
+
       const fallbackFormData = {
         code: coupon.code,
         discount_type: coupon.discount_type,
@@ -295,9 +254,7 @@ export const CouponManagement: React.FC = () => {
         commission_rate: coupon.commission_rate?.toString() || '10',
         use_dynamic_rates: coupon.use_dynamic_rates ?? false
       };
-      
-      console.log('⚠️ [handleEdit] بيانات fallback:', fallbackFormData);
-      
+
       setEditingCoupon(coupon);
       setFormData(fallbackFormData);
       setShowModal(true);
@@ -318,7 +275,7 @@ export const CouponManagement: React.FC = () => {
       if (error) throw error;
       await loadCoupons();
     } catch (error) {
-      console.error('Error deleting coupon:', error);
+
       alert('حدث خطأ أثناء حذف الكوبون');
     }
   };
@@ -333,7 +290,7 @@ export const CouponManagement: React.FC = () => {
       if (error) throw error;
       await loadCoupons();
     } catch (error) {
-      console.error('Error toggling coupon status:', error);
+
     }
   };
 
@@ -535,15 +492,7 @@ export const CouponManagement: React.FC = () => {
                       </button>
                       <button
                         onClick={() => {
-                          console.log('🔷 [Button Click] تم الضغط على زر التعديل للكوبون:', coupon.code);
-                          console.log('🔷 [Button Click] بيانات الكوبون من الجدول:', {
-                            id: coupon.id,
-                            code: coupon.code,
-                            discount_rate: coupon.discount_rate,
-                            discount_value: coupon.discount_value,
-                            commission_rate: coupon.commission_rate,
-                            use_dynamic_rates: coupon.use_dynamic_rates
-                          });
+
                           handleEdit(coupon);
                         }}
                         className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"

@@ -19,6 +19,8 @@ interface HeaderProps {
   onLogout?: () => void;
   onOpenSettings?: () => void;
   onOpenReferral?: () => void;
+  onOpenDataSource?: () => void;
+  onOpenRealDataPanel?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -48,11 +50,9 @@ export const Header: React.FC<HeaderProps> = ({
 
   // تتبع تغيير حالة showIQStatus
   useEffect(() => {
-    console.log('🔄 حالة showIQStatus تغيرت إلى:', showIQStatus);
-    console.log('🔍 فحص شرط النافذة - showIQStatus:', showIQStatus);
+
     if (showIQStatus) {
-      console.log('🟢 النافذة يجب أن تظهر الآن!');
-      console.log('🎯 محتوى النافذة يُرندر الآن');
+
     }
   }, [showIQStatus]);
   
@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
   } catch (error) {
     // المستخدم العادي - لا يوجد Context
-    console.log('ℹ️ مستخدم عادي - لا إشعارات أدمن');
+
   }
 
   useEffect(() => {
@@ -109,7 +109,6 @@ export const Header: React.FC<HeaderProps> = ({
       document.body.style.overflow = 'unset';
     };
   }, [isMobileMenuOpen, showIQStatus]);
-
 
   return (
     <>
@@ -155,8 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
-      
-      
+
       <div className="relative w-full px-2 sm:px-4 lg:px-8" style={{ zIndex: 10 }}>
         {/* تخطيط للهواتف - حديث واحترافي */}
         <div className="md:hidden relative h-16 px-2" style={{ zIndex: 20 }}>
@@ -186,11 +184,10 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  console.log('📈 زر IQ Option تم النقر عليه في الهاتف');
-                  console.log('📊 الحالة قبل التغيير - showIQStatus:', showIQStatus, 'isMobileMenuOpen:', isMobileMenuOpen);
+
                   const newStatus = !showIQStatus;
                   setShowIQStatus(newStatus);
-                  console.log('📊 الحالة بعد التغيير - showIQStatus:', newStatus);
+
                 }}
                 type="button"
                 className="group p-2 h-10 w-10 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 text-green-400 hover:text-green-300 transition-all duration-300 flex items-center justify-center shadow-2xl cursor-pointer backdrop-blur-sm border border-green-500/50 hover:border-green-400/70 hover:shadow-green-500/30 hover:scale-105"
@@ -443,7 +440,6 @@ export const Header: React.FC<HeaderProps> = ({
                 {/* زر تغيير اللغة */}
                 <LanguageSelector variant="default" />
 
-
                 {/* معلومات المستخدم وتسجيل الخروج */}
                 {user && (
                   <>
@@ -517,8 +513,6 @@ export const Header: React.FC<HeaderProps> = ({
                           </div>
                         </div>
                       )}
-
-
 
                       {/* حالة IQ Option */}
                       <button
@@ -594,7 +588,7 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                console.log('🔴 إغلاق النافذة من الخلفية');
+
                 setShowIQStatus(false);
               }
             }}

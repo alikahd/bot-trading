@@ -86,7 +86,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     
     const fetchPlans = async () => {
       try {
-        console.log('🔄 بدء جلب الباقات من قاعدة البيانات...');
+
         // فقط نعرض التحميل إذا لم تكن هناك بيانات محملة مسبقاً
         if (plans.length === 0) {
           setLoading(true);
@@ -95,7 +95,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         // Timeout للتأكد من عدم البقاء في حالة التحميل للأبد
         timeoutId = setTimeout(() => {
           if (isMounted) {
-            console.warn('⏱️ انتهت مهلة جلب الباقات، الاحتفاظ بالبيانات الافتراضية');
+
             setLoading(false);
           }
         }, 5000); // 5 ثوانٍ - تقليل وقت الانتظار
@@ -111,10 +111,10 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         clearTimeout(timeoutId);
 
         if (error) {
-          console.error('❌ خطأ في جلب الباقات:', error);
+
           // الاحتفاظ بالبيانات الافتراضية الموجودة مسبقاً
           clearTimeout(timeoutId);
-          console.log('📦 استخدام البيانات الافتراضية');
+
         } else if (data) {
           // تحويل البيانات من قاعدة البيانات
           const formattedPlans = data.map(plan => ({
@@ -128,29 +128,20 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
             features_ar: plan.features_ar || [],
             features_fr: plan.features_fr || [],
             is_popular: plan.id === '8783fe43-e784-401a-9644-33bd8b81d18c', // الباقة السنوية
-            discount: plan.id === '8783fe43-e784-401a-9644-33bd8b81d18c' ? 20 : 
-                     plan.id === 'e8c4d506-9dbd-4412-8c7c-504e989653c3' ? 40 : undefined
+            discount: plan.id === '98c199b7-1a73-4ab6-8b32-160beff3c167' ? 15 : // الباقة الشهرية
+                     plan.id === '8783fe43-e784-401a-9644-33bd8b81d18c' ? 20 : // الباقة السنوية
+                     plan.id === 'e8c4d506-9dbd-4412-8c7c-504e989653c3' ? 40 : // باقة 3 سنوات
+                     undefined
           }));
-          
-          console.log('📦 الباقات المُجلبة من قاعدة البيانات:', formattedPlans);
-          
-          // تسجيل المميزات لكل باقة للتأكد من الاختلاف
-          formattedPlans.forEach(plan => {
-            console.log(`📋 مميزات ${plan.name_ar}:`, {
-              ar: plan.features_ar,
-              en: plan.features,
-              fr: plan.features_fr
-            });
-          });
-          
+
           setPlans(formattedPlans);
         }
       } catch (error) {
-        console.error('❌ خطأ في جلب الباقات:', error);
+
       } finally {
         if (isMounted) {
           setLoading(false);
-          console.log('✅ اكتمل جلب الباقات');
+
         }
       }
     };
@@ -158,7 +149,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     fetchPlans();
 
     // إعداد Realtime subscription للتحديثات الفورية
-    console.log('🔔 إعداد Realtime subscription للباقات...');
+
     const channel = supabase
       .channel('subscription_plans_changes')
       .on(
@@ -168,14 +159,14 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           schema: 'public',
           table: 'subscription_plans'
         },
-        (payload) => {
-          console.log('🔄 تحديث في الباقات:', payload);
+        (_payload) => {
+
           // إعادة جلب الباقات عند أي تغيير
           fetchPlans();
         }
       )
-      .subscribe((status) => {
-        console.log('📡 حالة Realtime subscription:', status);
+      .subscribe((_status) => {
+        // الاشتراك في تغييرات جدول الباقات
       });
 
     // Cleanup
@@ -184,7 +175,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      console.log('🧹 تنظيف Realtime subscription');
+
       supabase.removeChannel(channel);
     };
   }, []);
@@ -314,7 +305,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                 <div className="mt-auto">
                   <Button
                     onClick={async () => {
-                      console.log('Plan selected:', plan);
+
                       // مسح الـ Cache عند اختيار الباقة
                       await clearAllCaches();
                       onSelectPlan(plan);
