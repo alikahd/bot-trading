@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.NODE_ENV === 'production' ? 'https://bootrading.com/' : '/',
+  base: '/',
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
@@ -23,12 +23,31 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000, // زيادة الحد إلى 1000 kB
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
         // إضافة hash للملفات لتجنب الـ cache
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]',
+        manualChunks(id) {
+          // تقسيم node_modules
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icons';
+            }
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+            return 'vendor';
+          }
+        },
       },
     },
   },

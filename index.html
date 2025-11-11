@@ -2,13 +2,43 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable">
+    <meta name="google-site-verification" content="QaYl5pmSjpgHkzCV3ZOM82n8iIS_RI6shijhWo_b2kU" />
+    <meta name="msvalidate.01" content="67DDB6625F76220579E016A897EC1670" />
+    
+    <!-- Critical CSS موسع للرسم الفوري -->
+    <style>
+      body{margin:0;padding:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#fff;min-height:100vh}
+      #root{min-height:100vh;display:flex;flex-direction:column}
+      #initial-loader{position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+      #initial-loader.hidden{opacity:0;pointer-events:none}
+      .text-gray-300{color:#d1d5db}
+      .text-sm{font-size:.875rem}
+      .text-base{font-size:1rem}
+      .text-lg{font-size:1.125rem}
+      .mb-5{margin-bottom:1.25rem}
+      .mb-6{margin-bottom:1.5rem}
+      .max-w-2xl{max-width:42rem}
+      .mx-auto{margin-left:auto;margin-right:auto}
+      .text-center{text-align:center}
+      .flex{display:flex}
+      .items-center{align-items:center}
+      .justify-center{justify-content:center}
+      .min-h-screen{min-height:100vh}
+      .p-5{padding:1.25rem}
+      *{box-sizing:border-box}
+    </style>
+    
+    <!-- تحميل CSS بشكل غير معطل -->
+    <link rel="preload" href="/assets/index.BokNIKIe.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/assets/index.BokNIKIe.css"></noscript>
     
     <!-- Preconnect للموارد الخارجية المهمة -->
     <link rel="preconnect" href="https://djlirquyvpccuvjdaueb.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://djlirquyvpccuvjdaueb.supabase.co">
-    
-    <!-- تفعيل Cache للأداء الأفضل -->
-    <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable" />
+    <link rel="preconnect" href="https://connect.facebook.net" crossorigin>
+    <link rel="preconnect" href="https://analytics.tiktok.com" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
     
     <link rel="icon" type="image/png" href="/images/icon.png" />
     <link rel="apple-touch-icon" href="/images/icon.png" />
@@ -49,46 +79,80 @@
     <meta name="rating" content="general" />
     <meta name="distribution" content="global" />
     
-    <!-- Meta Pixel Code -->
-    <script>
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '1327972468598136');
-      fbq('track', 'PageView');
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FinancialService",
+      "name": "BooTrading",
+      "alternateName": "Bot Trading",
+      "description": "منصة التداول الآلي الذكية للعملات الرقمية والفوركس. احصل على توصيات دقيقة وإشارات فورية.",
+      "url": "https://www.bootrading.com",
+      "logo": "https://www.bootrading.com/images/logo.png",
+      "image": "https://www.bootrading.com/images/og-image.png",
+      "sameAs": [
+        "https://www.facebook.com/bootrading",
+        "https://twitter.com/bootrading"
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "1250",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "USD",
+        "lowPrice": "29.99",
+        "highPrice": "647.99",
+        "offerCount": "3"
+      }
+    }
     </script>
-    <!-- End Meta Pixel Code -->
     
-    <!-- TikTok Pixel Code Start -->
+    <!-- Pixels تحميل مؤجل للأداء -->
     <script>
-      !function (w, d, t) {
-        w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
-        var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
-        ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-
-        ttq.load('D49ACMBC77U1PLJOFL2G');
-        ttq.page();
-      }(window, document, 'ttq');
-    </script>
-    <!-- TikTok Pixel Code End -->
-    
-    <!-- Google Analytics 4 (GA4) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-54MKQ2L1YZ"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-54MKQ2L1YZ', {
-        page_path: window.location.pathname,
-        send_page_view: true
+      // تأجيل تحميل Pixels حتى بعد الرسم
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          // Facebook Pixel
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', '1327972468598136');
+          fbq('track', 'PageView');
+          
+          // TikTok Pixel
+          !function (w, d, t) {
+            w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
+            var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
+            ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+            ttq.load('D49ACMBC77U1PLJOFL2G');
+            ttq.page();
+          }(window, document, 'ttq');
+          
+          // Google Analytics
+          var gaScript = document.createElement('script');
+          gaScript.async = true;
+          gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-54MKQ2L1YZ';
+          document.head.appendChild(gaScript);
+          
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-54MKQ2L1YZ', {
+            page_path: window.location.pathname,
+            send_page_view: true
+          });
+        }, 2000); // تأجيل 2 ثانية
       });
     </script>
-    <!-- End Google Analytics -->
     
     <script>
       // تحديث Meta Tags حسب اللغة
@@ -669,7 +733,16 @@
       </script>
     </div>
     
-    <div id="root"></div>
+    <div id="root">
+      <!-- Placeholder للمحتوى الأولي -->
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f172a;color:#fff;text-align:center;padding:20px">
+        <div style="max-width:42rem">
+          <p style="font-size:1rem;color:#d1d5db;margin-bottom:1.5rem">
+            اكتشف قوة الذكاء الاصطناعي في التداول. بوت متطور يحقق أرباحاً استثنائية بأمان تام
+          </p>
+        </div>
+      </div>
+    </div>
     
     <script>
       // إخفاء شاشة التحميل عند تحميل التطبيق
@@ -699,104 +772,5 @@
     <!-- إصلاحات الهاتف المحمول - defer للأداء -->
     <script src="/mobile-fix.js" defer></script>
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- تتبع الصفحات - يعمل بعد تحميل DOM -->
-    <script>
-      (function() {
-        // الانتظار حتى يكون كل شيء جاهز
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initPageTracking);
-        } else {
-          initPageTracking();
-        }
-        
-        function initPageTracking() {
-          let lastPath = window.location.pathname;
-          
-          // دالة لتتبع الصفحة الحالية
-          function trackPageView() {
-            try {
-              const currentPath = window.location.pathname;
-              const pageName = getPageName(currentPath);
-              
-              // Facebook Pixel - Track Page View
-              if (typeof fbq !== 'undefined') {
-                fbq('track', 'PageView');
-                fbq('trackCustom', 'ViewContent', {
-                  content_name: pageName,
-                  content_category: 'page',
-                  page_path: currentPath
-                });
-              }
-              
-              // TikTok Pixel - Track Page View
-              if (typeof ttq !== 'undefined') {
-                ttq.page();
-                ttq.track('ViewContent', {
-                  content_name: pageName,
-                  content_category: 'page',
-                  page_path: currentPath
-                });
-              }
-              
-              // Google Analytics - Track Page View
-              if (typeof gtag !== 'undefined') {
-                gtag('event', 'page_view', {
-                  page_path: currentPath,
-                  page_title: document.title,
-                  page_location: window.location.href
-                });
-              }
-            } catch (e) {
-              // تجاهل الأخطاء في التتبع
-            }
-          }
-          
-          // الحصول على اسم الصفحة من المسار
-          function getPageName(path) {
-            const pageNames = {
-              '/': 'Homepage',
-              '/home': 'Home',
-              '/about': 'About',
-              '/payment': 'Payment',
-              '/contact': 'Contact',
-              '/subscription': 'Subscription',
-              '/terms': 'Terms',
-              '/privacy': 'Privacy',
-              '/dashboard': 'Dashboard',
-              '/settings': 'Settings'
-            };
-            return pageNames[path] || path.replace('/', '').replace(/-/g, ' ');
-          }
-          
-          // مراقبة تغيير الصفحات (للـ SPA)
-          try {
-            const observer = new MutationObserver(() => {
-              const currentPath = window.location.pathname;
-              if (currentPath !== lastPath) {
-                lastPath = currentPath;
-                trackPageView();
-              }
-            });
-            
-            // بدء المراقبة
-            if (document.body) {
-              observer.observe(document.body, {
-                childList: true,
-                subtree: true
-              });
-            }
-          } catch (e) {
-            // تجاهل إذا فشل MutationObserver
-          }
-          
-          // تتبع عند تغيير URL (للـ React Router)
-          window.addEventListener('popstate', trackPageView);
-          
-          // دالة عامة لتتبع الصفحات من خارج
-          window.trackPageView = trackPageView;
-        }
-      })();
-    </script>
   </body>
 </html>

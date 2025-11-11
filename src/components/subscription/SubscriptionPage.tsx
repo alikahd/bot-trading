@@ -79,14 +79,13 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   ]);
   const [loading, setLoading] = useState(false); // false لأن لدينا بيانات افتراضية
 
-  // جلب الباقات من قاعدة البيانات
+  // جلب الباقات من قاعدة البيانات - مؤجل للأداء
   useEffect(() => {
     let isMounted = true;
     let timeoutId: NodeJS.Timeout;
     
     const fetchPlans = async () => {
       try {
-
         // فقط نعرض التحميل إذا لم تكن هناك بيانات محملة مسبقاً
         if (plans.length === 0) {
           setLoading(true);
@@ -95,10 +94,9 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         // Timeout للتأكد من عدم البقاء في حالة التحميل للأبد
         timeoutId = setTimeout(() => {
           if (isMounted) {
-
             setLoading(false);
           }
-        }, 5000); // 5 ثوانٍ - تقليل وقت الانتظار
+        }, 5000);
         
         const { data, error } = await supabase
           .from('subscription_plans')

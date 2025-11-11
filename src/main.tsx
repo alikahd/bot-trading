@@ -12,6 +12,13 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>
 );
 
+// إخفاء شاشة التحميل فوراً بعد تحميل React
+setTimeout(() => {
+  if (typeof (window as any).hideInitialLoader === 'function') {
+    (window as any).hideInitialLoader();
+  }
+}, 100);
+
 // إخفاء جميع console.log في الإنتاج
 if (import.meta.env.PROD) {
   console.log = () => {};
