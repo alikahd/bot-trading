@@ -3,7 +3,6 @@
  * تغيير رابط واحد يؤثر على كل المشروع
  */
 
-// رابط سيرفر IQ Option
 // 🌐 للاستضافة المحلية مع Cloudflare Tunnel:
 //    1. شغل: python iqoption_unofficial_server.py
 //    2. شغل: cloudflared tunnel --url http://localhost:5000

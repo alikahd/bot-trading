@@ -3,6 +3,71 @@ import fetch from 'node-fetch';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8530062657:AAFda5kxR9VLgdTEyMum3ilTwRLaD93vN-8';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1003153068884';
 
+// التحقق من حالة السوق
+export function isMarketOpen() {
+  const now = new Date();
+  const day = now.getUTCDay(); // 0 = الأحد, 6 = السبت
+  const hour = now.getUTCHours();
+  
+  // سوق الفوركس مغلق في عطلة نهاية الأسبوع
+  // يفتح: الأحد 22:00 GMT/UTC
+  // يغلق: الجمعة 22:00 GMT/UTC
+  if (day === 6) return false; // السبت - مغلق طوال اليوم
+  if (day === 0 && hour < 22) return false; // الأحد قبل 22:00 UTC - مغلق
+  if (day === 5 && hour >= 22) return false; // الجمعة بعد 22:00 UTC - مغلق
+  
+  return true; // السوق مفتوح
+}
+
+// إرسال رسالة السوق مغلق
+export async function sendMarketClosedMessage() {
+  try {
+    const now = new Date();
+    const formatTime = (date) => date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    const formatDate = (date) => date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    
+    const message = `🔴 <b>السوق مغلق حالياً</b> 🔴
+
+⚠️ <b>سوق الفوركس مغلق خلال عطلة نهاية الأسبوع</b>
+📊 التوصيات متوقفة مؤقتاً
+
+⏰ <b>ساعات العمل:</b>
+• <b>الأحد 22:00 GMT</b> → <b>الجمعة 22:00 GMT</b>
+• السوق مغلق: <b>السبت والأحد (حتى 22:00 GMT)</b>
+
+🔄 <b>سيتم استئناف التوصيات تلقائياً عند افتتاح السوق</b>
+
+🤖 ${formatDate(now)} ${formatTime(now)}`;
+
+    const response = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      }
+    );
+    
+    const result = await response.json();
+    return result.ok;
+  } catch (error) {
+    return false;
+  }
+}
+
 // إرسال رسالة إلى Telegram
 export async function sendTelegramMessage(recommendation) {
   try {

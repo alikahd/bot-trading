@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { LogOut, User, Menu, Settings, Globe, TrendingUp, Users } from 'lucide-react';
-import { IQOptionStatus } from '../IQOptionStatus';
+import { MarketStatus } from '../MarketStatus';
 import { UserNotifications } from '../notifications/UserNotifications';
 import { useAdminNotifications } from '../../contexts/AdminNotificationsContext';
-// تم حذف marketDataService - البيانات من IQ Option مباشرة
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { LanguageSelector } from '../ui/LanguageSelector';
@@ -33,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showIQStatus, setShowIQStatus] = useState(false);
+  const [showMarketStatus, setShowMarketStatus] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   // تتبع حجم الشاشة
@@ -48,14 +47,6 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // تتبع تغيير حالة showIQStatus
-  useEffect(() => {
-
-    if (showIQStatus) {
-
-    }
-  }, [showIQStatus]);
-  
   // استخدام السياقات
   const { language, setLanguage, t } = useLanguage();
 
@@ -89,13 +80,13 @@ export const Header: React.FC<HeaderProps> = ({
         if (isMobileMenuOpen) {
           setIsMobileMenuOpen(false);
         }
-        if (showIQStatus) {
-          setShowIQStatus(false);
+        if (showMarketStatus) {
+          setShowMarketStatus(false);
         }
       }
     };
 
-    if (isMobileMenuOpen || showIQStatus) {
+    if (isMobileMenuOpen || showMarketStatus) {
       document.addEventListener('keydown', handleEscapeKey);
       if (isMobileMenuOpen) {
         document.body.style.overflow = 'hidden';
@@ -108,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
       document.removeEventListener('keydown', handleEscapeKey);
       document.body.style.overflow = 'unset';
     };
-  }, [isMobileMenuOpen, showIQStatus]);
+  }, [isMobileMenuOpen, showMarketStatus]);
 
   return (
     <>
@@ -180,18 +171,17 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* الأزرار الحديثة - موضوعة فوق اللوغو */}
           <div className="relative flex items-center justify-between h-full" style={{ zIndex: 20 }}>
-            {/* زر IQ Option Status الحديث - على اليسار في RTL */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
 
-                  const newStatus = !showIQStatus;
-                  setShowIQStatus(newStatus);
+                  const newStatus = !showMarketStatus;
+                  setShowMarketStatus(newStatus);
 
                 }}
                 type="button"
                 className="group p-2 h-10 w-10 rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 text-green-400 hover:text-green-300 transition-all duration-300 flex items-center justify-center shadow-2xl cursor-pointer backdrop-blur-sm border border-green-500/50 hover:border-green-400/70 hover:shadow-green-500/30 hover:scale-105"
-                title={language === 'ar' ? 'حالة IQ Option' : language === 'fr' ? 'Statut IQ Option' : 'IQ Option Status'}
+                title={language === 'ar' ? 'حالة السوق' : language === 'fr' ? 'État du Marché' : 'Market Status'}
               >
                 <TrendingUp className="w-6 h-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12" />
               </button>
@@ -356,10 +346,10 @@ export const Header: React.FC<HeaderProps> = ({
                 })}
               </div>
 
-              {/* زر حالة IQ Option */}
-              <div className="relative" title={language === 'ar' ? 'حالة IQ Option' : language === 'fr' ? 'Statut IQ Option' : 'IQ Option Status'}>
+              {/* زر حالة السوق */}
+              <div className="relative" title={language === 'ar' ? 'حالة السوق' : language === 'fr' ? 'État du Marché' : 'Market Status'}>
                 <Button
-                  onClick={() => setShowIQStatus(!showIQStatus)}
+                  onClick={() => setShowMarketStatus(!showMarketStatus)}
                   variant="glass"
                   size="sm"
                   icon={<TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />}
@@ -368,17 +358,17 @@ export const Header: React.FC<HeaderProps> = ({
                 />
                 
                 {/* النافذة المنسدلة للكمبيوتر فقط */}
-                {showIQStatus && !isMobile && (
+                {showMarketStatus && !isMobile && (
                   <>
                     {/* خلفية شفافة للإغلاق */}
                     <div 
                       className="fixed inset-0 z-40"
-                      onClick={() => setShowIQStatus(false)}
+                      onClick={() => setShowMarketStatus(false)}
                     />
                     
                     {/* محتوى النافذة */}
-                    <div className="absolute top-full right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] z-50 animate-in slide-in-from-top-2 duration-200">
-                      <IQOptionStatus />
+                    <div className="absolute top-full right-0 mt-3 w-[420px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-120px)] overflow-hidden rounded-xl shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200">
+                      <MarketStatus />
                     </div>
                   </>
                 )}
@@ -514,10 +504,10 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                       )}
 
-                      {/* حالة IQ Option */}
+                      {/* حالة السوق */}
                       <button
                         onClick={() => {
-                          setShowIQStatus(!showIQStatus);
+                          setShowMarketStatus(!showMarketStatus);
                           setIsMobileMenuOpen(false);
                         }}
                         className={cn(
@@ -527,7 +517,7 @@ export const Header: React.FC<HeaderProps> = ({
                         style={{ backgroundColor: 'rgba(22, 101, 52, 0.1)' }}
                       >
                         <TrendingUp className="w-5 h-5 text-green-400" />
-                        <span className="text-sm">{language === 'ar' ? 'حالة IQ Option' : language === 'fr' ? 'Statut IQ Option' : 'IQ Option Status'}</span>
+                        <span className="text-sm">{language === 'ar' ? 'حالة السوق' : language === 'fr' ? 'État du Marché' : 'Market Status'}</span>
                       </button>
 
                       {/* اللغة */}
@@ -570,40 +560,29 @@ export const Header: React.FC<HeaderProps> = ({
                 </>
               )}
 
-        {/* نافذة IQ Option المنسدلة للهواتف فقط - باستخدام Portal */}
-        {showIQStatus && isMobile && createPortal(
+        {/* نافذة حالة السوق المنسدلة للهواتف فقط - باستخدام Portal */}
+        {showMarketStatus && isMobile && createPortal(
           <div 
-            className="fixed inset-0 flex items-start justify-end p-4"
+            className="fixed inset-0 flex items-center justify-center p-3 sm:p-4"
             style={{ 
               zIndex: 999999,
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: '100vw',
-              height: '100vh',
-              paddingTop: '80px' // مسافة من الهيدر
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(4px)'
             }}
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-
-                setShowIQStatus(false);
+                setShowMarketStatus(false);
               }
             }}
           >
             <div 
+              className="w-full max-w-md max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl"
               style={{ 
-                width: '100%',
-                maxWidth: '400px',
-                maxHeight: '80vh',
-                overflow: 'auto',
                 animation: 'slideInFromRight 0.3s ease-out'
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <IQOptionStatus />
+              <MarketStatus />
             </div>
           </div>,
           document.body

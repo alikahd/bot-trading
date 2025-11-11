@@ -3,15 +3,151 @@
   <head>
     <meta charset="UTF-8" />
     
-    <!-- تعطيل الـ Cache -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
+    <!-- Preconnect للموارد الخارجية المهمة -->
+    <link rel="preconnect" href="https://djlirquyvpccuvjdaueb.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://djlirquyvpccuvjdaueb.supabase.co">
+    
+    <!-- تفعيل Cache للأداء الأفضل -->
+    <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable" />
     
     <link rel="icon" type="image/png" href="/images/icon.png" />
     <link rel="apple-touch-icon" href="/images/icon.png" />
     <link rel="shortcut icon" href="/images/icon.png" />
+    
+    <!-- SEO Meta Tags - سيتم تحديثها ديناميكياً -->
+    <meta name="description" content="BooTrading - Smart automated trading platform for cryptocurrencies and forex. Get accurate recommendations, advanced analysis, and instant trading signals." id="meta-description" />
+    <meta name="keywords" content="automated trading, trading bot, trading recommendations, technical analysis, cryptocurrency, forex, trading signals, BooTrading" id="meta-keywords" />
+    <meta name="author" content="BooTrading" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://www.bootrading.com/" />
+    
+    <!-- Alternate Language URLs -->
+    <link rel="alternate" hreflang="ar" href="https://www.bootrading.com/?lang=ar" />
+    <link rel="alternate" hreflang="en" href="https://www.bootrading.com/?lang=en" />
+    <link rel="alternate" hreflang="fr" href="https://www.bootrading.com/?lang=fr" />
+    <link rel="alternate" hreflang="x-default" href="https://www.bootrading.com/" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.bootrading.com/" />
+    <meta property="og:title" content="BooTrading - Smart Automated Trading Platform" id="og-title" />
+    <meta property="og:description" content="Get accurate trading recommendations and instant signals for cryptocurrencies and forex. Advanced analysis and professional tools." id="og-description" />
+    <meta property="og:locale" content="en_US" id="og-locale" />
+    <meta property="og:locale:alternate" content="ar_SA" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:site_name" content="BooTrading" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:url" content="https://www.bootrading.com/" />
+    <meta name="twitter:title" content="BooTrading - Smart Automated Trading Platform" id="twitter-title" />
+    <meta name="twitter:description" content="Get accurate trading recommendations and instant signals for cryptocurrencies and forex." id="twitter-description" />
+    
+    <!-- Additional SEO -->
+    <meta name="language" content="English" id="meta-language" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="rating" content="general" />
+    <meta name="distribution" content="global" />
+    
+    <!-- Meta Pixel Code -->
     <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '1327972468598136');
+      fbq('track', 'PageView');
+    </script>
+    <!-- End Meta Pixel Code -->
+    
+    <!-- TikTok Pixel Code Start -->
+    <script>
+      !function (w, d, t) {
+        w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
+        var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
+        ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+
+        ttq.load('D49ACMBC77U1PLJOFL2G');
+        ttq.page();
+      }(window, document, 'ttq');
+    </script>
+    <!-- TikTok Pixel Code End -->
+    
+    <!-- Google Analytics 4 (GA4) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-54MKQ2L1YZ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-54MKQ2L1YZ', {
+        page_path: window.location.pathname,
+        send_page_view: true
+      });
+    </script>
+    <!-- End Google Analytics -->
+    
+    <script>
+      // تحديث Meta Tags حسب اللغة
+      function updateMetaTags(lang) {
+        const metaContent = {
+          ar: {
+            description: 'BooTrading - منصة التداول الآلي الذكية للعملات الرقمية والفوركس. احصل على توصيات دقيقة، تحليلات متقدمة، وإشارات تداول فورية لتحقيق أرباح مستدامة.',
+            keywords: 'تداول آلي, بوت تداول, توصيات تداول, تحليل فني, عملات رقمية, فوركس, إشارات تداول, BooTrading',
+            ogTitle: 'BooTrading - منصة التداول الآلي الذكية',
+            ogDescription: 'احصل على توصيات تداول دقيقة وإشارات فورية للعملات الرقمية والفوركس. تحليلات متقدمة وأدوات احترافية لتحقيق أرباح مستدامة.',
+            twitterTitle: 'BooTrading - منصة التداول الآلي الذكية',
+            twitterDescription: 'احصل على توصيات تداول دقيقة وإشارات فورية للعملات الرقمية والفوركس.',
+            language: 'Arabic',
+            locale: 'ar_SA'
+          },
+          en: {
+            description: 'BooTrading - Smart automated trading platform for cryptocurrencies and forex. Get accurate recommendations, advanced analysis, and instant trading signals.',
+            keywords: 'automated trading, trading bot, trading recommendations, technical analysis, cryptocurrency, forex, trading signals, BooTrading',
+            ogTitle: 'BooTrading - Smart Automated Trading Platform',
+            ogDescription: 'Get accurate trading recommendations and instant signals for cryptocurrencies and forex. Advanced analysis and professional tools.',
+            twitterTitle: 'BooTrading - Smart Automated Trading Platform',
+            twitterDescription: 'Get accurate trading recommendations and instant signals for cryptocurrencies and forex.',
+            language: 'English',
+            locale: 'en_US'
+          },
+          fr: {
+            description: 'BooTrading - Plateforme de trading automatisé intelligente pour les crypto-monnaies et le forex. Obtenez des recommandations précises, des analyses avancées et des signaux de trading instantanés.',
+            keywords: 'trading automatisé, bot de trading, recommandations de trading, analyse technique, crypto-monnaie, forex, signaux de trading, BooTrading',
+            ogTitle: 'BooTrading - Plateforme de Trading Automatisé Intelligente',
+            ogDescription: 'Obtenez des recommandations de trading précises et des signaux instantanés pour les crypto-monnaies et le forex. Analyses avancées et outils professionnels.',
+            twitterTitle: 'BooTrading - Plateforme de Trading Automatisé',
+            twitterDescription: 'Obtenez des recommandations de trading précises et des signaux instantanés pour les crypto-monnaies et le forex.',
+            language: 'French',
+            locale: 'fr_FR'
+          }
+        };
+        
+        const content = metaContent[lang] || metaContent.en;
+        
+        // تحديث Meta Tags
+        const metaDescription = document.getElementById('meta-description');
+        const metaKeywords = document.getElementById('meta-keywords');
+        const metaLanguage = document.getElementById('meta-language');
+        const ogTitle = document.getElementById('og-title');
+        const ogDescription = document.getElementById('og-description');
+        const ogLocale = document.getElementById('og-locale');
+        const twitterTitle = document.getElementById('twitter-title');
+        const twitterDescription = document.getElementById('twitter-description');
+        
+        if (metaDescription) metaDescription.setAttribute('content', content.description);
+        if (metaKeywords) metaKeywords.setAttribute('content', content.keywords);
+        if (metaLanguage) metaLanguage.setAttribute('content', content.language);
+        if (ogTitle) ogTitle.setAttribute('content', content.ogTitle);
+        if (ogDescription) ogDescription.setAttribute('content', content.ogDescription);
+        if (ogLocale) ogLocale.setAttribute('content', content.locale);
+        if (twitterTitle) twitterTitle.setAttribute('content', content.twitterTitle);
+        if (twitterDescription) twitterDescription.setAttribute('content', content.twitterDescription);
+      }
+      
       // اختيار manifest حسب لغة التطبيق المحفوظة
       function updateManifest() {
         const currentLang = localStorage.getItem('selectedLanguage') || 'ar';
@@ -29,6 +165,9 @@
         manifestLink.rel = 'manifest';
         manifestLink.href = manifestPath;
         document.head.appendChild(manifestLink);
+        
+        // تحديث Meta Tags
+        updateMetaTags(currentLang);
         
         // تحديث اتجاه النص في HTML
         updateTextDirection(currentLang);
@@ -72,8 +211,98 @@
         }
       });
       
-      // تحديث manifest عند تغيير اللغة داخل التطبيق
+      // تحديث manifest وMeta Tags عند تغيير اللغة داخل التطبيق
       window.updateAppManifest = updateManifest;
+      window.updateAppMetaTags = function(lang) {
+        updateMetaTags(lang);
+      };
+      
+      // تتبع تغيير الصفحات في Facebook و TikTok Pixels
+      let lastPath = window.location.pathname;
+      
+      // دالة لتتبع الصفحة الحالية
+      function trackPageView() {
+        const currentPath = window.location.pathname;
+        const pageName = getPageName(currentPath);
+        
+        // Facebook Pixel - Track Page View
+        if (typeof fbq !== 'undefined') {
+          fbq('track', 'PageView');
+          fbq('trackCustom', 'ViewContent', {
+            content_name: pageName,
+            content_category: 'page',
+            page_path: currentPath
+          });
+        }
+        
+        // TikTok Pixel - Track Page View
+        if (typeof ttq !== 'undefined') {
+          ttq.page();
+          ttq.track('ViewContent', {
+            content_name: pageName,
+            content_category: 'page',
+            page_path: currentPath
+          });
+        }
+        
+        // Google Analytics - Track Page View
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'page_view', {
+            page_path: currentPath,
+            page_title: document.title,
+            page_location: window.location.href
+          });
+        }
+      }
+      
+      // الحصول على اسم الصفحة من المسار
+      function getPageName(path) {
+        const pageNames = {
+          '/': 'Homepage',
+          '/home': 'Home',
+          '/about': 'About',
+          '/payment': 'Payment',
+          '/contact': 'Contact',
+          '/subscription': 'Subscription',
+          '/terms': 'Terms',
+          '/privacy': 'Privacy',
+          '/dashboard': 'Dashboard',
+          '/settings': 'Settings'
+        };
+        return pageNames[path] || path.replace('/', '').replace(/-/g, ' ');
+      }
+      
+      // مراقبة تغيير الصفحات (للـ SPA)
+      const observer = new MutationObserver(() => {
+        const currentPath = window.location.pathname;
+        if (currentPath !== lastPath) {
+          lastPath = currentPath;
+          trackPageView();
+        }
+      });
+      
+      // بدء المراقبة بعد تحميل DOM
+      if (document.body) {
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      } else {
+        document.addEventListener('DOMContentLoaded', () => {
+          if (document.body) {
+            observer.observe(document.body, {
+              childList: true,
+              subtree: true
+            });
+          }
+        });
+      }
+      
+      // تتبع عند تغيير URL (للـ React Router)
+      window.addEventListener('popstate', trackPageView);
+      
+      // دالة عامة لتتبع الصفحات من خارج
+      window.trackPageView = trackPageView;
       
       // تسجيل نجاح التثبيت
       window.addEventListener('appinstalled', (evt) => {
@@ -114,6 +343,45 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <!-- تحميل مسبوق للوغو -->
     <link rel="preload" href="/images/logo.png" as="image" type="image/png">
+    
+    <!-- Structured Data (Schema.org) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "BooTrading",
+      "alternateName": "Bot Trading",
+      "description": "منصة التداول الآلي الذكية للعملات الرقمية والفوركس. احصل على توصيات دقيقة وإشارات تداول فورية.",
+      "url": "https://www.bootrading.com",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web, iOS, Android",
+      "offers": {
+        "@type": "AggregateOffer",
+        "lowPrice": "0",
+        "highPrice": "99",
+        "priceCurrency": "USD",
+        "offerCount": "3"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "150",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "BooTrading",
+        "url": "https://www.bootrading.com"
+      },
+      "inLanguage": ["ar", "en", "fr"],
+      "potentialAction": {
+        "@type": "UseAction",
+        "target": "https://www.bootrading.com/dashboard"
+      }
+    }
+    </script>
+    
     <style>
       * {
         font-family: 'Cairo', sans-serif;
@@ -393,6 +661,12 @@
     
   </head>
   <body>
+    <!-- Meta Pixel Noscript -->
+    <noscript>
+      <img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1327972468598136&ev=PageView&noscript=1"/>
+    </noscript>
+    
     <!-- شاشة التحميل الأولية -->
     <div id="initial-loader">
       <!-- خلفية متحركة -->
@@ -509,8 +783,8 @@
       };
     </script>
     
-    <!-- إصلاحات الهاتف المحمول -->
-    <script src="/mobile-fix.js"></script>
+    <!-- إصلاحات الهاتف المحمول - defer للأداء -->
+    <script src="/mobile-fix.js" defer></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

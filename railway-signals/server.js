@@ -1,10 +1,10 @@
 import { getBinaryPrice, getHistoricalData } from './binary-websocket.js';
 import { analyzeSignal } from './indicators.js';
-import { sendTelegramMessage } from './telegram.js';
+import { sendTelegramMessage, sendMarketClosedMessage, isMarketOpen } from './telegram.js';
 import { isBotEnabled, updateBotStats } from './supabase-client.js';
 import http from 'http';
 
-// أزواج Binary.com - عادي + OTC المتاحة
+// العملات الرئيسية + المشفرة + السلع فقط (باستثناء المؤشرات والناشئة والتركيبية)
 const SYMBOLS = [
   // ═══════════════════════════════════════════════════
   // الأزواج الرئيسية (Major Pairs) - عادي + OTC ✅
@@ -18,46 +18,93 @@ const SYMBOLS = [
   'frxNZDUSD', 'OTC_NZDUSD',     // NZD/USD
   
   // ═══════════════════════════════════════════════════
-  // الأزواج المتقاطعة EUR (EUR Cross Pairs) - عادي فقط
+  // الأزواج المتقاطعة EUR (EUR Cross Pairs) - عادي + OTC
   // ═══════════════════════════════════════════════════
-  'frxEURGBP',  // EUR/GBP
-  'frxEURJPY',  // EUR/JPY
-  'frxEURCHF',  // EUR/CHF
-  'frxEURAUD',  // EUR/AUD
-  'frxEURCAD',  // EUR/CAD
-  'frxEURNZD',  // EUR/NZD
+  'frxEURGBP', 'OTC_EURGBP',  // EUR/GBP
+  'frxEURJPY', 'OTC_EURJPY',  // EUR/JPY
+  'frxEURCHF', 'OTC_EURCHF',  // EUR/CHF
+  'frxEURAUD', 'OTC_EURAUD',  // EUR/AUD
+  'frxEURCAD', 'OTC_EURCAD',  // EUR/CAD
+  'frxEURNZD', 'OTC_EURNZD',  // EUR/NZD
   
   // ═══════════════════════════════════════════════════
-  // الأزواج المتقاطعة GBP (GBP Cross Pairs) - عادي فقط
+  // الأزواج المتقاطعة GBP (GBP Cross Pairs) - عادي + OTC
   // ═══════════════════════════════════════════════════
-  'frxGBPJPY',  // GBP/JPY
-  'frxGBPCHF',  // GBP/CHF
-  'frxGBPAUD',  // GBP/AUD
-  'frxGBPCAD',  // GBP/CAD
-  'frxGBPNZD',  // GBP/NZD
+  'frxGBPJPY', 'OTC_GBPJPY',  // GBP/JPY
+  'frxGBPCHF', 'OTC_GBPCHF',  // GBP/CHF
+  'frxGBPAUD', 'OTC_GBPAUD',  // GBP/AUD
+  'frxGBPCAD', 'OTC_GBPCAD',  // GBP/CAD
+  'frxGBPNZD', 'OTC_GBPNZD',  // GBP/NZD
   
   // ═══════════════════════════════════════════════════
-  // الأزواج المتقاطعة AUD (AUD Cross Pairs) - عادي فقط
+  // الأزواج المتقاطعة AUD (AUD Cross Pairs) - عادي + OTC
   // ═══════════════════════════════════════════════════
-  'frxAUDJPY',  // AUD/JPY
-  'frxAUDCAD',  // AUD/CAD
-  'frxAUDCHF',  // AUD/CHF
-  'frxAUDNZD',  // AUD/NZD
+  'frxAUDJPY', 'OTC_AUDJPY',  // AUD/JPY
+  'frxAUDCAD', 'OTC_AUDCAD',  // AUD/CAD
+  'frxAUDCHF', 'OTC_AUDCHF',  // AUD/CHF
+  'frxAUDNZD', 'OTC_AUDNZD',  // AUD/NZD
   
   // ═══════════════════════════════════════════════════
-  // الأزواج المتقاطعة الأخرى (Other Cross Pairs) - عادي فقط
+  // الأزواج المتقاطعة الأخرى (Other Cross Pairs) - عادي + OTC
   // ═══════════════════════════════════════════════════
-  'frxCADJPY',  // CAD/JPY
-  'frxCADCHF',  // CAD/CHF
-  'frxCHFJPY',  // CHF/JPY
-  'frxNZDCAD',  // NZD/CAD
-  'frxNZDCHF',  // NZD/CHF
-  'frxNZDJPY'   // NZD/JPY
+  'frxCADJPY', 'OTC_CADJPY',  // CAD/JPY
+  'frxCADCHF', 'OTC_CADCHF',  // CAD/CHF
+  'frxCHFJPY', 'OTC_CHFJPY',  // CHF/JPY
+  'frxNZDCAD', 'OTC_NZDCAD',  // NZD/CAD
+  'frxNZDCHF', 'OTC_NZDCHF',  // NZD/CHF
+  'frxNZDJPY', 'OTC_NZDJPY',  // NZD/JPY
+  
+  // ═══════════════════════════════════════════════════
+  // السلع (Commodities) - عادي + OTC ✅
+  // ═══════════════════════════════════════════════════
+  'frxXAUUSD', 'OTC_XAUUSD',  // Gold
+  'frxXAGUSD', 'OTC_XAGUSD',  // Silver
+  'frxXPDUSD', 'OTC_XPDUSD',  // Palladium
+  'frxXPTUSD', 'OTC_XPTUSD',  // Platinum
+  'frxBROUSD', 'OTC_BROUSD',  // Brent Oil
+  'frxWTIOUSD', 'OTC_WTIOUSD', // WTI Oil
+  
+  // ═══════════════════════════════════════════════════
+  // العملات الرقمية (Cryptocurrencies) - 24/7 ✅
+  // ═══════════════════════════════════════════════════
+  'cryBTCUSD',  // Bitcoin
+  'cryETHUSD',  // Ethereum
+  'cryLTCUSD',  // Litecoin
+  'cryXRPUSD',  // Ripple
+  'cryBCHUSD',  // Bitcoin Cash
+  'cryEOSUSD',  // EOS
+  'cryBNBUSD',  // Binance Coin
+  'cryXLMUSD',  // Stellar
+  'cryADAUSD',  // Cardano
+  'cryTRXUSD',  // Tron
+  'cryDOTUSD',  // Polkadot
+  'cryLINKUSD', // Chainlink
+  'cryUNIUSD',  // Uniswap
+  'crySOLUSD',  // Solana
+  'cryAVAXUSD', // Avalanche
+  'cryMATICUSD' // Polygon
+  
+  // ❌ مستثنى: المؤشرات (Indices)
+  // ❌ مستثنى: العملات الناشئة (Exotic Pairs)
+  // ❌ مستثنى: المؤشرات التركيبية (Synthetic Indices)
 ];
 
 // معالجة التوصيات - استراتيجية صارمة
 async function processSignals() {
   const startTime = Date.now();
+
+  // التحقق من حالة السوق أولاً
+  if (!isMarketOpen()) {
+    // إرسال رسالة السوق مغلق (مرة واحدة فقط في اليوم)
+    const now = new Date();
+    const lastSentKey = `market_closed_${now.toISOString().split('T')[0]}`;
+    
+    if (!global[lastSentKey]) {
+      await sendMarketClosedMessage();
+      global[lastSentKey] = true;
+    }
+    return;
+  }
 
   const recommendations = [];
   let analyzed = 0;

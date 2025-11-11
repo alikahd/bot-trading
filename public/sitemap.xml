@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://www.bootrading.com/</loc>
+    <lastmod>2024-11-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.bootrading.com/?lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.bootrading.com/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.bootrading.com/?lang=fr"/>
+  </url>
+  
+  <!-- Home -->
+  <url>
+    <loc>https://www.bootrading.com/home</loc>
+    <lastmod>2024-11-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.bootrading.com/home?lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.bootrading.com/home?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.bootrading.com/home?lang=fr"/>
+  </url>
+  
+  <!-- About -->
+  <url>
+    <loc>https://www.bootrading.com/about</loc>
+    <lastmod>2024-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.bootrading.com/about?lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.bootrading.com/about?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.bootrading.com/about?lang=fr"/>
+  </url>
+  
+  <!-- Contact -->
+  <url>
+    <loc>https://www.bootrading.com/contact</loc>
+    <lastmod>2024-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.bootrading.com/contact?lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.bootrading.com/contact?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.bootrading.com/contact?lang=fr"/>
+  </url>
+  
+  <!-- Terms -->
+  <url>
+    <loc>https://www.bootrading.com/terms</loc>
+    <lastmod>2024-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.bootrading.com/terms?lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.bootrading.com/terms?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.bootrading.com/terms?lang=fr"/>
+  </url>
+  
+</urlset>

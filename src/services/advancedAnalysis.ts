@@ -1284,9 +1284,9 @@ export class AdvancedAnalysisEngine {
    */
   async analyzeAllSymbols(): Promise<TradingSignal[]> {
 
-    // أزواج العملات فقط (Forex Pairs Only) - بيانات حقيقية 24/7
+    // العملات الرئيسية + المشفرة + السلع فقط
     const symbols = [
-      // العملات الرئيسية (Major Pairs) - عادي + OTC
+      // ===== العملات الرئيسية (Major Pairs) =====
       'EURUSD', 'EURUSD_otc',
       'GBPUSD', 'GBPUSD_otc',
       'USDJPY', 'USDJPY_otc',
@@ -1295,7 +1295,7 @@ export class AdvancedAnalysisEngine {
       'USDCHF', 'USDCHF_otc',
       'NZDUSD', 'NZDUSD_otc',
       
-      // العملات المتقاطعة (Cross Pairs) - عادي + OTC
+      // ===== العملات المتقاطعة (Cross Pairs) =====
       'EURGBP', 'EURGBP_otc',
       'EURJPY', 'EURJPY_otc',
       'EURCHF', 'EURCHF_otc',
@@ -1316,7 +1316,25 @@ export class AdvancedAnalysisEngine {
       'NZDCAD', 'NZDCAD_otc',
       'CADJPY', 'CADJPY_otc',
       'CADCHF', 'CADCHF_otc',
-      'CHFJPY', 'CHFJPY_otc'
+      'CHFJPY', 'CHFJPY_otc',
+      
+      // ===== السلع (Commodities) =====
+      'XAUUSD', 'XAUUSD_otc',
+      'XAGUSD', 'XAGUSD_otc',
+      'XPDUSD', 'XPDUSD_otc',
+      'XPTUSD', 'XPTUSD_otc',
+      'BROUSD', 'BROUSD_otc',
+      'WTIOUSD', 'WTIOUSD_otc',
+      
+      // ===== العملات الرقمية (Cryptocurrencies) =====
+      'BTCUSD', 'ETHUSD', 'LTCUSD', 'XRPUSD',
+      'BCHUSD', 'EOSUSD', 'BNBUSD', 'XLMUSD',
+      'ADAUSD', 'TRXUSD', 'DOTUSD', 'LINKUSD',
+      'UNIUSD', 'SOLUSD', 'AVAXUSD', 'MATICUSD'
+      
+      // ❌ مستثنى: المؤشرات (Indices)
+      // ❌ مستثنى: العملات الناشئة (Exotic Pairs)
+      // ❌ مستثنى: المؤشرات التركيبية (Synthetic Indices)
     ];
 
     // الحصول على الرموز المتاحة فعلياً

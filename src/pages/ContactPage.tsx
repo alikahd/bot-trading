@@ -7,6 +7,7 @@ import { LanguageSelector } from '../components/ui/LanguageSelector';
 import { Footer } from '../components/layout/Footer';
 import { Header } from '../components/layout/Header';
 import { useLanguage } from '../contexts/LanguageContext';
+import { emailConfig } from '../config/emailConfig';
 
 interface ContactPageProps {
   onBack?: () => void;
@@ -41,12 +42,43 @@ export const ContactPage: React.FC<ContactPageProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     
-    // محاكاة إرسال النموذج
-    setTimeout(() => {
+    try {
+      // إرسال البريد الإلكتروني باستخدام EmailJS
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          service_id: emailConfig.serviceId,
+          template_id: emailConfig.templateId,
+          user_id: emailConfig.publicKey,
+          template_params: {
+            from_name: formData.name,
+            from_email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+            to_email: emailConfig.recipientEmail,
+            reply_to: formData.email,
+          }
+        })
+      });
+
+      if (response.ok) {
+        alert(t('contact.messageSent'));
+        setFormData({ name: '', email: '', subject: '', message: '' });
+      } else {
+        throw new Error('Failed to send email');
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert(language === 'ar' 
+        ? 'حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى أو التواصل عبر البريد الإلكتروني مباشرة.'
+        : 'An error occurred while sending the message. Please try again or contact us directly via email.'
+      );
+    } finally {
       setIsSubmitting(false);
-      alert(t('contact.messageSent'));
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 2000);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -81,7 +113,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
       icon: Mail,
       title: t('contact.emailTitle'),
       description: t('contact.emailDesc'),
-      href: 'mailto:support@tradingbot.com',
+      href: 'mailto:support@BooTrading.com',
       buttonText: t('contact.emailButton'),
       color: 'text-blue-400'
     }

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Wifi, WifiOff, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-// تم حذف marketDataService - البيانات من IQ Option مباشرة
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface DataSourcePanelProps {
@@ -17,7 +16,7 @@ export const DataSourcePanel: React.FC<DataSourcePanelProps> = ({ isVisible, onC
     if (isVisible) {
       // تحديث حالة حدود الطلبات كل 10 ثوانٍ
       const updateLimits = () => {
-        const limits = { message: 'البيانات الحقيقية من IQ Option API' };
+        const limits = { message: 'البيانات الحقيقية من API' };
         setApiLimits(limits);
       };
 
@@ -30,7 +29,6 @@ export const DataSourcePanel: React.FC<DataSourcePanelProps> = ({ isVisible, onC
 
   const handleDataSourceToggle = (useReal: boolean) => {
     setUseRealData(useReal);
-    // تم حذف marketDataService - البيانات دائماً حقيقية من IQ Option
   };
 
   const getStatusColor = (canMakeRequest: boolean, requestsUsed: number, requestsLimit: number) => {

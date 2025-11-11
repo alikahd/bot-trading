@@ -29,3 +29,39 @@
   [headers.values]
     Connection = "Upgrade"
     Upgrade = "websocket"
+
+# Cache للملفات الثابتة - سنة كاملة
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache للصور - سنة كاملة
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache للخطوط - سنة كاملة
+[[headers]]
+  for = "/*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache للـ manifest وملفات PWA - أسبوع
+[[headers]]
+  for = "/*.json"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# Cache للـ Service Worker - بدون cache
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Preconnect hints في HTML
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Link = "</assets/*>; rel=preload; as=style, </assets/*>; rel=preload; as=script"

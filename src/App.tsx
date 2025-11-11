@@ -29,7 +29,6 @@ import { PreciseBinaryRecommendations } from './components/recommendations/Preci
 import { DataSourcePanel } from './components/data/DataSourcePanel';
 import { RealDataToggle } from './components/data/RealDataToggle';
 // تم حذف ApiStatusPanel
-// تم حذف marketDataService - البيانات من IQ Option مباشرة
 import { Footer } from './components/layout/Footer';
 import { supabase } from './config/supabaseClient';
 import { paymentService } from './services/paymentService';
@@ -122,7 +121,6 @@ function App() {
     }
   }, [isLoading]);
 
-  // تم حذف IQ Option WebSocket - الآن نستخدم Python Backend
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = useState(false);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
@@ -824,7 +822,7 @@ function App() {
   const [assets] = useState<any[]>([]);
   const [signals, setSignals] = useState<any[]>([]);
   const [strategy] = useState('balanced');
-  const [isConnected] = useState(true); // دائماً متصل بـ IQ Option
+  const [isConnected] = useState(true); 
   
   const clearSignals = () => {
     setSignals([]);
@@ -1945,7 +1943,6 @@ const AppContent: React.FC<AppContentProps> = ({
                   </div>
                 )}
                 
-                {/* تم حذف تبويبات إدارة المخاطر واتصال IQ Option والصفقات المحاكاة بناءً على طلب المستخدم */}
                 
                 {/* تم حذف مساعد التداول بناءً على طلب المستخدم */}
 

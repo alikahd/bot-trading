@@ -20,6 +20,7 @@ import {
 import { advancedAnalysisEngine } from '../../services/advancedAnalysis';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { notificationSound } from '../../services/notificationSound';
+import { MarketStatusBanner } from '../ui/MarketStatusBanner';
 
 // تعريف النوع محلياً
 interface CurrencyRecommendation {
@@ -57,11 +58,30 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isMarketOpen, setIsMarketOpen] = useState(true);
+
+  // التحقق من حالة السوق
+  const checkMarketStatus = () => {
+    const now = new Date();
+    const day = now.getUTCDay();
+    const hour = now.getUTCHours();
+    
+    // يفتح: الأحد 22:00 GMT | يغلق: الجمعة 22:00 GMT
+    if (day === 6) return false; // السبت - مغلق
+    if (day === 0 && hour < 22) return false; // الأحد قبل 22:00
+    if (day === 5 && hour >= 22) return false; // الجمعة بعد 22:00
+    
+    return true;
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 5000); // تحديث كل 5 ثوانٍ بدلاً من كل ثانية
+      setIsMarketOpen(checkMarketStatus()); // تحديث حالة السوق
+    }, 5000); // تحديث كل 5 ثوانٍ
+
+    // تحديث فوري عند التحميل
+    setIsMarketOpen(checkMarketStatus());
 
     return () => clearInterval(timer);
   }, []);
@@ -241,6 +261,9 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
 
   return (
     <div className="space-y-2 sm:space-y-3" dir={dir}>
+      {/* رسالة حالة السوق */}
+      <MarketStatusBanner isMarketOpen={isMarketOpen} />
+      
       {/* الهيدر */}
       <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -354,7 +377,7 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
             </div>
           )}
           
-          <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-gray-800 pr-2">
+          <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-hide pr-2">
             {recommendations.map((recommendation, index) => (
             <div
               key={recommendation.symbol}

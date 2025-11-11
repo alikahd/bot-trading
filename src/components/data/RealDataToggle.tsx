@@ -9,7 +9,6 @@ import {
   EyeOff,
   RefreshCw
 } from 'lucide-react';
-// تم حذف marketDataService - البيانات من IQ Option مباشرة
 import { useLanguage } from '../../contexts/LanguageContext';
 import { API_ENDPOINTS } from '../../config/serverConfig';
 
@@ -82,7 +81,6 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
   const handleToggle = () => {
     const newState = !isRealDataEnabled;
     setIsRealDataEnabled(newState);
-    // تم حذف marketDataService.setUseRealData - البيانات دائماً حقيقية من IQ Option
     onToggle?.(newState);
     
     // مسح الـ logs عند التبديل
@@ -100,7 +98,6 @@ export const RealDataToggle: React.FC<RealDataToggleProps> = ({ onToggle }) => {
       
       for (const symbol of testSymbols) {
         try {
-          // جلب البيانات مباشرة من IQ Option Server
           const response = await fetch(API_ENDPOINTS.quote(symbol));
           
           if (response.ok) {

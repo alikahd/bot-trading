@@ -19,6 +19,7 @@ import {
 import { advancedAnalysisEngine } from '../../services/advancedAnalysis';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { notificationSound } from '../../services/notificationSound';
+import { MarketStatusBanner } from '../ui/MarketStatusBanner';
 
 // تعريف النوع محلياً
 interface BinaryOptionRecommendation {
@@ -56,11 +57,29 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
   const [allRecommendations, setAllRecommendations] = useState<BinaryOptionRecommendation[]>([]); // جميع التوصيات
   const [showTimeframeFilter, setShowTimeframeFilter] = useState(false); // إظهار/إخفاء قائمة التصفية
   const [currentRecommendationIndex, setCurrentRecommendationIndex] = useState(0); // مؤشر التوصية الحالية للإرسال
+  const [isMarketOpen, setIsMarketOpen] = useState(true);
+
+  // التحقق من حالة السوق
+  const checkMarketStatus = () => {
+    const now = new Date();
+    const day = now.getUTCDay();
+    const hour = now.getUTCHours();
+    
+    // يفتح: الأحد 22:00 GMT | يغلق: الجمعة 22:00 GMT
+    if (day === 6) return false; // السبت - مغلق
+    if (day === 0 && hour < 22) return false; // الأحد قبل 22:00
+    if (day === 5 && hour >= 22) return false; // الجمعة بعد 22:00
+    
+    return true;
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
+      setIsMarketOpen(checkMarketStatus());
     }, 1000);
+
+    setIsMarketOpen(checkMarketStatus());
 
     return () => clearInterval(timer);
   }, []);
@@ -470,6 +489,9 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
 
   return (
     <div className="space-y-2 sm:space-y-3" dir={dir}>
+      {/* رسالة حالة السوق */}
+      <MarketStatusBanner isMarketOpen={isMarketOpen} />
+      
       {/* الهيدر */}
       <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -643,7 +665,7 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
           <p className="text-[10px] sm:text-xs text-gray-500 mt-1 sm:mt-2">{t('precise.tryLater')}</p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-gray-800 pr-2">
+        <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-hide pr-2">
           {/* مؤشر التحديث */}
           {isLoading && recommendations.length > 0 && (
             <div className="bg-purple-600/10 border border-purple-500/30 rounded-lg p-2 mb-3">
@@ -852,8 +874,6 @@ export const PreciseBinaryRecommendations: React.FC<PreciseBinaryRecommendations
               <li>{t('precise.tip1')}</li>
               <li>{t('precise.tip2')}</li>
               <li>{t('precise.tip3')}</li>
-              <li>{t('precise.tip4')}</li>
-              <li>{t('precise.tip5')}</li>
             </ul>
           </div>
         )}
