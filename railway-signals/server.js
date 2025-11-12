@@ -92,19 +92,34 @@ const SYMBOLS = [
 // معالجة التوصيات - استراتيجية صارمة
 async function processSignals() {
   const startTime = Date.now();
+  const now = new Date();
+  console.log('\n🚀 ═══════════════════════════════════════════════════════════════');
+  console.log(`🤖 [SERVER] بدء دورة تحليل جديدة`);
+  console.log(`📅 التاريخ: ${now.toLocaleDateString('en-US')}`);
+  console.log(`⏰ الوقت: ${now.toLocaleTimeString('en-US', { hour12: false })}`);
+  console.log('═══════════════════════════════════════════════════════════════\n');
 
   // التحقق من حالة السوق أولاً
+  console.log('🔍 [SERVER] التحقق من حالة السوق...');
   if (!isMarketOpen()) {
+    console.log('🔴 [SERVER] السوق مغلق حالياً');
+
     // إرسال رسالة السوق مغلق (مرة واحدة فقط في اليوم)
-    const now = new Date();
     const lastSentKey = `market_closed_${now.toISOString().split('T')[0]}`;
     
     if (!global[lastSentKey]) {
+      console.log('📤 [SERVER] إرسال رسالة السوق مغلق...');
       await sendMarketClosedMessage();
       global[lastSentKey] = true;
+      console.log('✅ [SERVER] تم إرسال رسالة السوق مغلق');
+    } else {
+      console.log('⏭️ [SERVER] تم إرسال رسالة السوق مغلق مسبقاً اليوم');
     }
     return;
   }
+
+  console.log('✅ [SERVER] السوق مفتوح - بدء التحليل');
+  console.log(`📊 [SERVER] عدد الرموز للتحليل: ${SYMBOLS.length}`);
 
   const recommendations = [];
   let analyzed = 0;
@@ -153,28 +168,41 @@ async function processSignals() {
     const bestSignal = sortedSignals[0];
 
     // ✅ التحقق من حالة البوت قبل الإرسال
+    console.log('🔍 [SERVER] التحقق من حالة البوت...');
     const botEnabled = await isBotEnabled();
+    console.log('🤖 [SERVER] حالة البوت:', { enabled: botEnabled });
     
     if (!botEnabled) {
-
+      console.log('⏸️ [SERVER] البوت متوقف - لن يتم إرسال التوصية');
     } else {
-
+      console.log('✅ [SERVER] البوت نشط - جاري إرسال التوصية:', {
+        symbol: bestSignal.symbol,
+        direction: bestSignal.direction,
+        confidence: bestSignal.confidence
+      });
+      
       const sent = await sendTelegramMessage(bestSignal);
       
       if (sent) {
-
+        console.log('✅ [SERVER] تم إرسال التوصية بنجاح');
         // تحديث إحصائيات البوت
         await updateBotStats();
+        console.log('📊 [SERVER] تم تحديث إحصائيات البوت');
       } else {
-
+        console.error('❌ [SERVER] فشل إرسال التوصية');
       }
     }
   } else {
-
+    console.log('⚠️ [SERVER] لا توجد توصيات للإرسال');
   }
   
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-
+  console.log('\n📊 [SERVER] ملخص الدورة:');
+  console.log(`   ⏱️ المدة: ${duration}s`);
+  console.log(`   ✅ تم التحليل: ${analyzed}`);
+  console.log(`   ❌ أخطاء: ${errors}`);
+  console.log(`   📈 توصيات: ${recommendations.length}`);
+  console.log('═══════════════════════════════════════════════════════════════\n');
 }
 
 // تشغيل كل دقيقتين بالضبط (21:02:00, 21:04:00, إلخ)

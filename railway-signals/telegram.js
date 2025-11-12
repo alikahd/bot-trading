@@ -70,6 +70,14 @@ export async function sendMarketClosedMessage() {
 
 // إرسال رسالة إلى Telegram
 export async function sendTelegramMessage(recommendation) {
+  console.log('📤 [TELEGRAM] بدء إرسال توصية:', {
+    symbol: recommendation.symbol,
+    direction: recommendation.direction,
+    confidence: recommendation.confidence,
+    timeframe: recommendation.timeframe,
+    timestamp: new Date().toISOString()
+  });
+  
   try {
     const now = new Date();
     
@@ -126,6 +134,12 @@ ${riskEmoji} <b>Risk:</b> ${riskLevel}
 
 🤖 ${formatDate(now)} ${formatTime(now)}`;
 
+    console.log('🌐 [TELEGRAM] إرسال طلب HTTP:', {
+      url: `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN.substring(0, 10)}...`,
+      chat_id: TELEGRAM_CHAT_ID,
+      message_length: message.length
+    });
+    
     const response = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
@@ -139,17 +153,34 @@ ${riskEmoji} <b>Risk:</b> ${riskLevel}
       }
     );
     
+    console.log('📡 [TELEGRAM] استجابة HTTP:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    
     const result = await response.json();
+    console.log('📋 [TELEGRAM] نتيجة JSON:', result);
     
     if (result.ok) {
-
+      console.log('✅ [TELEGRAM] تم إرسال التوصية بنجاح:', {
+        message_id: result.result?.message_id,
+        chat_id: result.result?.chat?.id
+      });
       return true;
     } else {
-
+      console.error('❌ [TELEGRAM] فشل إرسال التوصية:', {
+        error_code: result.error_code,
+        description: result.description
+      });
       return false;
     }
   } catch (error) {
-
+    console.error('💥 [TELEGRAM] خطأ في إرسال التوصية:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return false;
   }
 }

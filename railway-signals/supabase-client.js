@@ -29,7 +29,8 @@ function withTimeout(promise, timeoutMs = 5000) {
 
 export async function isBotEnabled() {
   try {
-
+    console.log('🔍 [SUPABASE] التحقق من حالة البوت...');
+    
     // المحاولة الأولى: قراءة مباشرة من الجدول مع timeout
     const queryPromise = supabase
       .from('telegram_bot_status')
@@ -41,32 +42,35 @@ export async function isBotEnabled() {
 
     // إذا فشلت القراءة المباشرة (بسبب RLS)، استخدم الدالة الآمنة
     if (error) {
-
+      console.log('⚠️ [SUPABASE] فشل الاستعلام المباشر، محاولة RPC...');
+      
       const rpcPromise = supabase.rpc('get_telegram_bot_status');
       const { data: functionData, error: functionError } = await withTimeout(rpcPromise, 5000);
       
       if (functionError) {
-
+        console.error('❌ [SUPABASE] فشل RPC:', functionError.message);
+        
         // استخدام آخر حالة معروفة
         if (lastKnownStatus.hasEverConnected) {
-
+          console.log('💾 [SUPABASE] استخدام آخر حالة معروفة:', lastKnownStatus.isEnabled);
           return lastKnownStatus.isEnabled;
         } else {
-
+          console.log('⚠️ [SUPABASE] لا توجد حالة معروفة، افتراض البوت نشط');
           return true;
         }
       }
       
       if (!functionData || functionData.length === 0) {
-
+        console.log('⚠️ [SUPABASE] لا توجد بيانات من RPC');
         if (lastKnownStatus.hasEverConnected) {
-
+          console.log('💾 [SUPABASE] استخدام آخر حالة معروفة:', lastKnownStatus.isEnabled);
           return lastKnownStatus.isEnabled;
         }
         return true;
       }
       
       data = functionData[0];
+      console.log('✅ [SUPABASE] نجح RPC');
     }
 
     // ✅ نجح الاتصال - حفظ الحالة في cache
@@ -77,15 +81,22 @@ export async function isBotEnabled() {
       hasEverConnected: true
     };
 
+    console.log('✅ [SUPABASE] حالة البوت:', {
+      enabled: isEnabled,
+      last_signal: data?.last_signal_sent,
+      total_signals: data?.total_signals_sent
+    });
+    
     return isEnabled;
   } catch (error) {
-
+    console.error('💥 [SUPABASE] خطأ في isBotEnabled:', error.message);
+    
     // استخدام آخر حالة معروفة
     if (lastKnownStatus.hasEverConnected) {
-
+      console.log('💾 [SUPABASE] استخدام آخر حالة معروفة بعد الخطأ:', lastKnownStatus.isEnabled);
       return lastKnownStatus.isEnabled;
     } else {
-
+      console.log('⚠️ [SUPABASE] لا توجد حالة معروفة بعد الخطأ، افتراض البوت نشط');
       return true;
     }
   }
