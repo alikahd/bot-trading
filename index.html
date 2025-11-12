@@ -40,9 +40,12 @@
     <link rel="preconnect" href="https://analytics.tiktok.com" crossorigin>
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
     
-    <link rel="icon" type="image/png" href="/images/icon.png" />
-    <link rel="apple-touch-icon" href="/images/icon.png" />
-    <link rel="shortcut icon" href="/images/icon.png" />
+    <!-- Favicon - جميع الأحجام -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/icon.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/icon.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#0f172a" />
     
     <!-- SEO Meta Tags - سيتم تحديثها ديناميكياً -->
     <meta name="description" content="BooTrading - Smart automated trading platform for cryptocurrencies and forex. Get accurate recommendations, advanced analysis, and instant trading signals." id="meta-description" />
@@ -79,7 +82,29 @@
     <meta name="rating" content="general" />
     <meta name="distribution" content="global" />
     
-    <!-- Schema.org Structured Data -->
+    <!-- Schema.org Structured Data - Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "BooTrading",
+      "alternateName": "Bot Trading",
+      "url": "https://www.bootrading.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.bootrading.com/images/icon.png",
+        "width": 512,
+        "height": 512
+      },
+      "image": "https://www.bootrading.com/images/icon.png",
+      "sameAs": [
+        "https://www.facebook.com/Bootradin",
+        "https://twitter.com/bootrading"
+      ]
+    }
+    </script>
+    
+    <!-- Schema.org Structured Data - FinancialService -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -91,7 +116,7 @@
       "logo": "https://www.bootrading.com/images/logo.png",
       "image": "https://www.bootrading.com/images/og-image.png",
       "sameAs": [
-        "https://www.facebook.com/bootrading",
+        "https://www.facebook.com/Bootradin",
         "https://twitter.com/bootrading"
       ],
       "aggregateRating": {

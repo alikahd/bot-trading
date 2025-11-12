@@ -432,8 +432,17 @@ class SimpleAuthService {
 
       // إذا لم يوجد المستخدم في جدول users (محذوف)
       if (!data) {
+        // ✅ تحقق من أن المستخدم ليس في عملية تسجيل خروج
+        const { data: authData } = await supabase.auth.getSession();
+        
+        // إذا لا توجد جلسة، المستخدم خارج بالفعل - لا داعي للرسالة
+        if (!authData.session) {
+          this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
+          localStorage.removeItem('auth_state_cache');
+          return;
+        }
 
-        // تسجيل خروج من Auth
+        // إذا كانت هناك جلسة لكن لا توجد بيانات، الحساب محذوف فعلاً
         await supabase.auth.signOut();
         this.updateAuthState({ isAuthenticated: false, user: null, isLoading: false });
         localStorage.removeItem('auth_state_cache');
