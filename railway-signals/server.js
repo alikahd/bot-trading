@@ -125,26 +125,28 @@ async function processSignals() {
   // إرسال أفضل توصية (دائماً إذا وجدت)
   // عرض أفضل 5 توصيات للتشخيص
   if (recommendations.length > 0) {
-    console.log(`📈 [SERVER] تم العثور على ${recommendations.length} توصية:`);
+    console.log(` [SERVER] تم العثور على ${recommendations.length} توصية:`);
     recommendations.slice(0, 5).forEach((rec, i) => {
       console.log(`   ${i+1}. ${rec.symbol} ${rec.direction} - ${rec.confidence}% (${rec.risk_level})`);
     });
   }
   
   if (recommendations.length > 0) {
-    // ترتيب حسب الثقة
-    const sortedSignals = recommendations.sort((a, b) => b.confidence - a.confidence);
-    const bestSignal = sortedSignals[0];
-
-    // ✅ التحقق من حالة البوت قبل الإرسال
-    console.log('🔍 [SERVER] التحقق من حالة البوت...');
-    const botEnabled = await isBotEnabled();
-    console.log('🤖 [SERVER] حالة البوت:', { enabled: botEnabled });
+    // ترتيب حسب الثقة ثم حسب عدد الأسباب
+    const bestSignal = recommendations.sort((a, b) => {
+      if (b.confidence !== a.confidence) return b.confidence - a.confidence;
+      return b.reasons.length - a.reasons.length;
+    })[0];
     
-    if (!botEnabled) {
-      console.log('⏸️ [SERVER] البوت متوقف - لن يتم إرسال التوصية');
-    } else {
-      console.log('✅ [SERVER] البوت نشط - جاري إرسال التوصية:', {
+    console.log(` [SERVER] أفضل توصية: ${bestSignal.symbol} ${bestSignal.direction} (${bestSignal.confidence}%)`);
+    
+    // التحقق من تفعيل البوت
+    const botEnabled = await isBotEnabled();
+    if (botEnabled) {
+      console.log(' [SERVER] البوت مفعل - إرسال التوصية');
+      
+      // تحديث إحصائيات قبل الإرسال
+      await updateBotStats({
         symbol: bestSignal.symbol,
         direction: bestSignal.direction,
         confidence: bestSignal.confidence
@@ -153,22 +155,52 @@ async function processSignals() {
       const sent = await sendTelegramMessage(bestSignal);
       
       if (sent) {
-        console.log('✅ [SERVER] تم إرسال التوصية بنجاح');
-        // تحديث إحصائيات البوت
-        await updateBotStats();
-        console.log('📊 [SERVER] تم تحديث إحصائيات البوت');
+        console.log(' [SERVER] تم إرسال التوصية بنجاح');
       } else {
-        console.error('❌ [SERVER] فشل إرسال التوصية');
+        console.error(' [SERVER] فشل إرسال التوصية');
       }
     }
   } else {
-    console.log('⚠️ [SERVER] لا توجد توصيات للإرسال');
+    console.log(' [SERVER] لا توجد توصيات عالية الجودة');
+    
+    // البحث عن توصيات بمعايير أقل صرامة (ضمان إرسال كل دقيقتين)
+    console.log(' [SERVER] البحث عن توصيات بمعايير مخففة...');
+    
+    const fallbackRecommendations = [];
+    for (const symbol of SYMBOLS) {
+      try {
+        const prices = await getHistoricalData(symbol, 50);
+        if (prices && prices.length >= 20) {
+          const signal = await analyzeSignal(symbol, prices, '2min', true); // وضع fallback
+          if (signal) {
+            fallbackRecommendations.push(signal);
+          }
+        }
+      } catch (error) {
+        // تجاهل الأخطاء في وضع fallback
+      }
+    }
+    
+    if (fallbackRecommendations.length > 0) {
+      const bestFallback = fallbackRecommendations.sort((a, b) => b.confidence - a.confidence)[0];
+      console.log(` [SERVER] توصية احتياطية: ${bestFallback.symbol} ${bestFallback.direction} (${bestFallback.confidence}%)`);
+      
+      const botEnabled = await isBotEnabled();
+      if (botEnabled) {
+        await sendTelegramMessage(bestFallback);
+        console.log(' [SERVER] تم إرسال التوصية الاحتياطية');
+      }
+    } else {
+      console.log(' [SERVER] لا توجد توصيات حتى بالمعايير المخففة');
+    }
   }
   
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  console.log('\n📊 [SERVER] ملخص الدورة:');
-  console.log(`   ⏱️ المدة: ${duration}s`);
-  console.log(`   ✅ تم التحليل: ${analyzed}`);
+  console.log('\n [SERVER] ملخص الدورة:');
+  console.log(`   المدة: ${duration}s`);
+  console.log(`   تم التحليل: ${analyzed}`);
+  console.log(`   أخطاء: ${errors}`);
+  console.log(`   توصيات: ${recommendations.length}`);
   console.log(`   ❌ أخطاء: ${errors}`);
   console.log(`   📈 توصيات: ${recommendations.length}`);
   console.log('═══════════════════════════════════════════════════════════════\n');

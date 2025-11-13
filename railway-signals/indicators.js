@@ -133,7 +133,7 @@ function calculateVolatility(prices, period = 20) {
 }
 
 // استراتيجية متقدمة: تحليل متعدد المؤشرات للفوركس
-export function analyzeSignal(prices, symbol) {
+export async function analyzeSignal(symbol, prices, timeframe = '5min', fallbackMode = false) {
   // التأكد من وجود بيانات كافية
   if (!prices || prices.length < 100) {
     return null;
@@ -377,12 +377,12 @@ export function analyzeSignal(prices, symbol) {
   let direction = null;
   let confidence = 0;
   
-  // الحد الأدنى: 55 نقطة (معايير متوازنة للفوركس)
+  // الحد الأدنى: 60 نقطة (معايير دقيقة للفوركس)
   // الحد الأقصى النظري: 40+35+30+15+25+20+20+20+15+20 = 240 نقطة
-  if (callScore > putScore && callScore >= 50) {
+  if (callScore > putScore && callScore >= 60) {
     direction = 'CALL';
     confidence = Math.min(callScore, 95); // حد أقصى 95% للواقعية
-  } else if (putScore > callScore && putScore >= 50) {
+  } else if (putScore > callScore && putScore >= 60) {
     direction = 'PUT';
     confidence = Math.min(putScore, 95); // حد أقصى 95% للواقعية
   }
@@ -391,16 +391,22 @@ export function analyzeSignal(prices, symbol) {
   console.log(`🔍 [ANALYSIS] ${symbol}: CALL=${callScore}, PUT=${putScore}, Direction=${direction || 'NONE'}, Confidence=${confidence}%, Reasons=${reasons.length}, TrendStrength=${trendStrength.toFixed(2)}`);
   if (direction) {
     console.log(`   📊 Reasons: ${reasons.join(', ')}`);
-    if (confidence < 50) console.log(`   ❌ رفض: ثقة منخفضة (${confidence}% < 50%)`);
+    if (confidence < 60) console.log(`   ❌ رفض: ثقة منخفضة (${confidence}% < 60%)`);
     if (reasons.length < 2) console.log(`   ❌ رفض: أسباب قليلة (${reasons.length} < 2)`);
     if (trendStrength < 0.1) console.log(`   ❌ رفض: قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.1)`);
   } else {
-    console.log(`   ❌ لا اتجاه: CALL=${callScore} < 50 و PUT=${putScore} < 50`);
+    console.log(`   ❌ لا اتجاه: CALL=${callScore} < 60 و PUT=${putScore} < 60`);
   }
   
-  // شروط متوازنة: اتجاه واضح + 2 أسباب على الأقل + ثقة 50%+ + قوة اتجاه معقولة
-  if (direction && confidence >= 50 && reasons.length >= 2 && trendStrength >= 0.1) {
-    console.log(`✅ [SIGNAL] ${symbol}: ${direction} توصية مقبولة! Confidence=${confidence}%`);
+  // تحديد المعايير حسب الوضع
+  const minConfidence = fallbackMode ? 45 : 60;
+  const minReasons = fallbackMode ? 1 : 2;
+  const minTrendStrength = fallbackMode ? 0.05 : 0.1;
+  
+  // شروط دقيقة أو احتياطية: اتجاه واضح + أسباب كافية + ثقة مناسبة + قوة اتجاه معقولة
+  if (direction && confidence >= minConfidence && reasons.length >= minReasons && trendStrength >= minTrendStrength) {
+    const modeText = fallbackMode ? '[FALLBACK]' : '[NORMAL]';
+    console.log(`✅ [SIGNAL] ${modeText} ${symbol}: ${direction} توصية مقبولة! Confidence=${confidence}%`);
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     

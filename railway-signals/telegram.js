@@ -129,14 +129,7 @@ export async function sendTelegramMessage(recommendation) {
 ${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}% | <b>Success Rate:</b> ${recommendation.expected_success_rate}%
 ${riskEmoji} <b>Risk Level:</b> ${riskLevel}
 
-📊 <b>Market Analysis:</b>
-• <b>Trend:</b> ${recommendation.market_analysis.trend.toUpperCase()}
-• <b>Strength:</b> ${recommendation.market_analysis.strength} points
-• <b>RSI:</b> ${recommendation.rsi} (${recommendation.market_analysis.rsi_level})
-• <b>Volatility:</b> ${recommendation.market_analysis.volatility.toUpperCase()}
-
-🔍 <b>Reasons:</b>
-${recommendation.reasons.slice(0, 3).map(reason => `• ${reason}`).join('\n')}
+🎯 <b>Technical Analysis:</b> ${recommendation.reasons.length} indicators confirm this signal
 
 🕐 <b>Entry Time:</b> ${formatTime(entryTime)}
 🕑 <b>Expiry Time:</b> ${formatTime(expiryTime)}
