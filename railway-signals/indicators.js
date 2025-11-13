@@ -133,7 +133,7 @@ function calculateVolatility(prices, period = 20) {
 }
 
 // استراتيجية متقدمة: تحليل متعدد المؤشرات للفوركس
-export async function analyzeSignal(prices, symbol) {
+export function analyzeSignal(prices, symbol) {
   console.log(`🎯 [INDICATORS] Starting analysis for ${symbol} with ${prices?.length || 0} prices`);
   
   if (!prices || prices.length < 100) {
