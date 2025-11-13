@@ -133,7 +133,7 @@ function calculateVolatility(prices, period = 20) {
 }
 
 // استراتيجية متقدمة: تحليل متعدد المؤشرات للفوركس
-export async function analyzeSignal(symbol, prices, timeframe = '5min', fallbackMode = false) {
+export async function analyzeSignal(symbol, prices, timeframe = '5min') {
   // التأكد من وجود بيانات كافية
   if (!prices || prices.length < 100) {
     return null;
@@ -377,44 +377,40 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min', fallback
   let direction = null;
   let confidence = 0;
   
-  // الحد الأدنى: 60 نقطة (معايير دقيقة للفوركس)
+  // معايير صارمة ثابتة: 65 نقطة كحد أدنى لضمان الجودة
   // الحد الأقصى النظري: 40+35+30+15+25+20+20+20+15+20 = 240 نقطة
-  if (callScore > putScore && callScore >= 60) {
+  if (callScore > putScore && callScore >= 65) {
     direction = 'CALL';
     confidence = Math.min(callScore, 95); // حد أقصى 95% للواقعية
-  } else if (putScore > callScore && putScore >= 60) {
+  } else if (putScore > callScore && putScore >= 65) {
     direction = 'PUT';
     confidence = Math.min(putScore, 95); // حد أقصى 95% للواقعية
   }
   
-  // تسجيل تشخيصي لكل رمز
+  // تسجيل تشخيصي مفصل لكل رمز
   console.log(`🔍 [ANALYSIS] ${symbol}: CALL=${callScore}, PUT=${putScore}, Direction=${direction || 'NONE'}, Confidence=${confidence}%, Reasons=${reasons.length}, TrendStrength=${trendStrength.toFixed(2)}`);
   if (direction) {
     console.log(`   📊 Reasons: ${reasons.join(', ')}`);
-    if (confidence < 60) console.log(`   ❌ رفض: ثقة منخفضة (${confidence}% < 60%)`);
-    if (reasons.length < 2) console.log(`   ❌ رفض: أسباب قليلة (${reasons.length} < 2)`);
-    if (trendStrength < 0.1) console.log(`   ❌ رفض: قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.1)`);
+    if (confidence < 65) console.log(`   ❌ رفض: ثقة منخفضة (${confidence}% < 65%)`);
+    if (reasons.length < 3) console.log(`   ❌ رفض: أسباب قليلة (${reasons.length} < 3)`);
+    if (trendStrength < 0.15) console.log(`   ❌ رفض: قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.15)`);
   } else {
-    console.log(`   ❌ لا اتجاه: CALL=${callScore} < 60 و PUT=${putScore} < 60`);
+    console.log(`   ❌ لا اتجاه: CALL=${callScore} < 65 و PUT=${putScore} < 65`);
   }
   
-  // تحديد المعايير حسب الوضع
-  const minConfidence = fallbackMode ? 45 : 60;
-  const minReasons = fallbackMode ? 1 : 2;
-  const minTrendStrength = fallbackMode ? 0.05 : 0.1;
-  
-  // شروط دقيقة أو احتياطية: اتجاه واضح + أسباب كافية + ثقة مناسبة + قوة اتجاه معقولة
-  if (direction && confidence >= minConfidence && reasons.length >= minReasons && trendStrength >= minTrendStrength) {
-    const modeText = fallbackMode ? '[FALLBACK]' : '[NORMAL]';
-    console.log(`✅ [SIGNAL] ${modeText} ${symbol}: ${direction} توصية مقبولة! Confidence=${confidence}%`);
+  // معايير صارمة ثابتة لضمان جودة التوصيات
+  // ✅ ثقة عالية: 65%+
+  // ✅ أسباب متعددة: 3+ مؤشرات تؤكد الاتجاه  
+  // ✅ قوة اتجاه واضحة: 0.15+ لتجنب الإشارات الضعيفة
+  if (direction && confidence >= 65 && reasons.length >= 3 && trendStrength >= 0.15) {
+    console.log(`✅ [PREMIUM SIGNAL] ${symbol}: ${direction} توصية عالية الجودة! Confidence=${confidence}%`);
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     
-    // تحديد أفضل إطار زمني بناءً على قوة الإشارة (معدل)
-    let timeframe = '5min';
-    if (confidence >= 80) timeframe = '1min';
-    else if (confidence >= 70) timeframe = '2min';
-    else if (confidence >= 60) timeframe = '3min';
+    // تحديد أفضل إطار زمني بناءً على قوة الإشارة (محدث للمعايير الجديدة)
+    let timeframe = '3min'; // افتراضي للثقة 65%+
+    if (confidence >= 85) timeframe = '1min';   // ثقة عالية جداً
+    else if (confidence >= 75) timeframe = '2min'; // ثقة عالية
     
     return {
       symbol: cleanSymbol, // إزالة (OTC) لأننا لا نستخدم رموز OTC

@@ -35,18 +35,23 @@ export async function sendMarketClosedMessage() {
       day: '2-digit'
     });
     
-    const message = `🔴 <b>السوق مغلق حالياً</b> 🔴
+    const message = `🔴 <b>MARKET CLOSED</b> 🔴
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚠️ <b>سوق الفوركس مغلق خلال عطلة نهاية الأسبوع</b>
-📊 التوصيات متوقفة مؤقتاً
+⚠️ <b>Forex market is currently closed</b>
+📊 Signal generation is temporarily paused
 
-⏰ <b>ساعات العمل:</b>
-• <b>الأحد 22:00 GMT</b> → <b>الجمعة 22:00 GMT</b>
-• السوق مغلق: <b>السبت والأحد (حتى 22:00 GMT)</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏰ <b>TRADING HOURS</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟢 <b>Open:</b> Sunday 22:00 GMT
+🔴 <b>Close:</b> Friday 22:00 GMT
+❌ <b>Closed:</b> Saturday & Sunday (until 22:00 GMT)
 
-🔄 <b>سيتم استئناف التوصيات تلقائياً عند افتتاح السوق</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 <b>Signals will resume automatically when market opens</b>
 
-🤖 ${formatDate(now)} ${formatTime(now)}`;
+🤖 <b>Status checked at:</b> <code>${formatDate(now)} ${formatTime(now)}</code>`;
 
     const response = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -81,9 +86,23 @@ export async function sendTelegramMessage(recommendation) {
   try {
     const now = new Date();
     
-    // إعطاء المتداول دقيقة كاملة للدخول
-    const entryTime = new Date(now.getTime() + 60 * 1000); // +1 دقيقة
-    const expiryTime = new Date(entryTime.getTime() + parseInt(recommendation.timeframe) * 60 * 1000);
+    // حساب أوقات الشراء بدقة - إعطاء المتداول وقت كافي
+    const entryTime = new Date(now.getTime() + 90 * 1000); // +90 ثانية (دقيقة ونصف) للدخول
+    const timeframeMinutes = parseInt(recommendation.timeframe);
+    const expiryTime = new Date(entryTime.getTime() + timeframeMinutes * 60 * 1000);
+    
+    // حساب الوقت المتبقي للدخول وعرضه بشكل واضح
+    const timeToEntry = Math.round((entryTime.getTime() - now.getTime()) / 1000);
+    let entryCountdown = '';
+    if (timeToEntry > 0) {
+      const minutes = Math.floor(timeToEntry / 60);
+      const seconds = timeToEntry % 60;
+      if (minutes > 0) {
+        entryCountdown = ` (${minutes}m ${seconds}s to enter)`;
+      } else {
+        entryCountdown = ` (${seconds}s to enter)`;
+      }
+    }
     
     const isCall = recommendation.direction === 'CALL';
     const directionEmoji = isCall ? '🟢' : '🔴';
@@ -121,20 +140,25 @@ export async function sendTelegramMessage(recommendation) {
       day: '2-digit'
     });
     
-    const message = `${directionEmoji} <b>${recommendation.symbol}</b> ${arrowEmoji} <b>${directionText}</b>
+    const message = `🚀 <b>BINARY OPTIONS SIGNAL</b> 🚀
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💰 <b>Price:</b> <code>${recommendation.price.toFixed(5)}</code>
-⏱️ <b>Timeframe:</b> ${recommendation.timeframe}
+💱 <b>PAIR:</b> <code>${recommendation.symbol}</code>
+${arrowEmoji} <b>DIRECTION:</b> <b>${directionText}</b>
+💰 <b>ENTRY PRICE:</b> <code>${recommendation.price.toFixed(5)}</code>
+${confidenceEmoji} <b>Confidence:</b> <b>${recommendation.confidence}%</b>
 
-${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}% | <b>Success Rate:</b> ${recommendation.expected_success_rate}%
-${riskEmoji} <b>Risk Level:</b> ${riskLevel}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏰ <b>TRADING SCHEDULE</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🕐 <b>Entry Time:</b> <code>${formatTime(entryTime)}</code>${entryCountdown}
+🕑 <b>Expiry Time:</b> <code>${formatTime(expiryTime)}</code>
+⏱️ <b>Duration:</b> <b>${timeframeMinutes} minutes</b>
 
-🎯 <b>Technical Analysis:</b> ${recommendation.reasons.length} indicators confirm this signal
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 <b>Generated:</b> <code>${formatTime(now)}</code>
 
-🕐 <b>Entry Time:</b> ${formatTime(entryTime)}
-🕑 <b>Expiry Time:</b> ${formatTime(expiryTime)}
-
-🤖 <b>Generated:</b> ${formatDate(now)} ${formatTime(now)}`;
+<i>💡 Enter within ${Math.floor(timeToEntry/60)}m ${timeToEntry%60}s</i>`;
 
     console.log('🌐 [TELEGRAM] إرسال طلب HTTP:', {
       url: `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN.substring(0, 10)}...`,
