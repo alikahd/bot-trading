@@ -391,9 +391,19 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
   console.log(`🔍 [ANALYSIS] ${symbol}: CALL=${callScore}, PUT=${putScore}, Direction=${direction || 'NONE'}, Confidence=${confidence}%, Reasons=${reasons.length}, TrendStrength=${trendStrength.toFixed(2)}`);
   if (direction) {
     console.log(`   📊 Reasons: ${reasons.join(', ')}`);
-    if (confidence < 55) console.log(`   ❌ رفض: ثقة منخفضة (${confidence}% < 55%)`);
-    if (reasons.length < 2) console.log(`   ❌ رفض: أسباب قليلة (${reasons.length} < 2)`);
-    if (trendStrength < 0.12) console.log(`   ❌ رفض: قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.12)`);
+    console.log(`   🔍 Final Check: confidence=${confidence}% (need 55+), reasons=${reasons.length} (need 2+), trendStrength=${trendStrength.toFixed(2)} (need 0.12+)`);
+    
+    // تفصيل أسباب الرفض
+    let rejectionReasons = [];
+    if (confidence < 55) rejectionReasons.push(`ثقة منخفضة (${confidence}% < 55%)`);
+    if (reasons.length < 2) rejectionReasons.push(`أسباب قليلة (${reasons.length} < 2)`);
+    if (trendStrength < 0.12) rejectionReasons.push(`قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.12)`);
+    
+    if (rejectionReasons.length > 0) {
+      console.log(`   ❌ مرفوض: ${rejectionReasons.join(', ')}`);
+    } else {
+      console.log(`   ✅ يجب أن يمر! جميع المعايير مستوفاة`);
+    }
   } else {
     console.log(`   ❌ لا اتجاه: CALL=${callScore} < 55 و PUT=${putScore} < 55`);
   }
