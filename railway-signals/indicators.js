@@ -379,16 +379,16 @@ export function analyzeSignal(prices, symbol) {
   
   // الحد الأدنى: 55 نقطة (معايير متوازنة للفوركس)
   // الحد الأقصى النظري: 40+35+30+15+25+20+20+20+15+20 = 240 نقطة
-  if (callScore > putScore && callScore >= 55) {
+  if (callScore > putScore && callScore >= 50) {
     direction = 'CALL';
     confidence = Math.min(callScore, 95); // حد أقصى 95% للواقعية
-  } else if (putScore > callScore && putScore >= 55) {
+  } else if (putScore > callScore && putScore >= 50) {
     direction = 'PUT';
     confidence = Math.min(putScore, 95); // حد أقصى 95% للواقعية
   }
   
   // شروط متوازنة: اتجاه واضح + 2 أسباب على الأقل + ثقة 55%+ + قوة اتجاه معقولة
-  if (direction && confidence >= 55 && reasons.length >= 2 && trendStrength >= 2) {
+  if (direction && confidence >= 50 && reasons.length >= 2 && trendStrength >= 1) {
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     
