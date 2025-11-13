@@ -109,11 +109,11 @@ async function processSignals() {
         console.log(`\n🔍 [ANALYZING] ${symbol}...`);
         const signal = analyzeSignal(prices, symbol);
         
-        if (signal) {
+        if (signal && signal.direction && signal.confidence) {
           console.log(`✅ [ACCEPTED] ${symbol}: ${signal.direction} ${signal.confidence}%`);
           recommendations.push(signal);
         } else {
-          console.log(`❌ [REJECTED] ${symbol}: فشل في تلبية المعايير`);
+          console.log(`❌ [REJECTED] ${symbol}: فشل في تلبية المعايير (signal=${signal ? 'invalid' : 'null'})`);
           // سنرى التفاصيل في analyzeSignal
         }
       }

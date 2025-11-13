@@ -387,28 +387,32 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
     confidence = Math.min(putScore, 95); // حد أقصى 95% للواقعية
   }
   
-  // تسجيل تشخيصي مفصل لكل رمز
-  console.log(`📊 [SCORES] ${symbol}: CALL=${callScore}, PUT=${putScore}`);
-  console.log(`📈 [RESULT] Direction=${direction || 'NONE'}, Confidence=${confidence}%, Reasons=${reasons.length}, TrendStrength=${trendStrength.toFixed(2)}`);
+  // تسجيل تشخيصي مفصل لكل رمز - مع رسائل واضحة لـ Render
+  console.log(`\n📊 === ANALYSIS FOR ${symbol} ===`);
+  console.log(`CALL Score: ${callScore} | PUT Score: ${putScore}`);
+  console.log(`Direction: ${direction || 'NONE'} | Confidence: ${confidence}% | Reasons: ${reasons.length} | Trend: ${trendStrength.toFixed(2)}`);
   
   if (direction) {
-    console.log(`   📋 Reasons: ${reasons.join(', ')}`);
-    console.log(`   🎯 Checks: Confidence ${confidence}%≥55? ${confidence >= 55 ? '✅' : '❌'} | Reasons ${reasons.length}≥2? ${reasons.length >= 2 ? '✅' : '❌'} | Trend ${trendStrength.toFixed(2)}≥0.12? ${trendStrength >= 0.12 ? '✅' : '❌'}`);
+    console.log(`Reasons Found: ${reasons.join(', ')}`);
     
-    // تفصيل أسباب الرفض
-    let rejectionReasons = [];
-    if (confidence < 55) rejectionReasons.push(`ثقة منخفضة (${confidence}% < 55%)`);
-    if (reasons.length < 2) rejectionReasons.push(`أسباب قليلة (${reasons.length} < 2)`);
-    if (trendStrength < 0.12) rejectionReasons.push(`قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.12)`);
+    const confCheck = confidence >= 55;
+    const reasonCheck = reasons.length >= 2;
+    const trendCheck = trendStrength >= 0.12;
     
-    if (rejectionReasons.length > 0) {
-      console.log(`   ❌ REJECTED: ${rejectionReasons.join(', ')}`);
+    console.log(`CRITERIA CHECK:`);
+    console.log(`- Confidence ${confidence}% >= 55%? ${confCheck ? 'PASS' : 'FAIL'}`);
+    console.log(`- Reasons ${reasons.length} >= 2? ${reasonCheck ? 'PASS' : 'FAIL'}`);
+    console.log(`- Trend ${trendStrength.toFixed(2)} >= 0.12? ${trendCheck ? 'PASS' : 'FAIL'}`);
+    
+    if (confCheck && reasonCheck && trendCheck) {
+      console.log(`FINAL RESULT: ✅ SIGNAL ACCEPTED FOR ${symbol}`);
     } else {
-      console.log(`   ✅ ACCEPTED: جميع المعايير مستوفاة!`);
+      console.log(`FINAL RESULT: ❌ SIGNAL REJECTED FOR ${symbol}`);
     }
   } else {
-    console.log(`   ❌ NO DIRECTION: Both scores < 55 (CALL=${callScore}, PUT=${putScore})`);
+    console.log(`NO DIRECTION: Both CALL(${callScore}) and PUT(${putScore}) scores < 55`);
   }
+  console.log(`=== END ANALYSIS FOR ${symbol} ===\n`);
   
   // معايير متوازنة لضمان جودة التوصيات مع توليد كمية مناسبة
   // ✅ ثقة جيدة: 55%+
