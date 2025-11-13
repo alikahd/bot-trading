@@ -377,12 +377,12 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
   let direction = null;
   let confidence = 0;
   
-  // معايير صارمة ثابتة: 65 نقطة كحد أدنى لضمان الجودة
+  // معايير محسنة: 55 نقطة كحد أدنى لتوازن الجودة والكمية
   // الحد الأقصى النظري: 40+35+30+15+25+20+20+20+15+20 = 240 نقطة
-  if (callScore > putScore && callScore >= 65) {
+  if (callScore > putScore && callScore >= 55) {
     direction = 'CALL';
     confidence = Math.min(callScore, 95); // حد أقصى 95% للواقعية
-  } else if (putScore > callScore && putScore >= 65) {
+  } else if (putScore > callScore && putScore >= 55) {
     direction = 'PUT';
     confidence = Math.min(putScore, 95); // حد أقصى 95% للواقعية
   }
@@ -391,18 +391,18 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
   console.log(`🔍 [ANALYSIS] ${symbol}: CALL=${callScore}, PUT=${putScore}, Direction=${direction || 'NONE'}, Confidence=${confidence}%, Reasons=${reasons.length}, TrendStrength=${trendStrength.toFixed(2)}`);
   if (direction) {
     console.log(`   📊 Reasons: ${reasons.join(', ')}`);
-    if (confidence < 65) console.log(`   ❌ رفض: ثقة منخفضة (${confidence}% < 65%)`);
-    if (reasons.length < 3) console.log(`   ❌ رفض: أسباب قليلة (${reasons.length} < 3)`);
-    if (trendStrength < 0.15) console.log(`   ❌ رفض: قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.15)`);
+    if (confidence < 55) console.log(`   ❌ رفض: ثقة منخفضة (${confidence}% < 55%)`);
+    if (reasons.length < 2) console.log(`   ❌ رفض: أسباب قليلة (${reasons.length} < 2)`);
+    if (trendStrength < 0.12) console.log(`   ❌ رفض: قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.12)`);
   } else {
-    console.log(`   ❌ لا اتجاه: CALL=${callScore} < 65 و PUT=${putScore} < 65`);
+    console.log(`   ❌ لا اتجاه: CALL=${callScore} < 55 و PUT=${putScore} < 55`);
   }
   
-  // معايير صارمة ثابتة لضمان جودة التوصيات
-  // ✅ ثقة عالية: 65%+
-  // ✅ أسباب متعددة: 3+ مؤشرات تؤكد الاتجاه  
-  // ✅ قوة اتجاه واضحة: 0.15+ لتجنب الإشارات الضعيفة
-  if (direction && confidence >= 65 && reasons.length >= 3 && trendStrength >= 0.15) {
+  // معايير متوازنة لضمان جودة التوصيات مع توليد كمية مناسبة
+  // ✅ ثقة جيدة: 55%+
+  // ✅ أسباب كافية: 2+ مؤشرات تؤكد الاتجاه  
+  // ✅ قوة اتجاه مقبولة: 0.12+ لتجنب الإشارات الضعيفة جداً
+  if (direction && confidence >= 55 && reasons.length >= 2 && trendStrength >= 0.12) {
     console.log(`✅ [PREMIUM SIGNAL] ${symbol}: ${direction} توصية عالية الجودة! Confidence=${confidence}%`);
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
