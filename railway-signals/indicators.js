@@ -377,12 +377,12 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
   let direction = null;
   let confidence = 0;
   
-  // معايير محسنة: 55 نقطة كحد أدنى لتوازن الجودة والكمية
+  // معايير مخففة: 50 نقطة كحد أدنى لتوليد المزيد من التوصيات
   // الحد الأقصى النظري: 40+35+30+15+25+20+20+20+15+20 = 240 نقطة
-  if (callScore > putScore && callScore >= 55) {
+  if (callScore > putScore && callScore >= 50) {
     direction = 'CALL';
     confidence = Math.min(callScore, 95); // حد أقصى 95% للواقعية
-  } else if (putScore > callScore && putScore >= 55) {
+  } else if (putScore > callScore && putScore >= 50) {
     direction = 'PUT';
     confidence = Math.min(putScore, 95); // حد أقصى 95% للواقعية
   }
@@ -395,14 +395,14 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
   if (direction) {
     console.log(`Reasons Found: ${reasons.join(', ')}`);
     
-    const confCheck = confidence >= 55;
-    const reasonCheck = reasons.length >= 2;
-    const trendCheck = trendStrength >= 0.12;
+    const confCheck = confidence >= 50;
+    const reasonCheck = reasons.length >= 1;
+    const trendCheck = trendStrength >= 0.10;
     
-    console.log(`CRITERIA CHECK:`);
-    console.log(`- Confidence ${confidence}% >= 55%? ${confCheck ? 'PASS' : 'FAIL'}`);
-    console.log(`- Reasons ${reasons.length} >= 2? ${reasonCheck ? 'PASS' : 'FAIL'}`);
-    console.log(`- Trend ${trendStrength.toFixed(2)} >= 0.12? ${trendCheck ? 'PASS' : 'FAIL'}`);
+    console.log(`CRITERIA CHECK (RELAXED):`);
+    console.log(`- Confidence ${confidence}% >= 50%? ${confCheck ? 'PASS' : 'FAIL'}`);
+    console.log(`- Reasons ${reasons.length} >= 1? ${reasonCheck ? 'PASS' : 'FAIL'}`);
+    console.log(`- Trend ${trendStrength.toFixed(2)} >= 0.10? ${trendCheck ? 'PASS' : 'FAIL'}`);
     
     if (confCheck && reasonCheck && trendCheck) {
       console.log(`FINAL RESULT: ✅ SIGNAL ACCEPTED FOR ${symbol}`);
@@ -410,15 +410,15 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
       console.log(`FINAL RESULT: ❌ SIGNAL REJECTED FOR ${symbol}`);
     }
   } else {
-    console.log(`NO DIRECTION: Both CALL(${callScore}) and PUT(${putScore}) scores < 55`);
+    console.log(`NO DIRECTION: Both CALL(${callScore}) and PUT(${putScore}) scores < 50`);
   }
   console.log(`=== END ANALYSIS FOR ${symbol} ===\n`);
   
-  // معايير متوازنة لضمان جودة التوصيات مع توليد كمية مناسبة
-  // ✅ ثقة جيدة: 55%+
-  // ✅ أسباب كافية: 2+ مؤشرات تؤكد الاتجاه  
-  // ✅ قوة اتجاه مقبولة: 0.12+ لتجنب الإشارات الضعيفة جداً
-  if (direction && confidence >= 55 && reasons.length >= 2 && trendStrength >= 0.12) {
+  // معايير مخففة لتوليد المزيد من التوصيات
+  // ✅ ثقة مقبولة: 50%+
+  // ✅ سبب واحد على الأقل: 1+ مؤشر يؤكد الاتجاه  
+  // ✅ قوة اتجاه مخففة: 0.10+ لقبول المزيد من الإشارات
+  if (direction && confidence >= 50 && reasons.length >= 1 && trendStrength >= 0.10) {
     console.log(`✅ [PREMIUM SIGNAL] ${symbol}: ${direction} توصية عالية الجودة! Confidence=${confidence}%`);
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
