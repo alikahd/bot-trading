@@ -768,8 +768,6 @@
     <script>
       // إخفاء شاشة التحميل عند تحميل التطبيق
       window.addEventListener('DOMContentLoaded', function() {
-        console.log('🔄 DOM loaded, waiting for React...');
-        
         // انتظار أطول لتحميل React
         setTimeout(function() {
           const loader = document.getElementById('initial-loader');
@@ -777,7 +775,6 @@
           
           // التحقق من وجود محتوى في root أو إذا كان React محمّل
           if ((root && root.children.length > 0) || window.React || document.querySelector('[data-reactroot]')) {
-            console.log('✅ React loaded successfully');
             if (loader) {
               loader.classList.add('hidden');
               setTimeout(function() {
@@ -785,11 +782,9 @@
               }, 300);
             }
           } else {
-            console.log('⚠️ React not loaded yet, trying again...');
             // إعادة المحاولة كل ثانية
             const checkReact = setInterval(function() {
               if (root && root.children.length > 0) {
-                console.log('✅ React loaded after retry');
                 clearInterval(checkReact);
                 if (loader) {
                   loader.classList.add('hidden');
@@ -802,7 +797,6 @@
             
             // إخفاء إجباري بعد 10 ثوانٍ
             setTimeout(function() {
-              console.log('⏰ Force hiding loader after 10s');
               clearInterval(checkReact);
               if (loader) {
                 loader.classList.add('hidden');
@@ -812,12 +806,11 @@
               }
             }, 10000);
           }
-        }, 2000); // انتظار ثانيتين أولاً
+        }, 2000);
       });
       
       // إخفاء شاشة التحميل عند تحميل React
       window.hideInitialLoader = function() {
-        console.log('🎯 hideInitialLoader called');
         const loader = document.getElementById('initial-loader');
         if (loader) {
           loader.classList.add('hidden');
