@@ -4,89 +4,56 @@ import { sendTelegramMessage, sendMarketClosedMessage, isMarketOpen } from './te
 import { isBotEnabled, updateBotStats } from './supabase-client.js';
 import http from 'http';
 
-// العملات الرئيسية + المشفرة + السلع فقط (باستثناء المؤشرات والناشئة والتركيبية)
+// أزواج العملات الحقيقية فقط - بيانات فورية من Binary.com
 const SYMBOLS = [
   // ═══════════════════════════════════════════════════
   // الأزواج الرئيسية (Major Pairs) - عادي + OTC ✅
   // ═══════════════════════════════════════════════════
-  'frxEURUSD', 'OTC_EURUSD',     // EUR/USD
-  'frxGBPUSD', 'OTC_GBPUSD',     // GBP/USD
-  'frxUSDJPY', 'OTC_USDJPY',     // USD/JPY
-  'frxAUDUSD', 'OTC_AUDUSD',     // AUD/USD
-  'frxUSDCAD', 'OTC_USDCAD',     // USD/CAD
-  'frxUSDCHF', 'OTC_USDCHF',     // USD/CHF
-  'frxNZDUSD', 'OTC_NZDUSD',     // NZD/USD
+  'frxEURUSD', 'OTC_EURUSD',     // EUR/USD - الأكثر تداولاً
+  'frxGBPUSD', 'OTC_GBPUSD',     // GBP/USD - مستقر وسائل
+  'frxUSDJPY', 'OTC_USDJPY',     // USD/JPY - مستقر جداً
+  'frxAUDUSD', 'OTC_AUDUSD',     // AUD/USD - جيد للتحليل
+  'frxUSDCAD', 'OTC_USDCAD',     // USD/CAD - مستقر
+  'frxUSDCHF', 'OTC_USDCHF',     // USD/CHF - مستقر
+  'frxNZDUSD', 'OTC_NZDUSD',     // NZD/USD - متوسط التقلب
   
   // ═══════════════════════════════════════════════════
-  // الأزواج المتقاطعة EUR (EUR Cross Pairs) - عادي + OTC
+  // الأزواج المتقاطعة EUR (EUR Cross Pairs) ✅
   // ═══════════════════════════════════════════════════
-  'frxEURGBP', 'OTC_EURGBP',  // EUR/GBP
-  'frxEURJPY', 'OTC_EURJPY',  // EUR/JPY
-  'frxEURCHF', 'OTC_EURCHF',  // EUR/CHF
-  'frxEURAUD', 'OTC_EURAUD',  // EUR/AUD
-  'frxEURCAD', 'OTC_EURCAD',  // EUR/CAD
-  'frxEURNZD', 'OTC_EURNZD',  // EUR/NZD
+  'frxEURGBP', 'OTC_EURGBP',     // EUR/GBP - مستقر
+  'frxEURJPY', 'OTC_EURJPY',     // EUR/JPY - ممتاز للتحليل
+  'frxEURCHF', 'OTC_EURCHF',     // EUR/CHF - مستقر
+  'frxEURAUD', 'OTC_EURAUD',     // EUR/AUD - جيد
+  'frxEURCAD', 'OTC_EURCAD',     // EUR/CAD - مستقر
+  'frxEURNZD', 'OTC_EURNZD',     // EUR/NZD - متوسط
   
   // ═══════════════════════════════════════════════════
-  // الأزواج المتقاطعة GBP (GBP Cross Pairs) - عادي + OTC
+  // الأزواج المتقاطعة GBP (GBP Cross Pairs) ✅
   // ═══════════════════════════════════════════════════
-  'frxGBPJPY', 'OTC_GBPJPY',  // GBP/JPY
-  'frxGBPCHF', 'OTC_GBPCHF',  // GBP/CHF
-  'frxGBPAUD', 'OTC_GBPAUD',  // GBP/AUD
-  'frxGBPCAD', 'OTC_GBPCAD',  // GBP/CAD
-  'frxGBPNZD', 'OTC_GBPNZD',  // GBP/NZD
+  'frxGBPJPY', 'OTC_GBPJPY',     // GBP/JPY - متقلب ومربح
+  'frxGBPCHF', 'OTC_GBPCHF',     // GBP/CHF - جيد
+  'frxGBPAUD', 'OTC_GBPAUD',     // GBP/AUD - متوسط
+  'frxGBPCAD', 'OTC_GBPCAD',     // GBP/CAD - جيد
+  'frxGBPNZD', 'OTC_GBPNZD',     // GBP/NZD - متوسط
   
   // ═══════════════════════════════════════════════════
-  // الأزواج المتقاطعة AUD (AUD Cross Pairs) - عادي + OTC
+  // الأزواج المتقاطعة الأخرى (Other Cross Pairs) ✅
   // ═══════════════════════════════════════════════════
-  'frxAUDJPY', 'OTC_AUDJPY',  // AUD/JPY
-  'frxAUDCAD', 'OTC_AUDCAD',  // AUD/CAD
-  'frxAUDCHF', 'OTC_AUDCHF',  // AUD/CHF
-  'frxAUDNZD', 'OTC_AUDNZD',  // AUD/NZD
+  'frxAUDJPY', 'OTC_AUDJPY',     // AUD/JPY - جيد للتحليل
+  'frxAUDCAD', 'OTC_AUDCAD',     // AUD/CAD - مستقر
+  'frxAUDCHF', 'OTC_AUDCHF',     // AUD/CHF - جيد
+  'frxAUDNZD', 'OTC_AUDNZD',     // AUD/NZD - متوسط
+  'frxCADJPY', 'OTC_CADJPY',     // CAD/JPY - جيد
+  'frxCADCHF', 'OTC_CADCHF',     // CAD/CHF - مستقر
+  'frxCHFJPY', 'OTC_CHFJPY',     // CHF/JPY - جيد للتحليل
+  'frxNZDCAD', 'OTC_NZDCAD',     // NZD/CAD - متوسط
+  'frxNZDCHF', 'OTC_NZDCHF',     // NZD/CHF - متوسط
+  'frxNZDJPY', 'OTC_NZDJPY'      // NZD/JPY - جيد
   
-  // ═══════════════════════════════════════════════════
-  // الأزواج المتقاطعة الأخرى (Other Cross Pairs) - عادي + OTC
-  // ═══════════════════════════════════════════════════
-  'frxCADJPY', 'OTC_CADJPY',  // CAD/JPY
-  'frxCADCHF', 'OTC_CADCHF',  // CAD/CHF
-  'frxCHFJPY', 'OTC_CHFJPY',  // CHF/JPY
-  'frxNZDCAD', 'OTC_NZDCAD',  // NZD/CAD
-  'frxNZDCHF', 'OTC_NZDCHF',  // NZD/CHF
-  'frxNZDJPY', 'OTC_NZDJPY',  // NZD/JPY
-  
-  // ═══════════════════════════════════════════════════
-  // السلع (Commodities) - عادي + OTC ✅
-  // ═══════════════════════════════════════════════════
-  'frxXAUUSD', 'OTC_XAUUSD',  // Gold
-  'frxXAGUSD', 'OTC_XAGUSD',  // Silver
-  'frxXPDUSD', 'OTC_XPDUSD',  // Palladium
-  'frxXPTUSD', 'OTC_XPTUSD',  // Platinum
-  'frxBROUSD', 'OTC_BROUSD',  // Brent Oil
-  'frxWTIOUSD', 'OTC_WTIOUSD', // WTI Oil
-  
-  // ═══════════════════════════════════════════════════
-  // العملات الرقمية (Cryptocurrencies) - 24/7 ✅
-  // ═══════════════════════════════════════════════════
-  'cryBTCUSD',  // Bitcoin
-  'cryETHUSD',  // Ethereum
-  'cryLTCUSD',  // Litecoin
-  'cryXRPUSD',  // Ripple
-  'cryBCHUSD',  // Bitcoin Cash
-  'cryEOSUSD',  // EOS
-  'cryBNBUSD',  // Binance Coin
-  'cryXLMUSD',  // Stellar
-  'cryADAUSD',  // Cardano
-  'cryTRXUSD',  // Tron
-  'cryDOTUSD',  // Polkadot
-  'cryLINKUSD', // Chainlink
-  'cryUNIUSD',  // Uniswap
-  'crySOLUSD',  // Solana
-  'cryAVAXUSD', // Avalanche
-  'cryMATICUSD' // Polygon
-  
-  // ❌ مستثنى: المؤشرات (Indices)
-  // ❌ مستثنى: العملات الناشئة (Exotic Pairs)
-  // ❌ مستثنى: المؤشرات التركيبية (Synthetic Indices)
+  // ❌ مستبعد: السلع (Gold, Silver, Oil)
+  // ❌ مستبعد: العملات الرقمية (Bitcoin, Ethereum)
+  // ❌ مستبعد: المؤشرات (Indices)
+  // ❌ مستبعد: المؤشرات التركيبية (Synthetic)
 ];
 
 // معالجة التوصيات - استراتيجية صارمة
@@ -143,12 +110,15 @@ async function processSignals() {
       }
       
       // تأخير صغير بين الطلبات
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200)); // زيادة التأخير
     } catch (error) {
       errors++;
-      // تجاهل الأخطاء الصامتة (رموز غير صالحة)
-      if (!error.message.includes('invalid')) {
-
+      // طباعة الأخطاء للتشخيص
+      console.log(`⚠️ [SERVER] خطأ في ${symbol}:`, error.message.substring(0, 50));
+      
+      // تجاهل الأخطاء المعروفة فقط
+      if (!error.message.includes('invalid') && !error.message.includes('Timeout')) {
+        console.error(`❌ [SERVER] خطأ غير متوقع في ${symbol}:`, error.message);
       }
     }
   }
@@ -156,9 +126,9 @@ async function processSignals() {
   // إرسال أفضل توصية (دائماً إذا وجدت)
   // عرض أفضل 5 توصيات للتشخيص
   if (recommendations.length > 0) {
-
+    console.log(`📈 [SERVER] تم العثور على ${recommendations.length} توصية:`);
     recommendations.slice(0, 5).forEach((rec, i) => {
-
+      console.log(`   ${i+1}. ${rec.symbol} ${rec.direction} - ${rec.confidence}% (${rec.risk_level})`);
     });
   }
   

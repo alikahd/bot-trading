@@ -75,15 +75,23 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
   };
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    // عداد سريع للوقت الحالي - كل ثانية للعد التنازلي السلس
+    const fastTimer = setInterval(() => {
       setCurrentTime(new Date());
-      setIsMarketOpen(checkMarketStatus()); // تحديث حالة السوق
-    }, 5000); // تحديث كل 5 ثوانٍ
+    }, 1000); // تحديث كل ثانية
+
+    // عداد بطيء لحالة السوق - كل 30 ثانية (لا نحتاج تحديث مستمر)
+    const slowTimer = setInterval(() => {
+      setIsMarketOpen(checkMarketStatus());
+    }, 30000); // تحديث كل 30 ثانية
 
     // تحديث فوري عند التحميل
     setIsMarketOpen(checkMarketStatus());
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(fastTimer);
+      clearInterval(slowTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -252,10 +260,58 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
 
   const getTimeUntilEntry = (entryTime: Date) => {
     const diff = entryTime.getTime() - currentTime.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
     
-    if (diff < 0) return language === 'ar' ? 'الآن' : language === 'fr' ? 'Maintenant' : 'Now';
+    if (diff <= 0) {
+      return language === 'ar' ? 'الآن' : language === 'fr' ? 'Maintenant' : 'Now';
+    }
+    
+    const totalSeconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    
+    // إذا أكثر من ساعة، اعرض الساعات أيضاً
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours}:${remainingMinutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const getTimeUntilExpiry = (expiryTime: Date) => {
+    const diff = expiryTime.getTime() - currentTime.getTime();
+    
+    if (diff <= 0) {
+      return language === 'ar' ? 'انتهت' : language === 'fr' ? 'Expiré' : 'Expired';
+    }
+    
+    const totalSeconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    
+    // إذا أكثر من ساعة، اعرض الساعات أيضاً
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours}:${remainingMinutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const getTimeSinceLastUpdate = () => {
+    if (!lastUpdate) return '';
+    
+    const diff = currentTime.getTime() - lastUpdate.getTime();
+    const totalSeconds = Math.floor(diff / 1000);
+    
+    if (totalSeconds < 60) {
+      return `${totalSeconds}${language === 'ar' ? 'ث' : language === 'fr' ? 's' : 's'}`;
+    }
+    
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
@@ -279,11 +335,22 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
                 </span>
               )}
             </div>
-            <p className="text-[10px] sm:text-xs text-gray-400 truncate">
-              {lastUpdate ? `${formatTime(lastUpdate)}` : t('recommendations.loading')}
-              {isPaused && <span className="ml-1 text-yellow-400">⏸</span>}
-              {lastUpdate && <span className="ml-1 text-green-400">📊</span>}
-            </p>
+            <div className="text-[10px] sm:text-xs text-gray-400 font-mono">
+              {lastUpdate ? (
+                <div className="flex flex-col gap-0.5">
+                  <span>{formatTime(lastUpdate)}</span>
+                  <span className="text-blue-400 animate-pulse">
+                    {language === 'ar' ? 'منذ' : language === 'fr' ? 'il y a' : 'ago'} {getTimeSinceLastUpdate()}
+                  </span>
+                </div>
+              ) : (
+                <span>{t('recommendations.loading')}</span>
+              )}
+              <div className="flex items-center gap-1 mt-0.5">
+                {isPaused && <span className="text-yellow-400">⏸</span>}
+                {lastUpdate && <span className="text-green-400">📊</span>}
+              </div>
+            </div>
           </div>
         </div>
         
@@ -335,7 +402,7 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
             <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
             <span className="text-xs sm:text-sm text-gray-300">{t('precise.currentTime')}:</span>
           </div>
-          <span className="text-base sm:text-xl font-bold text-white font-mono">
+          <span className="text-base sm:text-xl font-bold text-white font-mono animate-pulse">
             {formatTime(currentTime)}
           </span>
         </div>
@@ -421,8 +488,10 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
                   <div className="text-sm sm:text-lg font-bold text-white font-mono">
                     {formatTime(recommendation.entryTime)}
                   </div>
-                  <div className="text-[10px] sm:text-xs text-blue-400 mt-1">
-                    {language === 'ar' ? 'بعد' : language === 'fr' ? 'Dans' : 'In'} {getTimeUntilEntry(recommendation.entryTime)}
+                  <div className="text-[10px] sm:text-xs text-blue-400 mt-1 font-mono">
+                    <span className={`${getTimeUntilEntry(recommendation.entryTime) === (language === 'ar' ? 'الآن' : language === 'fr' ? 'Maintenant' : 'Now') ? 'animate-pulse text-green-400 font-bold' : ''}`}>
+                      {language === 'ar' ? 'بعد' : language === 'fr' ? 'Dans' : 'In'} {getTimeUntilEntry(recommendation.entryTime)}
+                    </span>
                   </div>
                 </div>
 
@@ -436,8 +505,10 @@ export const SmartRecommendationsPanel: React.FC<SmartRecommendationsPanelProps>
                   <div className="text-sm sm:text-lg font-bold text-white font-mono">
                     {formatTime(recommendation.expiryTime)}
                   </div>
-                  <div className="text-[10px] sm:text-xs text-purple-400 mt-1">
-                    {recommendation.timeframes[0].duration}{language === 'ar' ? 'د' : language === 'fr' ? 'min' : 'm'} {language === 'ar' ? 'مدة' : language === 'fr' ? 'durée' : 'duration'}
+                  <div className="text-[10px] sm:text-xs text-purple-400 mt-1 font-mono">
+                    <span className={`${getTimeUntilExpiry(recommendation.expiryTime) === (language === 'ar' ? 'انتهت' : language === 'fr' ? 'Expiré' : 'Expired') ? 'animate-pulse text-red-400 font-bold' : ''}`}>
+                      {language === 'ar' ? 'باقي' : language === 'fr' ? 'Reste' : 'Left'} {getTimeUntilExpiry(recommendation.expiryTime)}
+                    </span>
                   </div>
                 </div>
               </div>

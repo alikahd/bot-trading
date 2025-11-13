@@ -116,13 +116,35 @@ export function calculateVolumeTrend(prices) {
   return 'stable';
 }
 
-// استراتيجية صارمة: تحليل متعدد الأطر الزمنية
+// حساب تقلبات السوق
+function calculateVolatility(prices, period = 20) {
+  if (prices.length < period + 1) return 0;
+  
+  const returns = [];
+  for (let i = 1; i < period + 1; i++) {
+    const change = (prices[prices.length - i] - prices[prices.length - i - 1]) / prices[prices.length - i - 1];
+    returns.push(change);
+  }
+  
+  const mean = returns.reduce((a, b) => a + b) / returns.length;
+  const variance = returns.reduce((acc, ret) => acc + Math.pow(ret - mean, 2), 0) / returns.length;
+  
+  return Math.sqrt(variance);
+}
+
+// استراتيجية متقدمة: تحليل متعدد المؤشرات للفوركس
 export function analyzeSignal(prices, symbol) {
+  // التأكد من وجود بيانات كافية
+  if (!prices || prices.length < 100) {
+    return null;
+  }
+
   const rsi = calculateRSI(prices);
   const { macd, signal: macdSignal } = calculateMACD(prices);
   const ema12 = calculateEMA(prices, 12);
   const ema26 = calculateEMA(prices, 26);
   const ema50 = calculateEMA(prices, 50);
+  const ema200 = calculateEMA(prices, 200);
   const currentPrice = prices[prices.length - 1];
   const bollinger = calculateBollingerBands(prices);
   const stochastic = calculateStochastic(prices);
@@ -130,13 +152,22 @@ export function analyzeSignal(prices, symbol) {
   const momentum = calculateMomentum(prices);
   const volumeTrend = calculateVolumeTrend(prices);
   
-  // حساب الاتجاه العام
-  const trend = ema12 > ema26 && ema26 > ema50 ? 'BULLISH' : 
-                ema12 < ema26 && ema26 < ema50 ? 'BEARISH' : 'NEUTRAL';
+  // حساب الاتجاه العام متعدد المستويات
+  const shortTrend = ema12 > ema26 ? 'BULLISH' : 'BEARISH';
+  const mediumTrend = ema26 > ema50 ? 'BULLISH' : 'BEARISH';
+  const longTrend = ema50 > ema200 ? 'BULLISH' : 'BEARISH';
+  const overallTrend = (shortTrend === mediumTrend && mediumTrend === longTrend) ? shortTrend : 'NEUTRAL';
+  
+  // حساب قوة الاتجاه
+  const trendStrength = Math.abs(ema12 - ema26) / currentPrice * 10000; // في نقاط
   
   let callScore = 0;
   let putScore = 0;
   const reasons = [];
+  
+  // إضافة تحليل تقلبات السوق
+  const volatility = calculateVolatility(prices);
+  const isHighVolatility = volatility > 0.001;
   
   // ═══════════════════════════════════════════════════
   // استراتيجية 1: RSI (وزن: 40 نقطة)
@@ -346,18 +377,18 @@ export function analyzeSignal(prices, symbol) {
   let direction = null;
   let confidence = 0;
   
-  // الحد الأدنى: 55 نقطة (معايير متوازنة مع 10 استراتيجيات)
+  // الحد الأدنى: 60 نقطة (معايير دقيقة للفوركس)
   // الحد الأقصى النظري: 40+35+30+15+25+20+20+20+15+20 = 240 نقطة
-  if (callScore > putScore && callScore >= 55) {
+  if (callScore > putScore && callScore >= 60) {
     direction = 'CALL';
-    confidence = Math.min(callScore, 100);
-  } else if (putScore > callScore && putScore >= 55) {
+    confidence = Math.min(callScore, 95); // حد أقصى 95% للواقعية
+  } else if (putScore > callScore && putScore >= 60) {
     direction = 'PUT';
-    confidence = Math.min(putScore, 100);
+    confidence = Math.min(putScore, 95); // حد أقصى 95% للواقعية
   }
   
-  // يجب أن يكون هناك اتجاه واضح + 3 أسباب على الأقل + ثقة 55%+
-  if (direction && confidence >= 55 && reasons.length >= 3) {
+  // شروط صارمة: اتجاه واضح + 3 أسباب على الأقل + ثقة 60%+ + قوة اتجاه كافية
+  if (direction && confidence >= 60 && reasons.length >= 3 && trendStrength >= 2) {
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     
@@ -374,7 +405,15 @@ export function analyzeSignal(prices, symbol) {
       rsi: rsi.toFixed(2),
       confidence,
       timeframe,
-      reasons: reasons.join(' • ')
+      reasons: reasons.slice(0, 5), // أفضل 5 أسباب
+      market_analysis: {
+        trend: overallTrend.toLowerCase(),
+        strength: Math.round(trendStrength),
+        volatility: isHighVolatility ? 'high' : 'normal',
+        rsi_level: rsi < 30 ? 'oversold' : rsi > 70 ? 'overbought' : 'neutral'
+      },
+      risk_level: confidence >= 80 ? 'LOW' : confidence >= 70 ? 'MEDIUM' : 'HIGH',
+      expected_success_rate: Math.min(confidence + 5, 95) // إضافة 5% للنجاح المتوقع
     };
   }
   

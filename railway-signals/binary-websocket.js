@@ -8,7 +8,7 @@ export async function getBinaryPrice(symbol) {
     const timeout = setTimeout(() => {
       ws.close();
       reject(new Error('Timeout'));
-    }, 5000);
+    }, 15000); // زيادة إلى 15 ثانية
     
     ws.on('open', () => {
       ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
@@ -43,8 +43,24 @@ export async function getBinaryPrice(symbol) {
   });
 }
 
-// جلب بيانات تاريخية من Binary.com
-export async function getHistoricalData(symbol, count = 100) {
+// جلب بيانات تاريخية من Binary.com مع إعادة المحاولة
+export async function getHistoricalData(symbol, count = 100, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const data = await getHistoricalDataSingle(symbol, count);
+      return data;
+    } catch (error) {
+      if (attempt === retries) {
+        throw error;
+      }
+      // انتظار قبل إعادة المحاولة
+      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+    }
+  }
+}
+
+// دالة مساعدة لجلب البيانات مرة واحدة
+function getHistoricalDataSingle(symbol, count = 100) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
     const prices = [];
@@ -56,7 +72,7 @@ export async function getHistoricalData(symbol, count = 100) {
       } else {
         reject(new Error('Timeout - no data received'));
       }
-    }, 10000);
+    }, 20000); // زيادة إلى 20 ثانية للبيانات التاريخية
     
     ws.on('open', () => {
       ws.send(JSON.stringify({ 

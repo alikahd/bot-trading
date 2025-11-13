@@ -124,15 +124,24 @@ export async function sendTelegramMessage(recommendation) {
     const message = `${directionEmoji} <b>${recommendation.symbol}</b> ${arrowEmoji} <b>${directionText}</b>
 
 💰 <b>Price:</b> <code>${recommendation.price.toFixed(5)}</code>
-⏱️ <b>Time:</b> ${recommendation.timeframe}
+⏱️ <b>Timeframe:</b> ${recommendation.timeframe}
 
-${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}% | <b>Success:</b> ${Math.min(recommendation.confidence + 5, 95)}%
-${riskEmoji} <b>Risk:</b> ${riskLevel}
+${confidenceEmoji} <b>Confidence:</b> ${recommendation.confidence}% | <b>Success Rate:</b> ${recommendation.expected_success_rate}%
+${riskEmoji} <b>Risk Level:</b> ${riskLevel}
 
-🕐 <b>Entry:</b> ${formatTime(entryTime)}
-🕑 <b>Expiry:</b> ${formatTime(expiryTime)}
+📊 <b>Market Analysis:</b>
+• <b>Trend:</b> ${recommendation.market_analysis.trend.toUpperCase()}
+• <b>Strength:</b> ${recommendation.market_analysis.strength} points
+• <b>RSI:</b> ${recommendation.rsi} (${recommendation.market_analysis.rsi_level})
+• <b>Volatility:</b> ${recommendation.market_analysis.volatility.toUpperCase()}
 
-🤖 ${formatDate(now)} ${formatTime(now)}`;
+🔍 <b>Reasons:</b>
+${recommendation.reasons.slice(0, 3).map(reason => `• ${reason}`).join('\n')}
+
+🕐 <b>Entry Time:</b> ${formatTime(entryTime)}
+🕑 <b>Expiry Time:</b> ${formatTime(expiryTime)}
+
+🤖 <b>Generated:</b> ${formatDate(now)} ${formatTime(now)}`;
 
     console.log('🌐 [TELEGRAM] إرسال طلب HTTP:', {
       url: `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN.substring(0, 10)}...`,

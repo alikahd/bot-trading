@@ -234,6 +234,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white overflow-hidden">
+      {/* SEO H1 Tag - مخفي بصرياً لكن مرئي لمحركات البحث */}
+      <h1 className="sr-only">
+        {language === 'ar' 
+          ? 'BooTrading - منصة التداول الآلي الذكية للعملات الرقمية والفوركس مع الذكاء الاصطناعي'
+          : 'BooTrading - Smart Automated Trading Platform for Cryptocurrency and Forex with AI'
+        }
+      </h1>
+      
       {/* خلفية متحركة ثلاثية الأبعاد */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full">
@@ -355,7 +363,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </span>
             </div>
             
-            <h1 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 leading-tight text-center">
+            <h2 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 leading-tight text-center">
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
                 {language === 'ar' ? 'تداول ذكي' : language === 'en' ? 'Smart Trading' : 'Trading Intelligent'}
               </span>
@@ -363,7 +371,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <span className="text-white">
                 {language === 'ar' ? 'أرباح مضمونة' : language === 'en' ? 'Guaranteed Profits' : 'Profits Garantis'}
               </span>
-            </h1>
+            </h2>
             
             <p className="text-sm sm:text-base md:text-lg text-gray-300 mb-5 sm:mb-6 max-w-2xl mx-auto leading-relaxed px-2">
               {language === 'ar' 
