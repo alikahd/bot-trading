@@ -74,7 +74,7 @@ export async function sendMarketClosedMessage() {
 }
 
 // إرسال رسالة إلى Telegram
-export async function sendTelegramMessage(recommendation) {
+export async function sendTelegramMessage(recommendation, retries = 3) {
   console.log('📤 [TELEGRAM] بدء إرسال توصية:', {
     symbol: recommendation.symbol,
     direction: recommendation.direction,

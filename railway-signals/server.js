@@ -3,6 +3,7 @@ import { analyzeSignal } from './indicators.js';
 import { sendTelegramMessage, sendMarketClosedMessage, isMarketOpen } from './telegram.js';
 import { isBotEnabled, updateBotStats } from './supabase-client.js';
 import http from 'http';
+import fetch from 'node-fetch';
 
 // أزواج العملات الحقيقية فقط - رموز صحيحة من Binary.com
 const SYMBOLS = [
@@ -177,12 +178,27 @@ async function processSignals() {
         confidence: bestSignal.confidence
       });
       
-      const sent = await sendTelegramMessage(bestSignal);
+      // إرسال مع إعادة المحاولة
+      let sent = false;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (!sent && attempts < maxAttempts) {
+        attempts++;
+        console.log(`📤 [SERVER] محاولة إرسال ${attempts}/${maxAttempts}...`);
+        
+        sent = await sendTelegramMessage(bestSignal);
+        
+        if (!sent && attempts < maxAttempts) {
+          console.log(`⏳ [SERVER] انتظار 5 ثواني قبل إعادة المحاولة...`);
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      }
       
       if (sent) {
-        console.log(' [SERVER] تم إرسال التوصية بنجاح');
+        console.log('✅ [SERVER] تم إرسال التوصية بنجاح');
       } else {
-        console.error(' [SERVER] فشل إرسال التوصية');
+        console.error(`❌ [SERVER] فشل إرسال التوصية بعد ${maxAttempts} محاولات`);
       }
     }
   } else {
@@ -265,11 +281,25 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-
+  console.log(`🚀 [SERVER] HTTP Server running on port ${PORT}`);
 });
+
+// آلية Keep-Alive لمنع توقف Render - Self Ping
+setInterval(async () => {
+  try {
+    const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+    console.log(`💓 [KEEP-ALIVE] Pinging self: ${selfUrl}/health`);
+    
+    const response = await fetch(`${selfUrl}/health`);
+    const data = await response.json();
+    console.log(`✅ [KEEP-ALIVE] Self-ping successful:`, data);
+  } catch (error) {
+    console.log(`⚠️ [KEEP-ALIVE] Self-ping failed:`, error.message);
+  }
+}, 10 * 60 * 1000); // كل 10 دقائق
 
 // بدء Cron Job
 startCronJob().catch(error => {
-
+  console.error('❌ [CRON] Fatal error:', error);
   process.exit(1);
 });
