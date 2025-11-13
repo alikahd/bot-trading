@@ -387,8 +387,20 @@ export function analyzeSignal(prices, symbol) {
     confidence = Math.min(putScore, 95); // حد أقصى 95% للواقعية
   }
   
-  // شروط متوازنة: اتجاه واضح + 2 أسباب على الأقل + ثقة 55%+ + قوة اتجاه معقولة
+  // تسجيل تشخيصي لكل رمز
+  console.log(`🔍 [ANALYSIS] ${symbol}: CALL=${callScore}, PUT=${putScore}, Direction=${direction || 'NONE'}, Confidence=${confidence}%, Reasons=${reasons.length}, TrendStrength=${trendStrength.toFixed(2)}`);
+  if (direction) {
+    console.log(`   📊 Reasons: ${reasons.join(', ')}`);
+    if (confidence < 50) console.log(`   ❌ رفض: ثقة منخفضة (${confidence}% < 50%)`);
+    if (reasons.length < 2) console.log(`   ❌ رفض: أسباب قليلة (${reasons.length} < 2)`);
+    if (trendStrength < 1) console.log(`   ❌ رفض: قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 1)`);
+  } else {
+    console.log(`   ❌ لا اتجاه: CALL=${callScore} < 50 و PUT=${putScore} < 50`);
+  }
+  
+  // شروط متوازنة: اتجاه واضح + 2 أسباب على الأقل + ثقة 50%+ + قوة اتجاه معقولة
   if (direction && confidence >= 50 && reasons.length >= 2 && trendStrength >= 1) {
+    console.log(`✅ [SIGNAL] ${symbol}: ${direction} توصية مقبولة! Confidence=${confidence}%`);
     const cleanSymbol = symbol.replace(/frx|OTC_/gi, '');
     const isOTC = symbol.includes('OTC');
     
