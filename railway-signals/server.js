@@ -109,12 +109,22 @@ async function processSignals() {
         console.log(`\n🔍 [ANALYZING] ${symbol}...`);
         const signal = analyzeSignal(prices, symbol);
         
+        // تشخيص مفصل مباشر في السيرفر
+        console.log(`📊 [SERVER DEBUG] ${symbol} signal result:`, {
+          hasSignal: !!signal,
+          direction: signal?.direction || 'undefined',
+          confidence: signal?.confidence || 'undefined',
+          reasons: signal?.reasons?.length || 0,
+          signalType: typeof signal
+        });
+        
         if (signal && signal.direction && signal.confidence) {
           console.log(`✅ [ACCEPTED] ${symbol}: ${signal.direction} ${signal.confidence}%`);
           recommendations.push(signal);
         } else {
           console.log(`❌ [REJECTED] ${symbol}: فشل في تلبية المعايير (signal=${signal ? 'invalid' : 'null'})`);
-          // سنرى التفاصيل في analyzeSignal
+          if (signal && !signal.direction) console.log(`   ❌ Missing direction`);
+          if (signal && !signal.confidence) console.log(`   ❌ Missing confidence`);
         }
       }
       

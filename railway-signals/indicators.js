@@ -133,9 +133,11 @@ function calculateVolatility(prices, period = 20) {
 }
 
 // استراتيجية متقدمة: تحليل متعدد المؤشرات للفوركس
-export async function analyzeSignal(symbol, prices, timeframe = '5min') {
-  // التأكد من وجود بيانات كافية
+export async function analyzeSignal(prices, symbol) {
+  console.log(`🎯 [INDICATORS] Starting analysis for ${symbol} with ${prices?.length || 0} prices`);
+  
   if (!prices || prices.length < 100) {
+    console.log(`❌ [ANALYSIS] ${symbol}: بيانات غير كافية (${prices?.length || 0} < 100)`);
     return null;
   }
 
