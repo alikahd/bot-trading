@@ -388,10 +388,12 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
   }
   
   // تسجيل تشخيصي مفصل لكل رمز
-  console.log(`🔍 [ANALYSIS] ${symbol}: CALL=${callScore}, PUT=${putScore}, Direction=${direction || 'NONE'}, Confidence=${confidence}%, Reasons=${reasons.length}, TrendStrength=${trendStrength.toFixed(2)}`);
+  console.log(`📊 [SCORES] ${symbol}: CALL=${callScore}, PUT=${putScore}`);
+  console.log(`📈 [RESULT] Direction=${direction || 'NONE'}, Confidence=${confidence}%, Reasons=${reasons.length}, TrendStrength=${trendStrength.toFixed(2)}`);
+  
   if (direction) {
-    console.log(`   📊 Reasons: ${reasons.join(', ')}`);
-    console.log(`   🔍 Final Check: confidence=${confidence}% (need 55+), reasons=${reasons.length} (need 2+), trendStrength=${trendStrength.toFixed(2)} (need 0.12+)`);
+    console.log(`   📋 Reasons: ${reasons.join(', ')}`);
+    console.log(`   🎯 Checks: Confidence ${confidence}%≥55? ${confidence >= 55 ? '✅' : '❌'} | Reasons ${reasons.length}≥2? ${reasons.length >= 2 ? '✅' : '❌'} | Trend ${trendStrength.toFixed(2)}≥0.12? ${trendStrength >= 0.12 ? '✅' : '❌'}`);
     
     // تفصيل أسباب الرفض
     let rejectionReasons = [];
@@ -400,12 +402,12 @@ export async function analyzeSignal(symbol, prices, timeframe = '5min') {
     if (trendStrength < 0.12) rejectionReasons.push(`قوة اتجاه ضعيفة (${trendStrength.toFixed(2)} < 0.12)`);
     
     if (rejectionReasons.length > 0) {
-      console.log(`   ❌ مرفوض: ${rejectionReasons.join(', ')}`);
+      console.log(`   ❌ REJECTED: ${rejectionReasons.join(', ')}`);
     } else {
-      console.log(`   ✅ يجب أن يمر! جميع المعايير مستوفاة`);
+      console.log(`   ✅ ACCEPTED: جميع المعايير مستوفاة!`);
     }
   } else {
-    console.log(`   ❌ لا اتجاه: CALL=${callScore} < 55 و PUT=${putScore} < 55`);
+    console.log(`   ❌ NO DIRECTION: Both scores < 55 (CALL=${callScore}, PUT=${putScore})`);
   }
   
   // معايير متوازنة لضمان جودة التوصيات مع توليد كمية مناسبة

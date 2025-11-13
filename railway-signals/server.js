@@ -90,6 +90,12 @@ async function processSignals() {
   const recommendations = [];
   let analyzed = 0;
   let errors = 0;
+  let rejectionStats = {
+    lowConfidence: 0,
+    fewReasons: 0,
+    weakTrend: 0,
+    noDirection: 0
+  };
   
   for (const symbol of SYMBOLS) {
     try {
@@ -99,12 +105,16 @@ async function processSignals() {
       if (prices && prices.length >= 100) {
         analyzed++;
         
-        // تحليل وإنشاء توصية
+        // تحليل وإنشاء توصية مع تتبع الرفض
+        console.log(`\n🔍 [ANALYZING] ${symbol}...`);
         const signal = analyzeSignal(prices, symbol);
         
         if (signal) {
-
+          console.log(`✅ [ACCEPTED] ${symbol}: ${signal.direction} ${signal.confidence}%`);
           recommendations.push(signal);
+        } else {
+          console.log(`❌ [REJECTED] ${symbol}: فشل في تلبية المعايير`);
+          // سنرى التفاصيل في analyzeSignal
         }
       }
       
@@ -189,6 +199,10 @@ async function processSignals() {
     console.log('   2. جميع الرموز لديها أسباب < 2');
     console.log('   3. جميع الرموز لديها قوة اتجاه < 0.12');
     console.log('   4. السوق في حالة تذبذب (لا اتجاه واضح)');
+    console.log('\n💡 [SUGGESTION] لرؤية المزيد من التوصيات، يمكن:');
+    console.log('   - تقليل معيار الثقة من 55% إلى 50%');
+    console.log('   - تقليل معيار قوة الاتجاه من 0.12 إلى 0.10');
+    console.log('   - قبول توصية واحدة بدلاً من 2 أسباب');
   }
   
   console.log('═══════════════════════════════════════════════════════════════\n');
