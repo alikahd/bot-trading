@@ -4,56 +4,55 @@ import { sendTelegramMessage, sendMarketClosedMessage, isMarketOpen } from './te
 import { isBotEnabled, updateBotStats } from './supabase-client.js';
 import http from 'http';
 
-// أزواج العملات الحقيقية فقط - بيانات فورية من Binary.com
+// أزواج العملات الحقيقية فقط - رموز صحيحة من Binary.com
 const SYMBOLS = [
   // ═══════════════════════════════════════════════════
-  // الأزواج الرئيسية (Major Pairs) - عادي + OTC ✅
+  // الأزواج الرئيسية (Major Pairs) ✅
   // ═══════════════════════════════════════════════════
-  'frxEURUSD', 'OTC_EURUSD',     // EUR/USD - الأكثر تداولاً
-  'frxGBPUSD', 'OTC_GBPUSD',     // GBP/USD - مستقر وسائل
-  'frxUSDJPY', 'OTC_USDJPY',     // USD/JPY - مستقر جداً
-  'frxAUDUSD', 'OTC_AUDUSD',     // AUD/USD - جيد للتحليل
-  'frxUSDCAD', 'OTC_USDCAD',     // USD/CAD - مستقر
-  'frxUSDCHF', 'OTC_USDCHF',     // USD/CHF - مستقر
-  'frxNZDUSD', 'OTC_NZDUSD',     // NZD/USD - متوسط التقلب
+  'frxEURUSD',     // EUR/USD - الأكثر تداولاً
+  'frxGBPUSD',     // GBP/USD - مستقر وسائل
+  'frxUSDJPY',     // USD/JPY - مستقر جداً
+  'frxAUDUSD',     // AUD/USD - جيد للتحليل
+  'frxUSDCAD',     // USD/CAD - مستقر
+  'frxUSDCHF',     // USD/CHF - مستقر
+  'frxNZDUSD',     // NZD/USD - متوسط التقلب
   
   // ═══════════════════════════════════════════════════
   // الأزواج المتقاطعة EUR (EUR Cross Pairs) ✅
   // ═══════════════════════════════════════════════════
-  'frxEURGBP', 'OTC_EURGBP',     // EUR/GBP - مستقر
-  'frxEURJPY', 'OTC_EURJPY',     // EUR/JPY - ممتاز للتحليل
-  'frxEURCHF', 'OTC_EURCHF',     // EUR/CHF - مستقر
-  'frxEURAUD', 'OTC_EURAUD',     // EUR/AUD - جيد
-  'frxEURCAD', 'OTC_EURCAD',     // EUR/CAD - مستقر
-  'frxEURNZD', 'OTC_EURNZD',     // EUR/NZD - متوسط
+  'frxEURGBP',     // EUR/GBP - مستقر
+  'frxEURJPY',     // EUR/JPY - ممتاز للتحليل
+  'frxEURCHF',     // EUR/CHF - مستقر
+  'frxEURAUD',     // EUR/AUD - جيد
+  'frxEURCAD',     // EUR/CAD - مستقر
+  'frxEURNZD',     // EUR/NZD - متوسط
   
   // ═══════════════════════════════════════════════════
   // الأزواج المتقاطعة GBP (GBP Cross Pairs) ✅
   // ═══════════════════════════════════════════════════
-  'frxGBPJPY', 'OTC_GBPJPY',     // GBP/JPY - متقلب ومربح
-  'frxGBPCHF', 'OTC_GBPCHF',     // GBP/CHF - جيد
-  'frxGBPAUD', 'OTC_GBPAUD',     // GBP/AUD - متوسط
-  'frxGBPCAD', 'OTC_GBPCAD',     // GBP/CAD - جيد
-  'frxGBPNZD', 'OTC_GBPNZD',     // GBP/NZD - متوسط
+  'frxGBPJPY',     // GBP/JPY - متقلب ومربح
+  'frxGBPCHF',     // GBP/CHF - جيد
+  'frxGBPAUD',     // GBP/AUD - متوسط
+  'frxGBPCAD',     // GBP/CAD - جيد
+  'frxGBPNZD',     // GBP/NZD - متوسط
   
   // ═══════════════════════════════════════════════════
   // الأزواج المتقاطعة الأخرى (Other Cross Pairs) ✅
   // ═══════════════════════════════════════════════════
-  'frxAUDJPY', 'OTC_AUDJPY',     // AUD/JPY - جيد للتحليل
-  'frxAUDCAD', 'OTC_AUDCAD',     // AUD/CAD - مستقر
-  'frxAUDCHF', 'OTC_AUDCHF',     // AUD/CHF - جيد
-  'frxAUDNZD', 'OTC_AUDNZD',     // AUD/NZD - متوسط
-  'frxCADJPY', 'OTC_CADJPY',     // CAD/JPY - جيد
-  'frxCADCHF', 'OTC_CADCHF',     // CAD/CHF - مستقر
-  'frxCHFJPY', 'OTC_CHFJPY',     // CHF/JPY - جيد للتحليل
-  'frxNZDCAD', 'OTC_NZDCAD',     // NZD/CAD - متوسط
-  'frxNZDCHF', 'OTC_NZDCHF',     // NZD/CHF - متوسط
-  'frxNZDJPY', 'OTC_NZDJPY'      // NZD/JPY - جيد
+  'frxAUDJPY',     // AUD/JPY - جيد للتحليل
+  'frxAUDCAD',     // AUD/CAD - مستقر
+  'frxAUDCHF',     // AUD/CHF - جيد
+  'frxAUDNZD',     // AUD/NZD - متوسط
+  'frxCADJPY',     // CAD/JPY - جيد
+  'frxCADCHF',     // CAD/CHF - مستقر
+  'frxCHFJPY',     // CHF/JPY - جيد للتحليل
+  'frxNZDCAD',     // NZD/CAD - متوسط
+  'frxNZDCHF',     // NZD/CHF - متوسط
+  'frxNZDJPY'      // NZD/JPY - جيد
   
-  // ❌ مستبعد: السلع (Gold, Silver, Oil)
-  // ❌ مستبعد: العملات الرقمية (Bitcoin, Ethereum)
-  // ❌ مستبعد: المؤشرات (Indices)
-  // ❌ مستبعد: المؤشرات التركيبية (Synthetic)
+  // ✅ فقط رموز frx الصحيحة من Binary.com
+  // ❌ مستبعد: رموز OTC_ (غير صالحة)
+  // ❌ مستبعد: السلع والعملات الرقمية
 ];
 
 // معالجة التوصيات - استراتيجية صارمة

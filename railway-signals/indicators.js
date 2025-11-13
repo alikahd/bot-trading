@@ -217,19 +217,19 @@ export function analyzeSignal(prices, symbol) {
   // ═══════════════════════════════════════════════════
   // استراتيجية 3: EMA Trend (وزن: 30 نقطة)
   // ═══════════════════════════════════════════════════
-  if (trend === 'BULLISH') {
+  if (overallTrend === 'BULLISH') {
     callScore += 30;
     reasons.push('Strong Uptrend');
-  } else if (trend === 'BEARISH') {
+  } else if (overallTrend === 'BEARISH') {
     putScore += 30;
     reasons.push('Strong Downtrend');
   }
   
   // إضافة نقاط للاتجاه المتوسط
-  if (ema12 > ema26 && trend !== 'BULLISH') {
+  if (ema12 > ema26 && overallTrend !== 'BULLISH') {
     callScore += 15;
     reasons.push('EMA12 > EMA26');
-  } else if (ema12 < ema26 && trend !== 'BEARISH') {
+  } else if (ema12 < ema26 && overallTrend !== 'BEARISH') {
     putScore += 15;
     reasons.push('EMA12 < EMA26');
   }
@@ -277,10 +277,10 @@ export function analyzeSignal(prices, symbol) {
   
   // ضغط البولينجر (Squeeze)
   if (bbWidth < 1.5) {
-    if (trend === 'BULLISH') {
+    if (overallTrend === 'BULLISH') {
       callScore += 10;
       reasons.push('BB Squeeze + Uptrend');
-    } else if (trend === 'BEARISH') {
+    } else if (overallTrend === 'BEARISH') {
       putScore += 10;
       reasons.push('BB Squeeze + Downtrend');
     }
@@ -347,10 +347,10 @@ export function analyzeSignal(prices, symbol) {
   // استراتيجية 9: Volume Trend (وزن: 15 نقطة)
   // ═══════════════════════════════════════════════════
   if (volumeTrend === 'increasing') {
-    if (trend === 'BULLISH') {
+    if (overallTrend === 'BULLISH') {
       callScore += 15;
       reasons.push('Volume Confirms Uptrend');
-    } else if (trend === 'BEARISH') {
+    } else if (overallTrend === 'BEARISH') {
       putScore += 15;
       reasons.push('Volume Confirms Downtrend');
     }
@@ -399,7 +399,7 @@ export function analyzeSignal(prices, symbol) {
     else if (confidence >= 60) timeframe = '3min';
     
     return {
-      symbol: cleanSymbol + (isOTC ? ' (OTC)' : ''),
+      symbol: cleanSymbol, // إزالة (OTC) لأننا لا نستخدم رموز OTC
       direction,
       price: currentPrice,
       rsi: rsi.toFixed(2),
