@@ -36,19 +36,19 @@ export async function sendMarketClosedMessage() {
     });
     
     const message = `🔴 <b>MARKET CLOSED</b> 🔴
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ⚠️ <b>Forex market is currently closed</b>
 📊 Signal generation is temporarily paused
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⏰ <b>TRADING HOURS</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🟢 <b>Open:</b> Sunday 22:00 GMT
 🔴 <b>Close:</b> Friday 22:00 GMT
 ❌ <b>Closed:</b> Saturday & Sunday (until 22:00 GMT)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔄 <b>Signals will resume automatically when market opens</b>
 
 🤖 <b>Status checked at:</b> <code>${formatDate(now)} ${formatTime(now)}</code>`;
@@ -141,21 +141,21 @@ export async function sendTelegramMessage(recommendation) {
     });
     
     const message = `🚀 <b>BINARY OPTIONS SIGNAL</b> 🚀
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💱 <b>PAIR:</b> <code>${recommendation.symbol}</code>
 ${arrowEmoji} <b>DIRECTION:</b> <b>${directionText}</b>
 💰 <b>ENTRY PRICE:</b> <code>${recommendation.price.toFixed(5)}</code>
 ${confidenceEmoji} <b>Confidence:</b> <b>${recommendation.confidence}%</b>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⏰ <b>TRADING SCHEDULE</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🕐 <b>Entry Time:</b> <code>${formatTime(entryTime)}</code>${entryCountdown}
 🕑 <b>Expiry Time:</b> <code>${formatTime(expiryTime)}</code>
 ⏱️ <b>Duration:</b> <b>${timeframeMinutes} minutes</b>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 <b>Generated:</b> <code>${formatTime(now)}</code>
 
 <i>💡 Enter within ${Math.floor(timeToEntry/60)}m ${timeToEntry%60}s</i>`;
